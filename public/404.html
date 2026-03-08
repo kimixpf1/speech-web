@@ -4,12 +4,13 @@
   <meta charset="UTF-8">
   <title>Redirecting...</title>
   <script>
-    // SPA redirect: redirect all 404s to index.html with the original path preserved
-    var path = window.location.pathname;
-    var search = window.location.search;
+    // SPA redirect for HashRouter with base path /speech-web/
     var hash = window.location.hash;
-    var redirectUrl = '/' + '?redirect=' + encodeURIComponent(path + search + hash);
-    window.location.replace(redirectUrl);
+    if (hash) {
+      window.location.replace('/speech-web/' + hash);
+    } else {
+      window.location.replace('/speech-web/');
+    }
   </script>
 </head>
 <body>
