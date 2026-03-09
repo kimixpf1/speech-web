@@ -33,7 +33,7 @@ function SpeechCard({ speech }: { speech: Speech }) {
           <div className="flex-1 min-w-0">
             {/* Title - Clickable using <a> tag for reliable mobile navigation */}
             <a 
-              href={`/#/detail/${speech.id}`}
+              href={`/speech-web/#/detail/${speech.id}`}
               onClick={() => {
                 // 保存当前滚动位置
                 localStorage.setItem('scrollPosition', window.scrollY.toString());
@@ -86,7 +86,7 @@ function SpeechCard({ speech }: { speech: Speech }) {
               </button>
 
               <a
-                href={`/#/detail/${speech.id}`}
+                href={`/speech-web/#/detail/${speech.id}`}
                 onClick={() => {
                   // 保存当前滚动位置
                   localStorage.setItem('scrollPosition', window.scrollY.toString());
