@@ -142,9 +142,15 @@ export function DetailPage() {
     
     utterance.onerror = (e) => {
       console.error('语音播报错误:', e);
+      // 忽略用户主动取消的错误 (canceled 或 interrupted)
+      if (e.error === 'canceled' || e.error === 'interrupted' || e.error === 'aborted') {
+        return;
+      }
       setIsSpeaking(false);
-      // 错误时给用户提示
-      alert('语音播报失败，请尝试刷新页面或使用其他浏览器');
+      // 只在非用户主动取消时显示错误
+      if (e.error !== 'canceled') {
+        console.warn('语音播报失败:', e.error);
+      }
     };
     
     utteranceRef.current = utterance;
