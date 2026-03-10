@@ -11,7 +11,7 @@ import { AdminLogin } from '@/components/AdminLogin';
 import { AdminDashboard } from '@/components/AdminDashboard';
 import { SuggestionBox } from '@/components/SuggestionBox';
 import { speechesData } from '@/data/speeches';
-import { getArticles, initializeSync, subscribeToSyncStatus, setupRealtimeSubscription } from '@/services/articleServiceEnhanced';
+import { getArticles, initializeSync, setupRealtimeSubscription } from '@/services/articleServiceEnhanced';
 import { initAnalytics } from '@/services/analytics';
 import { initSupabaseAnalytics } from '@/services/supabaseAnalytics';
 import { isAdminLoggedIn } from '@/services/adminAuth';
