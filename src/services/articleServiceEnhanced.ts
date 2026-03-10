@@ -1,18 +1,8 @@
-import { createClient, type RealtimeChannel } from '@supabase/supabase-js'
+import { type RealtimeChannel } from '@supabase/supabase-js'
 import { speechesData as originalSpeechesData, type Speech } from '@/data/speeches';
+import { supabase } from '@/lib/supabase';
 
-// Supabase 配置
-const SUPABASE_URL = 'https://ejeiuqcmkznfbglvbkbe.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqZWl1cWNta3puZmJnbHZia2JlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE1NjU4MzEsImV4cCI6MjA1NzE0MTgzMX0.0q8W9IhpXv7Lx4b2G7lRqQqQqQqQqQqQqQqQqQqQqQ';
-
-// 创建 Supabase 客户端
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
-    },
-  },
-});
+// 复用 lib/supabase.ts 中的客户端配置
 
 // 表名
 const ARTICLES_TABLE = 'articles';
