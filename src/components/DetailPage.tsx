@@ -140,7 +140,7 @@ export function DetailPage() {
       setIsSpeaking(false);
     };
     
-    utterance.onerror = (e) => {
+    utterance.onerror = (e: SpeechSynthesisErrorEvent) => {
       console.error('语音播报错误:', e);
       // 忽略用户主动取消的错误 (canceled 或 interrupted)
       if (e.error === 'canceled' || e.error === 'interrupted' || e.error === 'aborted') {
