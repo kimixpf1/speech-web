@@ -494,21 +494,21 @@ export function setupRealtimeSubscription(
         schema: 'public',
         table: ARTICLES_TABLE,
       },
-      (payload) => {
+      (payload: { eventType: string; new?: Speech; old?: Speech }) => {
         console.log('Realtime change received:', payload);
         
         switch (payload.eventType) {
           case 'INSERT':
           case 'UPDATE':
             if (onArticleChange && payload.new) {
-              onArticleChange(payload.new as Speech);
+              onArticleChange(payload.new);
             }
             // 更新本地缓存
             syncArticles().catch(console.error);
             break;
           case 'DELETE':
             if (onArticleDelete && payload.old) {
-              onArticleDelete((payload.old as Speech).id);
+              onArticleDelete(payload.old.id);
             }
             // 更新本地缓存
             syncArticles().catch(console.error);
@@ -516,7 +516,7 @@ export function setupRealtimeSubscription(
         }
       }
     )
-    .subscribe((status) => {
+    .subscribe((status: string) => {
       console.log('Realtime subscription status:', status);
     });
   

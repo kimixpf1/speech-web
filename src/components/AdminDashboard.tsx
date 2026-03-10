@@ -20,7 +20,6 @@ import {
   Square,
   Cloud,
   CloudOff,
-  Sync,
   Wifi,
   WifiOff
 } from 'lucide-react';
@@ -487,7 +486,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 </span>
                 <span className="text-gray-400">|</span>
                 {syncStatus.isSyncing ? (
-                  <Sync className="w-4 h-4 text-blue-500 animate-spin" />
+                  <RefreshCw className="w-4 h-4 text-blue-500 animate-spin" />
                 ) : syncStatus.pendingChanges > 0 ? (
                   <CloudOff className="w-4 h-4 text-orange-500" />
                 ) : (
