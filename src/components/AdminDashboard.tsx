@@ -17,7 +17,12 @@ import {
   MessageSquare,
   ExternalLink,
   CheckSquare,
-  Square
+  Square,
+  Cloud,
+  CloudOff,
+  Sync,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,8 +60,13 @@ import {
   deleteArticle, 
   addArticle,
   generateArticleId,
-  type Speech 
-} from '@/services/articleService';
+  syncArticles,
+  initializeSync,
+  subscribeToSyncStatus,
+  setupRealtimeSubscription,
+  type Speech,
+  type SyncStatus
+} from '@/services/articleServiceEnhanced';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -98,6 +108,14 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   
   // 访客记录多选状态
   const [selectedVisits, setSelectedVisits] = useState<Set<string>>(new Set());
+  
+  // 同步状态
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>({
+    isOnline: navigator.onLine,
+    lastSync: null,
+    pendingChanges: 0,
+    isSyncing: false,
+  });
 
   useEffect(() => {
     if (!isAdminLoggedIn()) {
@@ -105,6 +123,35 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       return;
     }
     loadData();
+    
+    // 初始化文章同步
+    initializeSync().catch(console.error);
+    
+    // 订阅同步状态变化
+    const unsubscribeSync = subscribeToSyncStatus((status) => {
+      setSyncStatus(status);
+    });
+    
+    // 设置文章实时订阅
+    const unsubscribeRealtime = setupRealtimeSubscription(
+      (updatedArticle) => {
+        // 实时更新文章列表
+        setArticles(prev => {
+          const index = prev.findIndex(a => a.id === updatedArticle.id);
+          if (index !== -1) {
+            const updated = [...prev];
+            updated[index] = updatedArticle;
+            return updated;
+          } else {
+            return [updatedArticle, ...prev];
+          }
+        });
+      },
+      (deletedId) => {
+        // 实时删除文章
+        setArticles(prev => prev.filter(a => a.id !== deletedId));
+      }
+    );
     
     // 设置建议实时监听器
     const cleanup = setupSuggestionListener((updatedSuggestions) => {
@@ -126,10 +173,16 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         setVisitStats(stats);
         setVisitRecords(records);
       }
+      
+      // 刷新文章列表（获取最新同步数据）
+      const refreshedArticles = await getArticles();
+      setArticles(refreshedArticles);
     }, 5000);
     
     return () => {
       cleanup();
+      unsubscribeSync();
+      unsubscribeRealtime();
       clearInterval(interval);
     };
   }, [navigate]);
@@ -145,6 +198,14 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     setSuggestions(await getSuggestions());
     setUnreadCount(await getUnreadCount());
     setArticles(await getArticles());
+  };
+  
+  // 手动同步
+  const handleManualSync = async () => {
+    const refreshedArticles = await syncArticles();
+    setArticles(refreshedArticles);
+    setSuccessMessage('同步成功');
+    setTimeout(() => setSuccessMessage(''), 3000);
   };
 
   const handleLogout = () => {
@@ -388,6 +449,18 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   );
 
   const formatNumber = (num: number) => num.toLocaleString('zh-CN');
+  
+  // 格式化同步时间
+  const formatSyncTime = (time: string | null) => {
+    if (!time) return '未同步';
+    const date = new Date(time);
+    return date.toLocaleString('zh-CN', { 
+      month: 'short', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -401,10 +474,49 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               </div>
               <h1 className="text-xl font-bold text-gray-900">管理员后台</h1>
             </div>
-            <Button variant="ghost" onClick={handleLogout} className="text-gray-600 hover:text-red-600">
-              <LogOut className="w-4 h-4 mr-2" />
-              退出登录
-            </Button>
+            <div className="flex items-center gap-3">
+              {/* 同步状态指示器 */}
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full text-sm">
+                {syncStatus.isOnline ? (
+                  <Wifi className="w-4 h-4 text-green-500" />
+                ) : (
+                  <WifiOff className="w-4 h-4 text-red-500" />
+                )}
+                <span className={syncStatus.isOnline ? 'text-green-600' : 'text-red-600'}>
+                  {syncStatus.isOnline ? '在线' : '离线'}
+                </span>
+                <span className="text-gray-400">|</span>
+                {syncStatus.isSyncing ? (
+                  <Sync className="w-4 h-4 text-blue-500 animate-spin" />
+                ) : syncStatus.pendingChanges > 0 ? (
+                  <CloudOff className="w-4 h-4 text-orange-500" />
+                ) : (
+                  <Cloud className="w-4 h-4 text-blue-500" />
+                )}
+                <span className="text-gray-600">
+                  {syncStatus.isSyncing ? '同步中...' : 
+                   syncStatus.pendingChanges > 0 ? `${syncStatus.pendingChanges}个待同步` : 
+                   '已同步'}
+                </span>
+                <span className="text-gray-400">|</span>
+                <span className="text-gray-500 text-xs">
+                  {formatSyncTime(syncStatus.lastSync)}
+                </span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 w-6 p-0 ml-1"
+                  onClick={handleManualSync}
+                  disabled={syncStatus.isSyncing || !syncStatus.isOnline}
+                >
+                  <RefreshCw className={`w-3 h-3 ${syncStatus.isSyncing ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+              <Button variant="ghost" onClick={handleLogout} className="text-gray-600 hover:text-red-600">
+                <LogOut className="w-4 h-4 mr-2" />
+                退出登录
+              </Button>
+            </div>
           </div>
         </div>
       </header>

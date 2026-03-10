@@ -11,7 +11,7 @@ import { AdminLogin } from '@/components/AdminLogin';
 import { AdminDashboard } from '@/components/AdminDashboard';
 import { SuggestionBox } from '@/components/SuggestionBox';
 import { speechesData } from '@/data/speeches';
-import { getArticles } from '@/services/articleService';
+import { getArticles, initializeSync, subscribeToSyncStatus, setupRealtimeSubscription } from '@/services/articleServiceEnhanced';
 import { initAnalytics } from '@/services/analytics';
 import { initSupabaseAnalytics } from '@/services/supabaseAnalytics';
 import { isAdminLoggedIn } from '@/services/adminAuth';
@@ -44,6 +44,9 @@ function HomePage() {
     initAnalytics();
     initSupabaseAnalytics();
     
+    // 初始化文章同步
+    initializeSync().catch(console.error);
+    
     // 从云端加载文章
     const loadArticles = async () => {
       const cloudArticles = await getArticles();
@@ -52,6 +55,36 @@ function HomePage() {
       }
     };
     loadArticles();
+    
+    // 设置实时订阅，当文章变化时自动更新
+    const unsubscribeRealtime = setupRealtimeSubscription(
+      (updatedArticle) => {
+        setArticles(prev => {
+          const index = prev.findIndex(a => a.id === updatedArticle.id);
+          if (index !== -1) {
+            const updated = [...prev];
+            updated[index] = updatedArticle;
+            return updated;
+          } else {
+            return [updatedArticle, ...prev];
+          }
+        });
+      },
+      (deletedId) => {
+        setArticles(prev => prev.filter(a => a.id !== deletedId));
+      }
+    );
+    
+    // 定期刷新文章列表（每30秒）
+    const interval = setInterval(async () => {
+      const refreshedArticles = await getArticles();
+      setArticles(refreshedArticles);
+    }, 30000);
+    
+    return () => {
+      unsubscribeRealtime();
+      clearInterval(interval);
+    };
   }, [])
 
   // Calculate stats
