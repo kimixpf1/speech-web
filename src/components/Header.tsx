@@ -102,7 +102,6 @@ export function Header({ currentView, onViewChange }: HeaderProps) {
               <Mail className="w-4 h-4 mr-1" />
               建议信箱
             </Button>
-            {/* 管理员入口 */}
             <Button
               variant="ghost"
               onClick={() => navigate('/admin/login')}

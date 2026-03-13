@@ -204,7 +204,6 @@ function MainLayout() {
   const location = useLocation();
   const [currentView, setCurrentView] = useState<'home' | 'about'>('home');
 
-  // 判断是否显示Header和Footer
   const isDetailPage = location.pathname.startsWith('/detail/');
   const isAdminPage = location.pathname.startsWith('/admin/');
   const isSuggestionPage = location.pathname === '/suggestion';

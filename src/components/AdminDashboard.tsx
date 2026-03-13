@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  BarChart3, 
-  FileText, 
-  Mail, 
-  LogOut, 
-  Users, 
-  Eye, 
+import {
+  BarChart3,
+  FileText,
+  Mail,
+  LogOut,
+  Users,
+  Eye,
   TrendingUp,
   Trash2,
   Check,
@@ -21,7 +21,9 @@ import {
   Cloud,
   CloudOff,
   Wifi,
-  WifiOff
+  WifiOff,
+  Bell,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,10 +55,10 @@ import {
   type RealtimeStats,
   type VisitRecord as SupabaseVisitRecord
 } from '@/services/supabaseAnalytics';
-import { 
-  getArticles, 
-  updateArticle, 
-  deleteArticle, 
+import {
+  getArticles,
+  updateArticle,
+  deleteArticle,
   addArticle,
   generateArticleId,
   syncArticles,
@@ -66,6 +68,12 @@ import {
   type Speech,
   type SyncStatus
 } from '@/services/articleServiceEnhanced';
+import {
+  getPendingArticles,
+  approveArticle,
+  rejectArticle,
+  type PendingArticle
+} from '@/services/pendingArticleService';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -115,6 +123,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     pendingChanges: 0,
     isSyncing: false,
   });
+
+  // 待审核文章
+  const [pendingArticles, setPendingArticles] = useState<PendingArticle[]>([]);
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     if (!isAdminLoggedIn()) {
@@ -197,6 +209,9 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     setSuggestions(await getSuggestions());
     setUnreadCount(await getUnreadCount());
     setArticles(await getArticles());
+    const pending = await getPendingArticles();
+    setPendingArticles(pending);
+    setPendingCount(pending.length);
   };
   
   // 手动同步
@@ -442,6 +457,36 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     }
   };
 
+  const handleApprovePending = async (pending: PendingArticle) => {
+    const article: Speech = {
+      id: generateArticleId(pending.year || new Date().getFullYear()),
+      title: pending.title,
+      date: pending.date,
+      year: pending.year || new Date().getFullYear(),
+      month: pending.month || new Date().getMonth() + 1,
+      day: pending.day || new Date().getDate(),
+      category: (pending.category as Speech['category']) || 'speech',
+      categoryName: pending.categoryName || '重要讲话',
+      source: pending.source || '',
+      summary: pending.summary || '',
+      url: pending.url || '',
+      location: pending.location,
+    };
+    if (await addArticle(article)) {
+      await approveArticle(pending.id);
+      await loadData();
+      setSuccessMessage('已发布');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    }
+  };
+
+  const handleRejectPending = async (id: string) => {
+    await rejectArticle(id);
+    await loadData();
+    setSuccessMessage('已忽略');
+    setTimeout(() => setSuccessMessage(''), 3000);
+  };
+
   const filteredArticles = articles.filter(a => 
     a.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     a.summary.toLowerCase().includes(searchTerm.toLowerCase())
@@ -524,10 +569,17 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-8">
         <div className="max-w-7xl mx-auto">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 mb-8">
+            <TabsList className="grid w-full grid-cols-4 mb-8">
               <TabsTrigger value="analytics" className="gap-2">
                 <BarChart3 className="w-4 h-4" />
                 访问统计
+              </TabsTrigger>
+              <TabsTrigger value="pending" className="gap-2">
+                <Bell className="w-4 h-4" />
+                待审核
+                {pendingCount > 0 && (
+                  <Badge variant="destructive" className="ml-1">{pendingCount}</Badge>
+                )}
               </TabsTrigger>
               <TabsTrigger value="articles" className="gap-2">
                 <FileText className="w-4 h-4" />
@@ -681,6 +733,79 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* 待审核文章 */}
+            <TabsContent value="pending" className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">待审核文章</h2>
+                <Button variant="outline" size="sm" onClick={loadData}>
+                  <RefreshCw className="w-4 h-4 mr-1" />
+                  刷新
+                </Button>
+              </div>
+
+              {pendingArticles.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <Bell className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">暂无待审核文章</p>
+                    <p className="text-gray-400 text-sm mt-1">系统每天 8:00 和 20:00 自动抓取</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {pendingArticles.map((article) => (
+                    <Card key={article.id} className="border-l-4 border-l-orange-400">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <Badge variant="outline">{article.categoryName || '重要讲话'}</Badge>
+                              <span className="text-sm text-gray-500">{article.date}</span>
+                              <span className="text-sm text-gray-400">{article.source}</span>
+                            </div>
+                            <h3 className="font-medium text-gray-900 mb-1">{article.title}</h3>
+                            {article.summary && article.summary !== article.title && (
+                              <p className="text-sm text-gray-600 line-clamp-2">{article.summary}</p>
+                            )}
+                            {article.url && (
+                              <a
+                                href={article.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-500 hover:underline flex items-center gap-1 mt-1"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                查看原文
+                              </a>
+                            )}
+                          </div>
+                          <div className="flex gap-2 flex-shrink-0">
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                              onClick={() => handleApprovePending(article)}
+                            >
+                              <Check className="w-4 h-4 mr-1" />
+                              发布
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-600"
+                              onClick={() => handleRejectPending(article.id)}
+                            >
+                              <X className="w-4 h-4 mr-1" />
+                              忽略
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </TabsContent>
 
             {/* 文章管理 */}
