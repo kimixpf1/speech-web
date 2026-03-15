@@ -1,39 +1,90 @@
 """
-自动抓取习近平讲话/经济工作相关文章，写入 Supabase pending_articles 表
-来源：人民网、新华网
+用 Kimi API（联网搜索）自动抓取最新讲话/文章，写入 Supabase pending_articles 表
 """
 import os
 import re
 import json
+import uuid
 import requests
-from datetime import datetime, date
-from bs4 import BeautifulSoup
+from datetime import date
 
 SUPABASE_URL = os.environ['SUPABASE_URL']
 SUPABASE_KEY = os.environ['SUPABASE_ANON_KEY']
+KIMI_API_KEY = os.environ['KIMI_API_KEY']
 TABLE = 'pending_articles'
 
-HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-}
+KIMI_URL = 'https://api.moonshot.cn/v1/chat/completions'
 
-# 关键词过滤：必须包含其中之一
-KEYWORDS = [
-    '习近平', '总书记',
-    '经济工作', '高质量发展', '新质生产力',
-    '全国两会', '政府工作报告',
-    '求是', '深化改革', '宏观经济',
+SEARCH_QUERIES = [
+    '习近平最新讲话 site:xinhuanet.com OR site:people.com.cn',
+    '习近平重要讲话 经济工作 最新',
+    '全国两会 习近平讲话 最新',
+    '求是杂志 习近平文章 最新',
 ]
 
-def matches_keywords(text: str) -> bool:
-    return any(kw in text for kw in KEYWORDS)
+SYSTEM_PROMPT = """你是一个新闻数据提取助手。请搜索并返回最新的习近平讲话、文章、会议相关新闻。
+返回 JSON 数组，每条包含以下字段：
+- title: 文章标题（字符串）
+- date: 日期（格式 YYYY-MM-DD）
+- year: 年份（整数）
+- month: 月份（整数）
+- day: 日期（整数）
+- category: 分类（speech/article/meeting/inspection 之一）
+- categoryName: 分类名称（重要讲话/发表文章/重要会议/考察调研 之一）
+- source: 来源媒体（如 新华网、人民网、求是杂志）
+- url: 原文链接
+- summary: 一句话摘要（不超过100字）
 
-def supabase_get(url_suffix: str):
-    r = requests.get(
-        f'{SUPABASE_URL}/rest/v1/{url_suffix}',
-        headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'}
-    )
-    return r.json() if r.ok else []
+只返回 JSON 数组，不要其他文字。如果没有找到相关内容，返回空数组 []。"""
+
+
+def kimi_search(query: str) -> list:
+    """调用 Kimi API 联网搜索"""
+    try:
+        resp = requests.post(
+            KIMI_URL,
+            headers={
+                'Authorization': f'Bearer {KIMI_API_KEY}',
+                'Content-Type': 'application/json',
+            },
+            json={
+                'model': 'moonshot-v1-8k',
+                'messages': [
+                    {'role': 'system', 'content': SYSTEM_PROMPT},
+                    {'role': 'user', 'content': f'请搜索：{query}\n返回最近7天内的文章，最多10条。'},
+                ],
+                'tools': [{'type': 'web_search'}],
+                'temperature': 0.1,
+            },
+            timeout=60,
+        )
+        if not resp.ok:
+            print(f'Kimi API 错误: {resp.status_code} {resp.text[:200]}')
+            return []
+
+        content = resp.json()['choices'][0]['message']['content']
+        # 提取 JSON
+        m = re.search(r'\[.*\]', content, re.DOTALL)
+        if not m:
+            print(f'未找到 JSON: {content[:200]}')
+            return []
+        return json.loads(m.group())
+    except Exception as e:
+        print(f'Kimi 搜索失败 ({query}): {e}')
+        return []
+
+
+def get_existing_urls() -> set:
+    urls = set()
+    for table in [TABLE, 'articles']:
+        r = requests.get(
+            f'{SUPABASE_URL}/rest/v1/{table}?select=url&limit=500',
+            headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'},
+        )
+        if r.ok:
+            urls |= {row['url'] for row in r.json() if row.get('url')}
+    return urls
+
 
 def supabase_insert(rows: list):
     if not rows:
@@ -46,235 +97,71 @@ def supabase_insert(rows: list):
             'Content-Type': 'application/json',
             'Prefer': 'return=minimal',
         },
-        json=rows
+        json=rows,
     )
     if not r.ok:
-        print(f'Insert failed: {r.status_code} {r.text}')
+        print(f'插入失败: {r.status_code} {r.text[:200]}')
 
-def get_existing_urls() -> set:
-    """获取已存在的 URL，避免重复插入"""
-    existing = supabase_get(f'{TABLE}?select=url&limit=500')
-    articles = supabase_get('articles?select=url&limit=500')
-    urls = {row['url'] for row in existing if row.get('url')}
-    urls |= {row['url'] for row in articles if row.get('url')}
-    return urls
 
-def parse_date(text: str):
-    """从字符串中提取日期，返回 (date_str, year, month, day)"""
-    m = re.search(r'(\d{4})[-年](\d{1,2})[-月](\d{1,2})', text)
+def normalize(article: dict) -> dict | None:
+    """校验并补全字段"""
+    title = str(article.get('title', '')).strip()
+    url = str(article.get('url', '')).strip()
+    if not title or not url or not url.startswith('http'):
+        return None
+
+    date_str = str(article.get('date', ''))
+    m = re.match(r'(\d{4})-(\d{2})-(\d{2})', date_str)
     if m:
         y, mo, d = int(m.group(1)), int(m.group(2)), int(m.group(3))
-        return f'{y}-{mo:02d}-{d:02d}', y, mo, d
-    today = date.today()
-    return str(today), today.year, today.month, today.day
+    else:
+        today = date.today()
+        y, mo, d = today.year, today.month, today.day
+        date_str = str(today)
 
-def fetch_qiushi() -> list:
-    """抓取求是杂志网站"""
-    results = []
-    try:
-        url = 'http://www.qstheory.cn/economy/index.htm'
-        r = requests.get(url, headers=HEADERS, timeout=15)
-        r.encoding = 'utf-8'
-        soup = BeautifulSoup(r.text, 'html.parser')
+    category = article.get('category', 'speech')
+    if category not in ('speech', 'article', 'meeting', 'inspection'):
+        category = 'speech'
+    category_names = {'speech': '重要讲话', 'article': '发表文章', 'meeting': '重要会议', 'inspection': '考察调研'}
 
-        for a in soup.select('a[href]')[:60]:
-            title = a.get_text(strip=True)
-            href = a['href']
-            if not title or len(title) < 10:
-                continue
-            if not href.startswith('http'):
-                href = 'http://www.qstheory.cn' + href
+    return {
+        'id': str(uuid.uuid4()),
+        'title': title,
+        'date': date_str,
+        'year': y, 'month': mo, 'day': d,
+        'category': category,
+        'categoryName': article.get('categoryName') or category_names[category],
+        'source': str(article.get('source', '新华网')).strip(),
+        'url': url,
+        'summary': str(article.get('summary', title))[:200],
+        'status': 'pending',
+    }
 
-            date_str, y, mo, d = parse_date(href + title)
-            results.append({
-                'title': title,
-                'date': date_str,
-                'year': y, 'month': mo, 'day': d,
-                'category': 'article',
-                'categoryName': '发表文章',
-                'source': '求是杂志',
-                'url': href,
-                'summary': title,
-                'status': 'pending',
-            })
-    except Exception as e:
-        print(f'求是杂志抓取失败: {e}')
-    return results
-
-def fetch_qiushi_xijinping() -> list:
-    """抓取求是杂志习近平文章专题"""
-    results = []
-    try:
-        url = 'http://www.qstheory.cn/zhuanqu/xjpzl/index.htm'
-        r = requests.get(url, headers=HEADERS, timeout=15)
-        r.encoding = 'utf-8'
-        soup = BeautifulSoup(r.text, 'html.parser')
-
-        for a in soup.select('a[href]')[:60]:
-            title = a.get_text(strip=True)
-            href = a['href']
-            if not title or len(title) < 10:
-                continue
-            if not href.startswith('http'):
-                href = 'http://www.qstheory.cn' + href
-
-            date_str, y, mo, d = parse_date(href + title)
-            results.append({
-                'title': title,
-                'date': date_str,
-                'year': y, 'month': mo, 'day': d,
-                'category': 'article',
-                'categoryName': '发表文章',
-                'source': '求是杂志',
-                'url': href,
-                'summary': title,
-                'status': 'pending',
-            })
-    except Exception as e:
-        print(f'求是杂志习近平专题抓取失败: {e}')
-    return results
-
-def fetch_xinhua() -> list:
-    """抓取新华网习近平专题"""
-    results = []
-    try:
-        url = 'http://www.xinhuanet.com/politics/leaders/xijinping/index.htm'
-        r = requests.get(url, headers=HEADERS, timeout=15)
-        r.encoding = 'utf-8'
-        soup = BeautifulSoup(r.text, 'html.parser')
-
-        for a in soup.select('a[href]')[:60]:
-            title = a.get_text(strip=True)
-            href = a['href']
-            if not title or len(title) < 10:
-                continue
-            if not matches_keywords(title):
-                continue
-            if not href.startswith('http'):
-                href = 'http://www.xinhuanet.com' + href
-
-            date_str, y, mo, d = parse_date(href + title)
-            results.append({
-                'title': title,
-                'date': date_str,
-                'year': y, 'month': mo, 'day': d,
-                'category': 'speech',
-                'categoryName': '重要讲话',
-                'source': '新华网',
-                'url': href,
-                'summary': title,
-                'status': 'pending',
-            })
-    except Exception as e:
-        print(f'新华网抓取失败: {e}')
-    return results
-
-def fetch_people_daily() -> list:
-    """抓取人民网习近平专题"""
-    results = []
-    try:
-        url = 'http://jhsjk.people.cn/result?keywords=%E4%B9%A0%E8%BF%91%E5%B9%B3&page=1'
-        r = requests.get(url, headers=HEADERS, timeout=15)
-        r.encoding = 'utf-8'
-        soup = BeautifulSoup(r.text, 'html.parser')
-
-        for item in soup.select('.result-item, .list-item, li')[:40]:
-            a = item.find('a', href=True)
-            if not a:
-                continue
-            title = a.get_text(strip=True)
-            href = a['href']
-            if not title or len(title) < 10:
-                continue
-            if not matches_keywords(title):
-                continue
-            if not href.startswith('http'):
-                href = 'http://jhsjk.people.cn' + href
-
-            # 尝试从 item 文本中提取日期
-            item_text = item.get_text()
-            date_str, y, mo, d = parse_date(item_text)
-
-            results.append({
-                'title': title,
-                'date': date_str,
-                'year': y, 'month': mo, 'day': d,
-                'category': 'speech',
-                'categoryName': '重要讲话',
-                'source': '人民网',
-                'url': href,
-                'summary': title,
-                'status': 'pending',
-            })
-    except Exception as e:
-        print(f'人民网抓取失败: {e}')
-    return results
-
-def fetch_xinhua_economy() -> list:
-    """抓取新华网经济频道"""
-    results = []
-    try:
-        url = 'http://www.xinhuanet.com/fortune/index.htm'
-        r = requests.get(url, headers=HEADERS, timeout=15)
-        r.encoding = 'utf-8'
-        soup = BeautifulSoup(r.text, 'html.parser')
-
-        for a in soup.select('a[href]')[:80]:
-            title = a.get_text(strip=True)
-            href = a['href']
-            if not title or len(title) < 10:
-                continue
-            if not matches_keywords(title):
-                continue
-            if not href.startswith('http'):
-                href = 'http://www.xinhuanet.com' + href
-
-            date_str, y, mo, d = parse_date(href + title)
-            results.append({
-                'title': title,
-                'date': date_str,
-                'year': y, 'month': mo, 'day': d,
-                'category': 'meeting',
-                'categoryName': '重要会议',
-                'source': '新华网',
-                'url': href,
-                'summary': title,
-                'status': 'pending',
-            })
-    except Exception as e:
-        print(f'新华网经济频道抓取失败: {e}')
-    return results
 
 def main():
-    print(f'开始抓取... {datetime.now()}')
+    print(f'开始抓取，共 {len(SEARCH_QUERIES)} 个查询...')
     existing_urls = get_existing_urls()
-    print(f'已有 {len(existing_urls)} 条记录')
+    print(f'已有记录 {len(existing_urls)} 条')
 
-    all_articles = []
-    all_articles += fetch_qiushi()
-    all_articles += fetch_qiushi_xijinping()
-    all_articles += fetch_xinhua()
-    all_articles += fetch_people_daily()
-    all_articles += fetch_xinhua_economy()
-
-    # 去重：过滤已存在的 URL
     new_articles = []
-    seen_urls = set()
-    for a in all_articles:
-        url = a.get('url', '')
-        if url and url not in existing_urls and url not in seen_urls:
-            seen_urls.add(url)
-            new_articles.append(a)
+    seen_urls = set(existing_urls)
+
+    for query in SEARCH_QUERIES:
+        print(f'搜索: {query}')
+        results = kimi_search(query)
+        print(f'  返回 {len(results)} 条')
+        for raw in results:
+            article = normalize(raw)
+            if article and article['url'] not in seen_urls:
+                seen_urls.add(article['url'])
+                new_articles.append(article)
 
     print(f'新增 {len(new_articles)} 条待审核文章')
-
-    # 分批插入（每批20条）
     for i in range(0, len(new_articles), 20):
-        batch = new_articles[i:i+20]
-        supabase_insert(batch)
-        print(f'已插入 {min(i+20, len(new_articles))}/{len(new_articles)}')
+        supabase_insert(new_articles[i:i+20])
 
     print('完成')
+
 
 if __name__ == '__main__':
     main()
