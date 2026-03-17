@@ -8,6 +8,24 @@ import { supabase } from '@/lib/supabase';
 const ARTICLES_TABLE = 'articles';
 const ARTICLE_DETAILS_TABLE = 'article_details';
 
+// 将 Speech 对象转换为数据库格式（字段名映射）
+function toDbFormat(article: Speech): Record<string, unknown> {
+  const { categoryName, ...rest } = article;
+  return {
+    ...rest,
+    categoryname: categoryName, // 数据库使用小写
+  };
+}
+
+// 将数据库格式转换为 Speech 对象
+function fromDbFormat(dbArticle: Record<string, unknown>): Speech {
+  const { categoryname, categoryName, ...rest } = dbArticle as Record<string, unknown>;
+  return {
+    ...rest,
+    categoryName: categoryname || categoryName,
+  } as Speech;
+}
+
 // 本地存储键
 const ARTICLES_CACHE_KEY = 'site_articles_cache_v2';
 const DELETED_ARTICLES_KEY = 'site_deleted_articles_v2';
@@ -171,12 +189,12 @@ async function syncPendingChanges(): Promise<void> {
       switch (change.type) {
         case 'create':
           if (change.data) {
-            await supabase.from(ARTICLES_TABLE).insert(change.data);
+            await supabase.from(ARTICLES_TABLE).insert(toDbFormat(change.data));
           }
           break;
         case 'update':
           if (change.data) {
-            await supabase.from(ARTICLES_TABLE).update(change.data).eq('id', change.data.id);
+            await supabase.from(ARTICLES_TABLE).update(toDbFormat(change.data)).eq('id', change.data.id);
           }
           break;
         case 'delete':
@@ -204,7 +222,8 @@ async function fetchCloudArticles(): Promise<Speech[]> {
     throw error;
   }
   
-  return data || [];
+  // 映射字段名（数据库使用小写 categoryname）
+  return (data || []).map(fromDbFormat);
 }
 
 // 合并本地和云端文章
@@ -312,9 +331,12 @@ export async function addArticle(article: Speech): Promise<boolean> {
     
     // 如果在线，立即同步
     if (navigator.onLine) {
-      const { error } = await supabase.from(ARTICLES_TABLE).insert(article);
+      const { error } = await supabase.from(ARTICLES_TABLE).insert(toDbFormat(article));
       if (!error) {
         removePendingChange(article.id);
+        console.log('Article synced to cloud:', article.id);
+      } else {
+        console.error('Failed to sync article:', error);
       }
     }
     
@@ -352,11 +374,14 @@ export async function updateArticle(updatedArticle: Speech): Promise<boolean> {
     if (navigator.onLine) {
       const { error } = await supabase
         .from(ARTICLES_TABLE)
-        .update(updatedArticle)
+        .update(toDbFormat(updatedArticle))
         .eq('id', updatedArticle.id);
       
       if (!error) {
         removePendingChange(updatedArticle.id);
+        console.log('Article update synced to cloud:', updatedArticle.id);
+      } else {
+        console.error('Failed to sync article update:', error);
       }
     }
     
@@ -494,21 +519,23 @@ export function setupRealtimeSubscription(
         schema: 'public',
         table: ARTICLES_TABLE,
       },
-      (payload: { eventType: string; new?: Speech; old?: Speech }) => {
+      (payload: { eventType: string; new?: Record<string, unknown>; old?: Record<string, unknown> }) => {
         console.log('Realtime change received:', payload);
         
         switch (payload.eventType) {
           case 'INSERT':
           case 'UPDATE':
             if (onArticleChange && payload.new) {
-              onArticleChange(payload.new);
+              // 转换数据库格式为Speech格式
+              const article = fromDbFormat(payload.new);
+              onArticleChange(article);
             }
             // 更新本地缓存
             syncArticles().catch(console.error);
             break;
           case 'DELETE':
             if (onArticleDelete && payload.old) {
-              onArticleDelete(payload.old.id);
+              onArticleDelete((payload.old as { id: string }).id);
             }
             // 更新本地缓存
             syncArticles().catch(console.error);
