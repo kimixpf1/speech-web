@@ -51,7 +51,7 @@ def kimi_search(query: str) -> list:
                 'model': 'moonshot-v1-8k',
                 'messages': [
                     {'role': 'system', 'content': SYSTEM_PROMPT},
-                    {'role': 'user', 'content': f'请搜索：{query}\n返回最近7天内的文章，最多10条。'},
+                    {'role': 'user', 'content': f'请搜索：{query}\n返回最近15天（近半个月）内的文章，最多15条。'},
                 ],
                 'tools': [{'type': 'web_search'}],
                 'temperature': 0.1,
