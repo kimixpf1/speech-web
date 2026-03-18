@@ -23,20 +23,18 @@ function HomePage() {
   const [selectedYear, setSelectedYear] = useState('all');
   const [articles, setArticles] = useState<Speech[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRestoringScroll, setIsRestoringScroll] = useState(false);
 
-  // 恢复滚动位置（从详情页返回时）- 这个 effect 要先执行
+  // 恢复滚动位置（从详情页返回时）
   useEffect(() => {
     const savedPosition = localStorage.getItem('scrollPosition');
     if (savedPosition) {
-      setIsRestoringScroll(true);
-      // 立即滚动到保存的位置，不等待渲染
-      window.scrollTo(0, parseInt(savedPosition, 10));
+      const position = parseInt(savedPosition, 10);
       localStorage.removeItem('scrollPosition');
-      // 短暂延迟后显示内容，避免闪烁
-      setTimeout(() => {
-        setIsRestoringScroll(false);
-      }, 50);
+      
+      // 使用 requestAnimationFrame 确保在渲染后滚动
+      requestAnimationFrame(() => {
+        window.scrollTo(0, position);
+      });
     }
   }, []);
 
@@ -149,10 +147,7 @@ function HomePage() {
         onYearChange={setSelectedYear}
         resultCount={filteredSpeeches.length}
       />
-      <main 
-        className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6"
-        style={{ visibility: isRestoringScroll ? 'hidden' : 'visible' }}
-      >
+      <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6">
         <ContentList speeches={filteredSpeeches} />
       </main>
     </>
