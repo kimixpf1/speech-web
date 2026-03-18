@@ -23,7 +23,10 @@ import {
   Wifi,
   WifiOff,
   Bell,
-  X
+  X,
+  Sparkles,
+  Settings,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -74,6 +77,15 @@ import {
   rejectArticle,
   type PendingArticle
 } from '@/services/pendingArticleService';
+import {
+  saveGitHubToken,
+  getGitHubToken,
+  clearGitHubToken,
+  triggerFetchArticles,
+  validateGitHubToken,
+  getWorkflowRuns,
+  type TriggerResult
+} from '@/services/githubActionsService';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -127,6 +139,14 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   // 待审核文章
   const [pendingArticles, setPendingArticles] = useState<PendingArticle[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
+
+  // GitHub搜索功能状态
+  const [githubToken, setGithubTokenState] = useState(getGitHubToken() || '');
+  const [showTokenDialog, setShowTokenDialog] = useState(false);
+  const [tokenInput, setTokenInput] = useState('');
+  const [tokenValidating, setTokenValidating] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [searchResult, setSearchResult] = useState<TriggerResult | null>(null);
 
   useEffect(() => {
     if (!isAdminLoggedIn()) {
@@ -511,6 +531,55 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     setTimeout(() => setSuccessMessage(''), 3000);
   };
 
+  // GitHub Token 配置
+  const handleSaveToken = async () => {
+    if (!tokenInput.trim()) return;
+    
+    setTokenValidating(true);
+    const result = await validateGitHubToken(tokenInput.trim());
+    setTokenValidating(false);
+    
+    if (result.valid) {
+      saveGitHubToken(tokenInput.trim());
+      setGithubTokenState(tokenInput.trim());
+      setShowTokenDialog(false);
+      setSuccessMessage(`Token验证成功，用户: ${result.username}`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } else {
+      setSuccessMessage(result.error || 'Token验证失败');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    }
+  };
+
+  const handleClearToken = () => {
+    clearGitHubToken();
+    setGithubTokenState('');
+    setSuccessMessage('已清除GitHub Token');
+    setTimeout(() => setSuccessMessage(''), 3000);
+  };
+
+  // 触发搜索
+  const handleTriggerSearch = async () => {
+    if (!githubToken) {
+      setShowTokenDialog(true);
+      return;
+    }
+    
+    setSearching(true);
+    setSearchResult(null);
+    
+    const result = await triggerFetchArticles();
+    setSearchResult(result);
+    setSearching(false);
+    
+    if (result.success) {
+      // 5秒后自动刷新待审核列表
+      setTimeout(() => {
+        loadData();
+      }, 5000);
+    }
+  };
+
   const filteredArticles = articles.filter(a => 
     a.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     a.summary.toLowerCase().includes(searchTerm.toLowerCase())
@@ -763,18 +832,83 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
             <TabsContent value="pending" className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900">待审核文章</h2>
-                <Button variant="outline" size="sm" onClick={loadData}>
-                  <RefreshCw className="w-4 h-4 mr-1" />
-                  刷新
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setShowTokenDialog(true)}
+                    title="配置GitHub Token"
+                  >
+                    <Settings className="w-4 h-4 mr-1" />
+                    配置
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={loadData}
+                  >
+                    <RefreshCw className="w-4 h-4 mr-1" />
+                    刷新
+                  </Button>
+                  <Button 
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                    size="sm"
+                    onClick={handleTriggerSearch}
+                    disabled={searching}
+                  >
+                    {searching ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                        搜索中...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-1" />
+                        AI搜索最新文章
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
+
+              {/* 搜索结果提示 */}
+              {searchResult && (
+                <Card className={searchResult.success ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
+                  <CardContent className="p-4">
+                    <p className={searchResult.success ? 'text-green-700' : 'text-red-700'}>
+                      {searchResult.message}
+                    </p>
+                    {searchResult.workflowUrl && (
+                      <a 
+                        href={searchResult.workflowUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline mt-2 inline-block"
+                      >
+                        查看任务运行状态 →
+                      </a>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* GitHub Token 未配置提示 */}
+              {!githubToken && (
+                <Card className="border-yellow-200 bg-yellow-50">
+                  <CardContent className="p-4">
+                    <p className="text-yellow-700">
+                      未配置GitHub Token，点击"配置"按钮输入您的GitHub Personal Access Token以使用AI搜索功能
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
 
               {pendingArticles.length === 0 ? (
                 <Card>
                   <CardContent className="p-8 text-center">
                     <Bell className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500">暂无待审核文章</p>
-                    <p className="text-gray-400 text-sm mt-1">系统每天 8:00 和 20:00 自动抓取</p>
+                    <p className="text-gray-400 text-sm mt-1">系统每天 8:00 和 20:00 自动抓取，或点击"AI搜索最新文章"手动触发</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -1145,6 +1279,59 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddDialogOpen(false)}>取消</Button>
             <Button onClick={handleAddArticle} className="bg-red-600 hover:bg-red-700">添加</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* GitHub Token 配置对话框 */}
+      <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>配置 GitHub Token</DialogTitle>
+            <DialogDescription>
+              输入您的 GitHub Personal Access Token 以使用 AI 搜索功能
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Personal Access Token</label>
+              <Input
+                type="password"
+                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                value={tokenInput}
+                onChange={(e) => setTokenInput(e.target.value)}
+              />
+              <p className="text-xs text-gray-500">
+                Token需要有 repo 权限。在 GitHub Settings → Developer settings → Personal access tokens 中创建
+              </p>
+            </div>
+            {githubToken && (
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <span className="text-sm text-green-700">已配置Token</span>
+                <Button variant="outline" size="sm" onClick={handleClearToken}>
+                  清除
+                </Button>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTokenDialog(false)}>
+              取消
+            </Button>
+            <Button 
+              onClick={handleSaveToken} 
+              disabled={!tokenInput.trim() || tokenValidating}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {tokenValidating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  验证中...
+                </>
+              ) : (
+                '保存并验证'
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
