@@ -199,19 +199,24 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   }, [navigate]);
 
   const loadData = async () => {
-    // 从 Supabase 获取访问统计
-    if (isSupabaseConfigured()) {
-      const stats = await getSupabaseStats();
-      const records = await getSupabaseRecentVisits(100);
-      setVisitStats(stats);
-      setVisitRecords(records);
+    try {
+      // 从 Supabase 获取访问统计
+      if (isSupabaseConfigured()) {
+        const stats = await getSupabaseStats();
+        const records = await getSupabaseRecentVisits(100);
+        setVisitStats(stats);
+        setVisitRecords(records);
+      }
+      setSuggestions(await getSuggestions());
+      setUnreadCount(await getUnreadCount());
+      const articles = await getArticles();
+      setArticles(articles);
+      const pending = await getPendingArticles();
+      setPendingArticles(pending);
+      setPendingCount(pending.length);
+    } catch (error) {
+      console.error('Failed to load data:', error);
     }
-    setSuggestions(await getSuggestions());
-    setUnreadCount(await getUnreadCount());
-    setArticles(await getArticles());
-    const pending = await getPendingArticles();
-    setPendingArticles(pending);
-    setPendingCount(pending.length);
   };
   
   // 手动同步
@@ -382,16 +387,22 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   };
 
   const handleSaveArticle = async () => {
-    if (editingArticle) {
-      if (await updateArticle(editingArticle)) {
+    if (!editingArticle) return;
+
+    try {
+      const success = await updateArticle(editingArticle);
+      if (success) {
         setEditDialogOpen(false);
         setEditingArticle(null);
         await loadData();
         setSuccessMessage('保存成功');
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
-        alert('保存失败');
+        alert('保存失败，请重试');
       }
+    } catch (error) {
+      console.error('Save article error:', error);
+      alert('保存失败：' + (error instanceof Error ? error.message : '未知错误'));
     }
   };
 
@@ -402,26 +413,37 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   };
 
   const confirmDeleteArticle = async () => {
-    if (deletingArticle) {
-      if (await deleteArticle(deletingArticle.id)) {
+    if (!deletingArticle) return;
+
+    try {
+      const success = await deleteArticle(deletingArticle.id);
+      if (success) {
         setDeleteDialogOpen(false);
         setDeletingArticle(null);
         await loadData();
         setSuccessMessage('删除成功');
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
-        alert('删除失败');
+        alert('删除失败，请重试');
       }
+    } catch (error) {
+      console.error('Delete article error:', error);
+      alert('删除失败：' + (error instanceof Error ? error.message : '未知错误'));
     }
   };
 
   const handleAddArticle = async () => {
-    if (newArticle.title && newArticle.date && newArticle.source && newArticle.summary) {
+    if (!newArticle.title || !newArticle.date || !newArticle.source || !newArticle.summary) {
+      alert('请填写完整信息');
+      return;
+    }
+
+    try {
       const dateParts = newArticle.date.split('-');
       const year = parseInt(dateParts[0]);
       const month = parseInt(dateParts[1]);
       const day = parseInt(dateParts[2]);
-      
+
       const article: Speech = {
         id: generateArticleId(year),
         title: newArticle.title,
@@ -436,8 +458,9 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         url: newArticle.url || '',
         location: newArticle.location,
       };
-      
-      if (await addArticle(article)) {
+
+      const success = await addArticle(article);
+      if (success) {
         setAddDialogOpen(false);
         setNewArticle({
           category: 'speech',
@@ -452,8 +475,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       } else {
         alert('添加失败，ID可能已存在');
       }
-    } else {
-      alert('请填写完整信息');
+    } catch (error) {
+      console.error('Add article error:', error);
+      alert('添加失败：' + (error instanceof Error ? error.message : '未知错误'));
+    }
+  };
     }
   };
 
