@@ -1,7 +1,7 @@
 import { speechesData as originalSpeechesData, type Speech } from '@/data/speeches';
 
 const SUPABASE_URL = 'https://ejeiuqcmkznfbglvbkbe.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_akyDKiNsa1ZCQcqpTa-3LQ_6SYEfxGg';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqZWl1cWNta3puZmJnbHZia2JlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzczODI0MzEsImV4cCI6MjA1Mjk1ODQzMX0.8qDzSVmZ9X0TRHz4OW8dE8J3CpJWR9rcU9x1_GwicX0';
 const ARTICLES_TABLE = 'articles';
 
 export type { Speech };
