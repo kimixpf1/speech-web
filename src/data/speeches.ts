@@ -705,7 +705,7 @@ export const speechesData: Speech[] = [
     source: '新华社',
     location: '北京',
     summary: '这是习近平总书记2026年两会期间同代表委员共商国是的重要纪实。文章强调要结合好规划和执行力，坚定制度自信；坚持把工作重心放在练好内功、做强自身上，强化科技自立自强；准确把握新形势下人民群众对美好生活新期待，推进健康中国与共同富裕。',
-    url: 'https://www.news.cn/politics/20260305/1234567890abcdef/index.html'
+    url: 'http://paper.people.com.cn/rmrb/pc/content/202603/13/content_30145066.html'
   },
   {
     id: '2026-14',
@@ -718,7 +718,7 @@ export const speechesData: Speech[] = [
     categoryName: '发表文章',
     source: '《求是》杂志',
     summary: '这是习近平总书记2026年3月在《求是》杂志第6期发表的重要文章。文章指出我国海洋经济规模已达10.5万亿元，为推进中国式现代化，需坚持创新驱动与陆海统筹，建设现代海洋产业体系，走出一条具有中国特色的向海图强之路。',
-    url: 'https://www.qstheory.cn/20260301/ocean_economy/index.html'
+    url: 'https://www.news.cn/politics/leaders/20260315/7d4a7ef955544ef1965bbf3d4d296c25/c.html'
   },
   {
     id: '2026-15',
@@ -732,7 +732,7 @@ export const speechesData: Speech[] = [
     source: '新华社',
     location: '北京',
     summary: '这是习近平总书记参加江苏代表团审议时的重要讲话记录。总书记强调规划与执行需结合，指出农村既要富裕也要抓精神文明，发展必须依靠实体经济和科技自立自强，要求坚持独立自主，推动经济质效提升。',
-    url: 'https://www.news.cn/politics/20260307/jiangsu_delegation/index.html'
+    url: 'https://news.sina.cn/gn/2026-03-07/detail-inhqcuct1841393.d.html?vt=4'
   }
 ];
 
