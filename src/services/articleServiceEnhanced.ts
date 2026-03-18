@@ -296,16 +296,20 @@ export async function syncArticles(): Promise<Speech[]> {
   }
 }
 
-// 获取所有文章（优先返回本地，后台同步）
+// 获取所有文章（先同步云端数据，再返回）
 export async function getArticles(): Promise<Speech[]> {
-  const localArticles = getLocalArticles();
-  
-  // 后台同步
+  // 如果在线，先同步云端数据
   if (navigator.onLine) {
-    syncArticles().catch(console.error);
+    try {
+      const syncedArticles = await syncArticles();
+      return syncedArticles;
+    } catch (error) {
+      console.error('Failed to sync articles, using local:', error);
+    }
   }
   
-  return localArticles;
+  // 离线或同步失败时，返回本地缓存
+  return getLocalArticles();
 }
 
 // 添加文章
