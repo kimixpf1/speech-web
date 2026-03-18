@@ -718,7 +718,7 @@ export const speechesData: Speech[] = [
     categoryName: '发表文章',
     source: '《求是》杂志',
     summary: '这是习近平总书记2026年3月在《求是》杂志第6期发表的重要文章。文章指出我国海洋经济规模已达10.5万亿元，为推进中国式现代化，需坚持创新驱动与陆海统筹，建设现代海洋产业体系，走出一条具有中国特色的向海图强之路。',
-    url: 'https://www.news.cn/politics/leaders/20260315/7d4a7ef955544ef1965bbf3d4d296c25/c.html'
+    url: 'https://www.qstheory.cn/20260314/eca2335226a84f3f8d583926b70fef9b/c.html'
   },
   {
     id: '2026-15',
