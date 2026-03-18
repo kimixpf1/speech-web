@@ -84,7 +84,9 @@ import {
   triggerFetchArticles,
   validateGitHubToken,
   getWorkflowRuns,
-  type TriggerResult
+  getWorkflowRunStatus,
+  type TriggerResult,
+  type WorkflowRun
 } from '@/services/githubActionsService';
 
 interface AdminDashboardProps {
@@ -147,6 +149,13 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [tokenValidating, setTokenValidating] = useState(false);
   const [searching, setSearching] = useState(false);
   const [searchResult, setSearchResult] = useState<TriggerResult | null>(null);
+  
+  // 搜索过程状态
+  const [searchStage, setSearchStage] = useState<'idle' | 'triggering' | 'queued' | 'running' | 'completed' | 'failed'>('idle');
+  const [searchMessage, setSearchMessage] = useState('');
+  const [currentRunId, setCurrentRunId] = useState<number | null>(null);
+  const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null);
+  const [recentRuns, setRecentRuns] = useState<any[]>([]);
 
   useEffect(() => {
     if (!isAdminLoggedIn()) {
@@ -558,6 +567,50 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     setTimeout(() => setSuccessMessage(''), 3000);
   };
 
+  // 轮询检查workflow状态
+  const checkWorkflowStatus = async (runId: number) => {
+    const { run } = await getWorkflowRunStatus(runId);
+    
+    if (!run) return;
+    
+    if (run.status === 'queued' || run.status === 'waiting' || run.status === 'pending') {
+      setSearchStage('queued');
+      setSearchMessage('搜索任务排队中，请稍候...');
+    } else if (run.status === 'in_progress' || run.status === 'requested') {
+      setSearchStage('running');
+      setSearchMessage('正在搜索最新文章，请耐心等待...');
+    } else if (run.status === 'completed') {
+      // 停止轮询
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        setPollInterval(null);
+      }
+      
+      setSearching(false);
+      setCurrentRunId(null);
+      
+      if (run.conclusion === 'success') {
+        setSearchStage('completed');
+        setSearchMessage('搜索完成！正在加载结果...');
+        
+        // 刷新待审核列表
+        setTimeout(async () => {
+          await loadData();
+          setSearchMessage('搜索完成！已刷新待审核列表，请查看新文章。');
+        }, 2000);
+      } else if (run.conclusion === 'failure') {
+        setSearchStage('failed');
+        setSearchMessage('搜索任务执行失败，请查看GitHub Actions日志了解详情。');
+      } else if (run.conclusion === 'cancelled') {
+        setSearchStage('failed');
+        setSearchMessage('搜索任务已被取消。');
+      } else {
+        setSearchStage('completed');
+        setSearchMessage(`搜索任务已完成（状态：${run.conclusion}）`);
+      }
+    }
+  };
+
   // 触发搜索
   const handleTriggerSearch = async () => {
     if (!githubToken) {
@@ -565,20 +618,64 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       return;
     }
     
+    // 重置状态
     setSearching(true);
     setSearchResult(null);
+    setSearchStage('triggering');
+    setSearchMessage('正在触发搜索任务...');
+    
+    // 清理之前的轮询
+    if (pollInterval) {
+      clearInterval(pollInterval);
+      setPollInterval(null);
+    }
     
     const result = await triggerFetchArticles();
     setSearchResult(result);
-    setSearching(false);
     
-    if (result.success) {
-      // 5秒后自动刷新待审核列表
-      setTimeout(() => {
-        loadData();
-      }, 5000);
+    if (result.success && result.runId) {
+      setCurrentRunId(result.runId);
+      setSearchStage('queued');
+      setSearchMessage('搜索任务已触发，正在排队等待执行...');
+      
+      // 开始轮询检查状态（每3秒检查一次）
+      const interval = setInterval(() => {
+        if (result.runId) {
+          checkWorkflowStatus(result.runId);
+        }
+      }, 3000);
+      setPollInterval(interval);
+      
+      // 立即检查一次
+      checkWorkflowStatus(result.runId);
+    } else {
+      setSearching(false);
+      setSearchStage('failed');
+      setSearchMessage(result.message || '触发搜索任务失败');
     }
   };
+
+  // 加载最近的workflow运行记录
+  const loadRecentRuns = async () => {
+    const { runs } = await getWorkflowRuns();
+    setRecentRuns(runs);
+  };
+
+  // 组件挂载时加载最近运行记录
+  useEffect(() => {
+    if (githubToken) {
+      loadRecentRuns();
+    }
+  }, [githubToken]);
+
+  // 清理轮询
+  useEffect(() => {
+    return () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+    };
+  }, [pollInterval]);
 
   const filteredArticles = articles.filter(a => 
     a.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -871,23 +968,128 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 </div>
               </div>
 
-              {/* 搜索结果提示 */}
-              {searchResult && (
-                <Card className={searchResult.success ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
+              {/* 搜索过程状态显示 */}
+              {searching && (
+                <Card className="border-blue-200 bg-blue-50">
                   <CardContent className="p-4">
-                    <p className={searchResult.success ? 'text-green-700' : 'text-red-700'}>
-                      {searchResult.message}
-                    </p>
-                    {searchResult.workflowUrl && (
-                      <a 
-                        href={searchResult.workflowUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline mt-2 inline-block"
-                      >
-                        查看任务运行状态 →
-                      </a>
-                    )}
+                    <div className="flex items-start gap-3">
+                      <Loader2 className="w-5 h-5 text-blue-600 animate-spin flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-blue-800 font-medium mb-1">
+                          {searchMessage}
+                        </p>
+                        <div className="flex items-center gap-4 mt-2 text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${searchStage === 'triggering' ? 'bg-blue-600 animate-pulse' : 'bg-gray-300'}`}></span>
+                            <span className={searchStage === 'triggering' ? 'text-blue-700 font-medium' : 'text-gray-500'}>触发任务</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${searchStage === 'queued' ? 'bg-yellow-500 animate-pulse' : 'bg-gray-300'}`}></span>
+                            <span className={searchStage === 'queued' ? 'text-yellow-700 font-medium' : 'text-gray-500'}>排队等待</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${searchStage === 'running' ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></span>
+                            <span className={searchStage === 'running' ? 'text-green-700 font-medium' : 'text-gray-500'}>正在搜索</span>
+                          </div>
+                        </div>
+                        {searchResult?.workflowUrl && (
+                          <a 
+                            href={searchResult.workflowUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:underline mt-2 inline-flex items-center gap-1"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            查看GitHub Actions运行详情
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* 搜索完成/失败提示 */}
+              {(searchStage === 'completed' || searchStage === 'failed') && !searching && (
+                <Card className={searchStage === 'completed' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      {searchStage === 'completed' ? (
+                        <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
+                      ) : (
+                        <X className="w-5 h-5 text-red-600 flex-shrink-0" />
+                      )}
+                      <div>
+                        <p className={searchStage === 'completed' ? 'text-green-700' : 'text-red-700'}>
+                          {searchMessage}
+                        </p>
+                        {searchResult?.workflowUrl && (
+                          <a 
+                            href={searchResult.workflowUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:underline mt-2 inline-flex items-center gap-1"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            查看GitHub Actions运行详情
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* 最近的搜索记录 */}
+              {githubToken && recentRuns.length > 0 && !searching && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-gray-600 flex items-center justify-between">
+                      <span>最近的搜索记录</span>
+                      <Button variant="ghost" size="sm" onClick={loadRecentRuns} className="h-6 px-2">
+                        <RefreshCw className="w-3 h-3" />
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-2">
+                      {recentRuns.slice(0, 3).map((run) => (
+                        <div key={run.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${
+                              run.status === 'in_progress' ? 'bg-blue-500 animate-pulse' :
+                              run.status === 'queued' ? 'bg-yellow-500' :
+                              run.conclusion === 'success' ? 'bg-green-500' :
+                              run.conclusion === 'failure' ? 'bg-red-500' : 'bg-gray-400'
+                            }`}></span>
+                            <span className="text-sm text-gray-700">
+                              {run.status === 'in_progress' ? '正在运行' :
+                               run.status === 'queued' ? '排队中' :
+                               run.conclusion === 'success' ? '运行成功' :
+                               run.conclusion === 'failure' ? '运行失败' : '已完成'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-gray-500">
+                              {new Date(run.created_at).toLocaleString('zh-CN', { 
+                                month: 'short', 
+                                day: 'numeric', 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </span>
+                            <a 
+                              href={run.html_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-500 hover:underline"
+                            >
+                              查看
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
               )}
