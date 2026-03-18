@@ -11,7 +11,7 @@ import { AdminLogin } from '@/components/AdminLogin';
 import { AdminDashboard } from '@/components/AdminDashboard';
 import { SuggestionBox } from '@/components/SuggestionBox';
 import { speechesData } from '@/data/speeches';
-import { getArticles, initializeSync, setupRealtimeSubscription } from '@/services/articleServiceEnhanced';
+import { getArticles, initializeSync, setupRealtimeSubscription, getLocalArticlesSync, type Speech } from '@/services/articleServiceEnhanced';
 import { initAnalytics } from '@/services/analytics';
 import { initSupabaseAnalytics } from '@/services/supabaseAnalytics';
 import { isAdminLoggedIn } from '@/services/adminAuth';
@@ -21,7 +21,8 @@ function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedYear, setSelectedYear] = useState('all');
-  const [articles, setArticles] = useState(speechesData);
+  const [articles, setArticles] = useState<Speech[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isRestoringScroll, setIsRestoringScroll] = useState(false);
 
   // 恢复滚动位置（从详情页返回时）- 这个 effect 要先执行
@@ -43,11 +44,21 @@ function HomePage() {
   useEffect(() => {
     initAnalytics();
     initSupabaseAnalytics();
-    
+
+    // 先同步从本地缓存加载，避免闪烁
+    const localArticles = getLocalArticlesSync();
+    if (localArticles.length > 0) {
+      setArticles(localArticles);
+    } else {
+      // 本地没有缓存，使用静态数据
+      setArticles(speechesData);
+    }
+    setIsLoading(false);
+
     // 初始化文章同步
     initializeSync().catch(console.error);
-    
-    // 从云端加载文章
+
+    // 异步从云端加载并更新文章
     const loadArticles = async () => {
       const cloudArticles = await getArticles();
       if (cloudArticles && cloudArticles.length > 0) {
@@ -55,7 +66,7 @@ function HomePage() {
       }
     };
     loadArticles();
-    
+
     // 设置实时订阅，当文章变化时自动更新
     const unsubscribeRealtime = setupRealtimeSubscription(
       (updatedArticle) => {
@@ -74,13 +85,13 @@ function HomePage() {
         setArticles(prev => prev.filter(a => a.id !== deletedId));
       }
     );
-    
+
     // 定期刷新文章列表（每30秒）
     const interval = setInterval(async () => {
       const refreshedArticles = await getArticles();
       setArticles(refreshedArticles);
     }, 30000);
-    
+
     return () => {
       unsubscribeRealtime();
       clearInterval(interval);
