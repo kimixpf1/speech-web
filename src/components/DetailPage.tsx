@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { speechesData } from '@/data/speeches';
 import { getSpeechDetail, type SpeechDetail } from '@/data/speechesDetail';
-import { getArticles, type Speech } from '@/services/articleServiceEnhanced';
+import { getArticles, getLocalArticlesSync, type Speech } from '@/services/articleServiceEnhanced';
 import {
   Dialog,
   DialogContent,
@@ -46,8 +46,23 @@ export function DetailPage() {
       // 先从静态数据查找
       let baseSpeech = speechesData.find(s => s.id === id);
       
-      // 如果静态数据中没有，从云端数据查找
+      // 如果静态数据中没有，从本地缓存同步查找
       if (!baseSpeech) {
+        const localArticles = getLocalArticlesSync();
+        baseSpeech = localArticles.find(s => s.id === id);
+      }
+      
+      // 如果找到了，显示数据
+      if (baseSpeech) {
+        const detail = getSpeechDetail(id);
+        setSpeech({
+          ...baseSpeech,
+          abstract: detail?.abstract || '摘要正在整理中...',
+          fullText: detail?.fullText || '原文全文正在整理中...',
+          analysis: detail?.analysis || '解读分析正在整理中...'
+        } as SpeechDetail);
+      } else {
+        // 本地也没有，从云端获取
         const loadFromCloud = async () => {
           const cloudArticles = await getArticles();
           const cloudSpeech = cloudArticles.find(s => s.id === id);
@@ -62,18 +77,6 @@ export function DetailPage() {
           }
         };
         loadFromCloud();
-        return;
-      }
-      
-      const detail = getSpeechDetail(id);
-      
-      if (baseSpeech) {
-        setSpeech({
-          ...baseSpeech,
-          abstract: detail?.abstract || '摘要正在整理中...',
-          fullText: detail?.fullText || '原文全文正在整理中...',
-          analysis: detail?.analysis || '解读分析正在整理中...'
-        } as SpeechDetail);
       }
     }
   }, [id]);
