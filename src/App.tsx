@@ -122,7 +122,7 @@ function HomePage() {
 
       return true;
     });
-  }, [searchQuery, selectedCategory, selectedYear]);
+  }, [searchQuery, selectedCategory, selectedYear, articles]);
 
   return (
     <>
