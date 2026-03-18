@@ -7,6 +7,7 @@ import json
 import uuid
 import requests
 from datetime import date
+from typing import Optional, Dict, Any
 
 SUPABASE_URL = os.environ['SUPABASE_URL']
 SUPABASE_KEY = os.environ['SUPABASE_ANON_KEY']
@@ -103,7 +104,7 @@ def supabase_insert(rows: list):
         print(f'插入失败: {r.status_code} {r.text[:200]}')
 
 
-def normalize(article: dict) -> dict | None:
+def normalize(article: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """校验并补全字段"""
     title = str(article.get('title', '')).strip()
     url = str(article.get('url', '')).strip()
