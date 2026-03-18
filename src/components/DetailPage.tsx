@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { speechesData } from '@/data/speeches';
 import { getSpeechDetail, type SpeechDetail } from '@/data/speechesDetail';
+import { getArticles, type Speech } from '@/services/articleServiceEnhanced';
 import {
   Dialog,
   DialogContent,
@@ -42,7 +43,28 @@ export function DetailPage() {
     window.scrollTo({ top: 0, behavior: 'auto' });
     
     if (id) {
-      const baseSpeech = speechesData.find(s => s.id === id);
+      // 先从静态数据查找
+      let baseSpeech = speechesData.find(s => s.id === id);
+      
+      // 如果静态数据中没有，从云端数据查找
+      if (!baseSpeech) {
+        const loadFromCloud = async () => {
+          const cloudArticles = await getArticles();
+          const cloudSpeech = cloudArticles.find(s => s.id === id);
+          if (cloudSpeech) {
+            const detail = getSpeechDetail(id);
+            setSpeech({
+              ...cloudSpeech,
+              abstract: detail?.abstract || '摘要正在整理中...',
+              fullText: detail?.fullText || '原文全文正在整理中...',
+              analysis: detail?.analysis || '解读分析正在整理中...'
+            } as SpeechDetail);
+          }
+        };
+        loadFromCloud();
+        return;
+      }
+      
       const detail = getSpeechDetail(id);
       
       if (baseSpeech) {
