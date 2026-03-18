@@ -85,8 +85,8 @@ function fromDbFormat(dbArticle: Record<string, unknown>): Speech {
   } as Speech;
 }
 
-// 获取本地缓存的文章
-function getLocalArticles(): Speech[] {
+// 获取本地缓存的文章（同步方法，导出供详情页使用）
+export function getLocalArticlesSync(): Speech[] {
   try {
     const cached = localStorage.getItem(ARTICLES_CACHE_KEY);
     const deletedStr = localStorage.getItem(DELETED_ARTICLES_KEY);
@@ -110,6 +110,11 @@ function getLocalArticles(): Speech[] {
     console.error('Error reading local articles:', error);
     return [...originalSpeechesData];
   }
+}
+
+// 获取本地缓存的文章（内部使用）
+function getLocalArticles(): Speech[] {
+  return getLocalArticlesSync();
 }
 
 // 保存文章到本地缓存
