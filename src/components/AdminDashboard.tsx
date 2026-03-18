@@ -480,8 +480,6 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       alert('添加失败：' + (error instanceof Error ? error.message : '未知错误'));
     }
   };
-    }
-  };
 
   const handleApprovePending = async (pending: PendingArticle) => {
     const article: Speech = {
