@@ -710,13 +710,13 @@ export const speechesData: Speech[] = [
   {
     id: '2026-14',
     title: '推动海洋经济高质量发展',
-    date: '2026-03-01',
+    date: '2026-03-14',
     year: 2026,
     month: 3,
-    day: 1,
+    day: 14,
     category: 'article',
     categoryName: '发表文章',
-    source: '《求是》杂志',
+    source: '《求是》杂志第6期',
     summary: '这是习近平总书记2026年3月在《求是》杂志第6期发表的重要文章。文章指出我国海洋经济规模已达10.5万亿元，为推进中国式现代化，需坚持创新驱动与陆海统筹，建设现代海洋产业体系，走出一条具有中国特色的向海图强之路。',
     url: 'https://www.qstheory.cn/20260314/eca2335226a84f3f8d583926b70fef9b/c.html'
   },
