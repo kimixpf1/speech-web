@@ -68,6 +68,7 @@ import {
   initializeSync,
   subscribeToSyncStatus,
   setupRealtimeSubscription,
+  getLocalArticlesSync,
   type Speech,
   type SyncStatus
 } from '@/services/articleServiceEnhanced';
@@ -264,8 +265,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       }
       setSuggestions(await getSuggestions());
       setUnreadCount(await getUnreadCount());
-      const articles = await getArticles();
-      setArticles(articles);
+
+      // 直接从本地缓存获取文章，确保数据一致
+      const localArticles = getLocalArticlesSync();
+      console.log('Loaded articles from local cache:', localArticles.length);
+      setArticles(localArticles);
+
       const pending = await getPendingArticles();
       setPendingArticles(pending);
       setPendingCount(pending.length);
