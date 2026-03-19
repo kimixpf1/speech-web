@@ -161,7 +161,22 @@ function mergeArticles(cloudArticles: Speech[]): Speech[] {
     }
   });
 
-  // 合并云端文章（云端数据优先级更高）
+  // 合并本地缓存的文章（本地新增的文章）
+  const localCached = localStorage.getItem(ARTICLES_CACHE_KEY);
+  if (localCached) {
+    try {
+      const localArticles: Speech[] = JSON.parse(localCached);
+      localArticles.forEach(article => {
+        if (!deleted.includes(article.id)) {
+          merged.set(article.id, article);
+        }
+      });
+    } catch (e) {
+      console.error('Error parsing local cache:', e);
+    }
+  }
+
+  // 合并云端文章（云端数据优先级最高）
   cloudArticles.forEach(article => {
     if (!deleted.includes(article.id)) {
       merged.set(article.id, article);
@@ -221,22 +236,30 @@ export async function getArticles(): Promise<Speech[]> {
 }
 
 // 添加文章
-export async function addArticle(article: Speech): Promise<boolean> {
+export async function addArticle(article: Speech): Promise<{ success: boolean; cloudError?: string }> {
   try {
+    let cloudError: string | undefined;
+    
     // 保存到云端（使用 upsert）
     if (navigator.onLine) {
-      const { error } = await supabase
-        .from(ARTICLES_TABLE)
-        .upsert(toDbFormat(article), { onConflict: 'id' });
+      try {
+        const { error } = await supabase
+          .from(ARTICLES_TABLE)
+          .upsert(toDbFormat(article), { onConflict: 'id' });
 
-      if (error) {
-        console.error('Failed to add article to cloud:', error);
-        return false;
+        if (error) {
+          console.error('Failed to add article to cloud:', error);
+          cloudError = error.message;
+        } else {
+          console.log('Article added to cloud:', article.id);
+        }
+      } catch (e) {
+        console.error('Supabase error:', e);
+        cloudError = e instanceof Error ? e.message : '云端保存失败';
       }
-      console.log('Article added to cloud:', article.id);
     }
 
-    // 更新本地缓存
+    // 无论云端是否成功，都更新本地缓存
     const articles = getLocalArticles();
     const existingIndex = articles.findIndex(a => a.id === article.id);
     if (existingIndex === -1) {
@@ -246,10 +269,11 @@ export async function addArticle(article: Speech): Promise<boolean> {
     }
     saveLocalArticles(articles);
 
-    return true;
+    // 本地保存成功，返回成功（但可能带有云端错误信息）
+    return { success: true, cloudError };
   } catch (error) {
     console.error('Error adding article:', error);
-    return false;
+    return { success: false, cloudError: error instanceof Error ? error.message : '未知错误' };
   }
 }
 
