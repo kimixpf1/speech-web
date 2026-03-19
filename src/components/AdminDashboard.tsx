@@ -89,10 +89,14 @@ import {
   type WorkflowRun
 } from '@/services/githubActionsService';
 import {
-  fetchArticleFromUrl,
+  extractArticleWithKimi,
+  saveKimiApiKey,
+  getKimiApiKey,
+  clearKimiApiKey,
+  validateKimiApiKey,
   isValidUrl,
-  type FetchedArticle
-} from '@/services/articleFetchService';
+  type ExtractedArticle
+} from '@/services/kimiArticleService';
 import {
   saveArticleDetail,
   type ArticleDetailContent
@@ -131,7 +135,14 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [fetchingArticle, setFetchingArticle] = useState(false);
   const [fetchError, setFetchError] = useState('');
   const [fetchedContent, setFetchedContent] = useState('');
-  
+  const [fetchedAnalysis, setFetchedAnalysis] = useState('');
+
+  // Kimi API Key 状态
+  const [kimiApiKey, setKimiApiKey] = useState(getKimiApiKey() || '');
+  const [showKimiKeyDialog, setShowKimiKeyDialog] = useState(false);
+  const [kimiKeyInput, setKimiKeyInput] = useState('');
+  const [kimiKeyValidating, setKimiKeyValidating] = useState(false);
+
   // 删除确认对话框
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingArticle, setDeletingArticle] = useState<Speech | null>(null);
@@ -476,7 +487,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     }
   };
 
-  // 从URL自动提取文章内容
+  // 从URL自动提取文章内容（使用Kimi AI）
   const handleFetchFromUrl = async () => {
     if (!fetchUrl.trim()) {
       setFetchError('请输入文章URL');
@@ -488,12 +499,18 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       return;
     }
 
+    if (!kimiApiKey) {
+      setShowKimiKeyDialog(true);
+      return;
+    }
+
     setFetchingArticle(true);
     setFetchError('');
     setFetchedContent('');
+    setFetchedAnalysis('');
 
     try {
-      const article = await fetchArticleFromUrl(fetchUrl.trim());
+      const article = await extractArticleWithKimi(fetchUrl.trim());
 
       // 自动填充表单
       setNewArticle({
@@ -503,12 +520,16 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         source: article.source,
         summary: article.summary,
         url: article.url,
+        category: article.category || 'speech',
+        categoryName: article.categoryName || '重要讲话',
+        location: article.location,
       });
 
-      // 保存全文内容用于详情页
-      setFetchedContent(article.content);
+      // 保存全文内容和解读分析用于详情页
+      setFetchedContent(article.fullText);
+      setFetchedAnalysis(article.analysis);
 
-      setSuccessMessage('文章内容已自动提取，请检查并保存');
+      setSuccessMessage(`文章内容已精准提取！标题: ${article.title}`);
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (error) {
       console.error('Fetch article error:', error);
@@ -516,6 +537,33 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     } finally {
       setFetchingArticle(false);
     }
+  };
+
+  // Kimi API Key 配置
+  const handleSaveKimiKey = async () => {
+    if (!kimiKeyInput.trim()) return;
+
+    setKimiKeyValidating(true);
+    const result = await validateKimiApiKey(kimiKeyInput.trim());
+    setKimiKeyValidating(false);
+
+    if (result.valid) {
+      saveKimiApiKey(kimiKeyInput.trim());
+      setKimiApiKey(kimiKeyInput.trim());
+      setShowKimiKeyDialog(false);
+      setSuccessMessage('Kimi API Key 配置成功！');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } else {
+      setFetchError(result.error || 'API Key验证失败');
+      setTimeout(() => setFetchError(''), 5000);
+    }
+  };
+
+  const handleClearKimiKey = () => {
+    clearKimiApiKey();
+    setKimiApiKey('');
+    setSuccessMessage('已清除Kimi API Key');
+    setTimeout(() => setSuccessMessage(''), 3000);
   };
 
   const handleAddArticle = async () => {
@@ -554,7 +602,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
             id: articleId,
             abstract: newArticle.summary,
             fullText: fetchedContent,
-            analysis: '解读分析正在整理中...'
+            analysis: fetchedAnalysis || '解读分析正在整理中...'
           };
           await saveArticleDetail(detail);
         }
@@ -570,6 +618,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         setFetchUrl('');
         setFetchError('');
         setFetchedContent('');
+        setFetchedAnalysis('');
         await loadData();
         setSuccessMessage('添加成功');
         setTimeout(() => setSuccessMessage(''), 3000);
@@ -1512,6 +1561,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
           setFetchUrl('');
           setFetchError('');
           setFetchedContent('');
+          setFetchedAnalysis('');
         }
       }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -1523,13 +1573,27 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
             {/* URL自动提取区域 */}
             <Card className="bg-blue-50 border-blue-200">
               <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-800">智能提取</span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-800">AI智能提取</span>
+                    {kimiApiKey && (
+                      <Badge variant="outline" className="text-green-600 border-green-300">已配置API</Badge>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowKimiKeyDialog(true)}
+                    className="text-blue-600"
+                  >
+                    <Settings className="w-4 h-4 mr-1" />
+                    {kimiApiKey ? '更换Key' : '配置Kimi API'}
+                  </Button>
                 </div>
                 <div className="flex gap-2">
                   <Input
-                    placeholder="粘贴原文链接，自动提取标题、日期、摘要等内容"
+                    placeholder="粘贴原文链接，AI将精准提取标题、日期、摘要、全文、解读等内容"
                     value={fetchUrl}
                     onChange={(e) => setFetchUrl(e.target.value)}
                     className="flex-1"
@@ -1553,9 +1617,15 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <p className="text-sm text-red-600 mt-2">{fetchError}</p>
                 )}
                 {fetchedContent && (
-                  <p className="text-sm text-green-600 mt-2">
-                    已提取全文内容（{fetchedContent.length}字），保存后将自动生成详情页
-                  </p>
+                  <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <p className="text-sm text-green-700 font-medium mb-1">
+                      提取成功！已获取：
+                    </p>
+                    <ul className="text-sm text-green-600 space-y-1">
+                      <li>• 全文内容（{fetchedContent.length}字）</li>
+                      {fetchedAnalysis && <li>• 解读分析（{fetchedAnalysis.length}字）</li>}
+                    </ul>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -1691,6 +1761,59 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               className="bg-red-600 hover:bg-red-700"
             >
               {tokenValidating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  验证中...
+                </>
+              ) : (
+                '保存并验证'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Kimi API Key 配置对话框 */}
+      <Dialog open={showKimiKeyDialog} onOpenChange={setShowKimiKeyDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>配置 Kimi API Key</DialogTitle>
+            <DialogDescription>
+              输入您的 Kimi API Key 以精准提取文章内容
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Kimi API Key</label>
+              <Input
+                type="password"
+                placeholder="sk-xxxxxxxxxxxxxxxxxxxx"
+                value={kimiKeyInput}
+                onChange={(e) => setKimiKeyInput(e.target.value)}
+              />
+              <p className="text-xs text-gray-500">
+                在 Kimi开放平台 (platform.moonshot.cn) 获取 API Key
+              </p>
+            </div>
+            {kimiApiKey && (
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <span className="text-sm text-green-700">已配置 Kimi API Key</span>
+                <Button variant="outline" size="sm" onClick={handleClearKimiKey}>
+                  清除
+                </Button>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowKimiKeyDialog(false)}>
+              取消
+            </Button>
+            <Button
+              onClick={handleSaveKimiKey}
+              disabled={!kimiKeyInput.trim() || kimiKeyValidating}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {kimiKeyValidating ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                   验证中...
