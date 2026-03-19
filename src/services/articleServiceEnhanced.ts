@@ -85,12 +85,21 @@ function fromDbFormat(dbArticle: Record<string, unknown>): Speech {
   } as Speech;
 }
 
+// 获取已删除文章ID列表
+function getDeletedIds(): string[] {
+  try {
+    const deletedStr = localStorage.getItem(DELETED_ARTICLES_KEY);
+    return deletedStr ? JSON.parse(deletedStr) : [];
+  } catch {
+    return [];
+  }
+}
+
 // 获取本地缓存的文章（同步方法，导出供详情页使用）
 export function getLocalArticlesSync(): Speech[] {
   try {
     const cached = localStorage.getItem(ARTICLES_CACHE_KEY);
-    const deletedStr = localStorage.getItem(DELETED_ARTICLES_KEY);
-    const deleted: string[] = deletedStr ? JSON.parse(deletedStr) : [];
+    const deleted = getDeletedIds();
 
     let articles: Speech[] = cached ? JSON.parse(cached) : [];
 
@@ -121,6 +130,7 @@ function getLocalArticles(): Speech[] {
 function saveLocalArticles(articles: Speech[]): void {
   try {
     localStorage.setItem(ARTICLES_CACHE_KEY, JSON.stringify(articles));
+    console.log('Saved articles to local cache:', articles.length);
   } catch (error) {
     console.error('Error saving local articles:', error);
   }
@@ -147,47 +157,6 @@ async function fetchCloudArticles(): Promise<Speech[]> {
   }
 }
 
-// 合并本地和云端文章
-function mergeArticles(cloudArticles: Speech[]): Speech[] {
-  const deletedStr = localStorage.getItem(DELETED_ARTICLES_KEY);
-  const deleted: string[] = deletedStr ? JSON.parse(deletedStr) : [];
-
-  const merged = new Map<string, Speech>();
-
-  // 先添加原始数据
-  originalSpeechesData.forEach(article => {
-    if (!deleted.includes(article.id)) {
-      merged.set(article.id, article);
-    }
-  });
-
-  // 合并本地缓存的文章（本地新增的文章）
-  const localCached = localStorage.getItem(ARTICLES_CACHE_KEY);
-  if (localCached) {
-    try {
-      const localArticles: Speech[] = JSON.parse(localCached);
-      localArticles.forEach(article => {
-        if (!deleted.includes(article.id)) {
-          merged.set(article.id, article);
-        }
-      });
-    } catch (e) {
-      console.error('Error parsing local cache:', e);
-    }
-  }
-
-  // 合并云端文章（云端数据优先级最高）
-  cloudArticles.forEach(article => {
-    if (!deleted.includes(article.id)) {
-      merged.set(article.id, article);
-    }
-  });
-
-  return Array.from(merged.values()).sort((a, b) =>
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
-}
-
 // 同步文章（从云端获取并合并）
 export async function syncArticles(): Promise<Speech[]> {
   updateSyncStatus({ isSyncing: true });
@@ -198,21 +167,50 @@ export async function syncArticles(): Promise<Speech[]> {
       return getLocalArticles();
     }
 
+    // 获取本地文章（包括新添加的）
+    const localArticles = getLocalArticles();
+    const deleted = getDeletedIds();
+
     // 从云端获取文章
     const cloudArticles = await fetchCloudArticles();
 
-    // 合并文章
-    const merged = mergeArticles(cloudArticles);
+    // 使用 Map 合并，本地文章优先（防止云端覆盖本地新文章）
+    const merged = new Map<string, Speech>();
+
+    // 先添加原始数据
+    originalSpeechesData.forEach(article => {
+      if (!deleted.includes(article.id)) {
+        merged.set(article.id, article);
+      }
+    });
+
+    // 添加云端文章
+    cloudArticles.forEach(article => {
+      if (!deleted.includes(article.id)) {
+        merged.set(article.id, article);
+      }
+    });
+
+    // 最后添加本地文章（本地新增的文章优先级最高）
+    localArticles.forEach(article => {
+      if (!deleted.includes(article.id)) {
+        merged.set(article.id, article);
+      }
+    });
+
+    const result = Array.from(merged.values()).sort((a, b) =>
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
 
     // 保存到本地
-    saveLocalArticles(merged);
+    saveLocalArticles(result);
 
     // 更新最后同步时间
     const now = new Date().toISOString();
     localStorage.setItem('articles_last_sync', now);
     updateSyncStatus({ lastSync: now, isSyncing: false });
 
-    return merged;
+    return result;
   } catch (error) {
     console.error('Error syncing articles:', error);
     updateSyncStatus({ isSyncing: false });
@@ -222,25 +220,25 @@ export async function syncArticles(): Promise<Speech[]> {
 
 // 获取所有文章
 export async function getArticles(): Promise<Speech[]> {
-  // 如果在线，先同步云端数据
+  // 先返回本地缓存（快速响应）
+  const localArticles = getLocalArticles();
+  
+  // 如果在线，后台同步云端数据
   if (navigator.onLine) {
-    try {
-      return await syncArticles();
-    } catch (error) {
-      console.error('Failed to sync articles:', error);
-    }
+    syncArticles().catch(console.error);
   }
 
-  // 离线或同步失败时，返回本地缓存
-  return getLocalArticles();
+  return localArticles;
 }
 
 // 添加文章
 export async function addArticle(article: Speech): Promise<{ success: boolean; cloudError?: string }> {
   try {
+    console.log('Adding article:', article.id, article.title);
+    
     let cloudError: string | undefined;
     
-    // 保存到云端（使用 upsert）
+    // 保存到云端
     if (navigator.onLine) {
       try {
         const { error } = await supabase
@@ -259,17 +257,35 @@ export async function addArticle(article: Speech): Promise<{ success: boolean; c
       }
     }
 
-    // 无论云端是否成功，都更新本地缓存
+    // 更新本地缓存（直接操作，确保保存）
     const articles = getLocalArticles();
     const existingIndex = articles.findIndex(a => a.id === article.id);
+    
     if (existingIndex === -1) {
+      // 新文章，添加到开头
       articles.unshift(article);
+      console.log('New article added to local cache');
     } else {
+      // 更新现有文章
       articles[existingIndex] = article;
+      console.log('Article updated in local cache');
     }
+    
+    // 按日期排序
+    articles.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    // 保存到 localStorage
     saveLocalArticles(articles);
+    
+    // 验证保存成功
+    const savedArticles = getLocalArticles();
+    const saved = savedArticles.find(a => a.id === article.id);
+    if (saved) {
+      console.log('Verified article saved:', saved.id, saved.title);
+    } else {
+      console.error('Failed to verify article was saved!');
+    }
 
-    // 本地保存成功，返回成功（但可能带有云端错误信息）
     return { success: true, cloudError };
   } catch (error) {
     console.error('Error adding article:', error);
@@ -280,7 +296,7 @@ export async function addArticle(article: Speech): Promise<{ success: boolean; c
 // 更新文章
 export async function updateArticle(updatedArticle: Speech): Promise<boolean> {
   try {
-    // 更新云端（使用 upsert）
+    // 更新云端
     if (navigator.onLine) {
       const { error } = await supabase
         .from(ARTICLES_TABLE)
@@ -324,16 +340,13 @@ export async function deleteArticle(id: string): Promise<boolean> {
 
       if (error) {
         console.error('Failed to delete article from cloud:', error);
-        // 继续删除本地，即使云端删除失败
       } else {
         console.log('Article deleted from cloud:', id);
       }
     }
 
     // 记录已删除
-    const deletedStr = localStorage.getItem(DELETED_ARTICLES_KEY);
-    const deleted: string[] = deletedStr ? JSON.parse(deletedStr) : [];
-
+    const deleted = getDeletedIds();
     if (!deleted.includes(id)) {
       deleted.push(id);
       localStorage.setItem(DELETED_ARTICLES_KEY, JSON.stringify(deleted));
@@ -404,15 +417,11 @@ export function setupRealtimeSubscription(
               const article = fromDbFormat(payload.new);
               onArticleChange(article);
             }
-            // 重新同步
-            syncArticles().catch(console.error);
             break;
           case 'DELETE':
             if (onArticleDelete && payload.old) {
               onArticleDelete((payload.old as { id: string }).id);
             }
-            // 重新同步
-            syncArticles().catch(console.error);
             break;
         }
       }
@@ -421,7 +430,6 @@ export function setupRealtimeSubscription(
       console.log('Realtime subscription status:', status);
     });
 
-  // 返回取消订阅函数
   return () => {
     if (realtimeChannel) {
       realtimeChannel.unsubscribe();
@@ -432,17 +440,14 @@ export function setupRealtimeSubscription(
 
 // 初始化同步
 export async function initializeSync(): Promise<void> {
-  // 检查网络状态
   checkOnlineStatus();
-
-  // 初始同步
+  
   try {
     await syncArticles();
   } catch (error) {
     console.error('Initial sync failed:', error);
   }
 
-  // 设置实时订阅
   setupRealtimeSubscription();
 }
 
