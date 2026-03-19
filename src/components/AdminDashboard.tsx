@@ -59,18 +59,12 @@ import {
   type VisitRecord as SupabaseVisitRecord
 } from '@/services/supabaseAnalytics';
 import {
-  getArticles,
   updateArticle,
   deleteArticle,
   addArticle,
   generateArticleId,
-  syncArticles,
-  initializeSync,
-  subscribeToSyncStatus,
-  setupRealtimeSubscription,
   getLocalArticlesSync,
-  type Speech,
-  type SyncStatus
+  type Speech
 } from '@/services/articleServiceEnhanced';
 import {
   getPendingArticles,
@@ -163,14 +157,6 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   
   // 访客记录多选状态
   const [selectedVisits, setSelectedVisits] = useState<Set<string>>(new Set());
-  
-  // 同步状态
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>({
-    isOnline: navigator.onLine,
-    lastSync: null,
-    pendingChanges: 0,
-    isSyncing: false,
-  });
 
   // 待审核文章
   const [pendingArticles, setPendingArticles] = useState<PendingArticle[]>([]);
@@ -198,65 +184,27 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     }
     loadData();
     
-    // 初始化文章同步
-    initializeSync().catch(console.error);
-    
-    // 订阅同步状态变化
-    const unsubscribeSync = subscribeToSyncStatus((status) => {
-      setSyncStatus(status);
-    });
-    
-    // 设置文章实时订阅
-    const unsubscribeRealtime = setupRealtimeSubscription(
-      (updatedArticle) => {
-        // 实时更新文章列表
-        setArticles(prev => {
-          const index = prev.findIndex(a => a.id === updatedArticle.id);
-          if (index !== -1) {
-            const updated = [...prev];
-            updated[index] = updatedArticle;
-            return updated;
-          } else {
-            return [updatedArticle, ...prev];
-          }
-        });
-      },
-      (deletedId) => {
-        // 实时删除文章
-        setArticles(prev => prev.filter(a => a.id !== deletedId));
-      }
-    );
-    
     // 设置建议实时监听器
     const cleanup = setupSuggestionListener((updatedSuggestions) => {
       setSuggestions(updatedSuggestions);
       setUnreadCount(updatedSuggestions.filter(s => s.status === 'unread').length);
     });
     
-    // 每5秒自动刷新一次建议和访问统计
+    // 每10秒刷新一次数据
     const interval = setInterval(async () => {
+      // 刷新文章列表
+      const articles = getLocalArticlesSync();
+      setArticles(articles);
+      
+      // 刷新建议
       const suggestions = await getSuggestions();
       const unread = await getUnreadCount();
       setSuggestions(suggestions);
       setUnreadCount(unread);
-      
-      // 刷新访问统计（从 Supabase）
-      if (isSupabaseConfigured()) {
-        const stats = await getSupabaseStats();
-        const records = await getSupabaseRecentVisits(100);
-        setVisitStats(stats);
-        setVisitRecords(records);
-      }
-      
-      // 刷新文章列表（获取最新同步数据）
-      const refreshedArticles = await getArticles();
-      setArticles(refreshedArticles);
-    }, 5000);
+    }, 10000);
     
     return () => {
       cleanup();
-      unsubscribeSync();
-      unsubscribeRealtime();
       clearInterval(interval);
     };
   }, [navigate]);
@@ -286,11 +234,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     }
   };
   
-  // 手动同步
-  const handleManualSync = async () => {
-    const refreshedArticles = await syncArticles();
-    setArticles(refreshedArticles);
-    setSuccessMessage('同步成功');
+  // 手动刷新
+  const handleManualSync = () => {
+    const articles = getLocalArticlesSync();
+    setArticles(articles);
+    setSuccessMessage('刷新成功');
     setTimeout(() => setSuccessMessage(''), 3000);
   };
 
@@ -678,14 +626,14 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         setFetchedAnalysis('');
         await loadData();
         
-        if (result.cloudError) {
-          setSuccessMessage(`添加成功（云端同步失败：${result.cloudError}）`);
+        if (result.error) {
+          setSuccessMessage(`添加成功（警告：${result.error}）`);
         } else {
-          setSuccessMessage('添加成功');
+          setSuccessMessage('添加成功！');
         }
         setTimeout(() => setSuccessMessage(''), 5000);
       } else {
-        alert('添加失败：' + (result.cloudError || 'ID可能已存在'));
+        alert('添加失败：' + (result.error || '未知错误'));
       }
     } catch (error) {
       console.error('Add article error:', error);
@@ -712,7 +660,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     if (result.success) {
       await approveArticle(pending.id);
       await loadData();
-      setSuccessMessage(result.cloudError ? `已发布（云端同步失败）` : '已发布');
+      setSuccessMessage('已发布！');
       setTimeout(() => setSuccessMessage(''), 3000);
     }
   };
@@ -867,18 +815,6 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   );
 
   const formatNumber = (num: number) => num.toLocaleString('zh-CN');
-  
-  // 格式化同步时间
-  const formatSyncTime = (time: string | null) => {
-    if (!time) return '未同步';
-    const date = new Date(time);
-    return date.toLocaleString('zh-CN', { 
-      month: 'short', 
-      day: 'numeric', 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -893,41 +829,24 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <h1 className="text-xl font-bold text-gray-900">管理员后台</h1>
             </div>
             <div className="flex items-center gap-3">
-              {/* 同步状态指示器 */}
+              {/* 状态指示器 */}
               <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full text-sm">
-                {syncStatus.isOnline ? (
+                {navigator.onLine ? (
                   <Wifi className="w-4 h-4 text-green-500" />
                 ) : (
                   <WifiOff className="w-4 h-4 text-red-500" />
                 )}
-                <span className={syncStatus.isOnline ? 'text-green-600' : 'text-red-600'}>
-                  {syncStatus.isOnline ? '在线' : '离线'}
+                <span className={navigator.onLine ? 'text-green-600' : 'text-red-600'}>
+                  {navigator.onLine ? '在线' : '离线'}
                 </span>
                 <span className="text-gray-400">|</span>
-                {syncStatus.isSyncing ? (
-                  <RefreshCw className="w-4 h-4 text-blue-500 animate-spin" />
-                ) : syncStatus.pendingChanges > 0 ? (
-                  <CloudOff className="w-4 h-4 text-orange-500" />
-                ) : (
-                  <Cloud className="w-4 h-4 text-blue-500" />
-                )}
-                <span className="text-gray-600">
-                  {syncStatus.isSyncing ? '同步中...' : 
-                   syncStatus.pendingChanges > 0 ? `${syncStatus.pendingChanges}个待同步` : 
-                   '已同步'}
-                </span>
-                <span className="text-gray-400">|</span>
-                <span className="text-gray-500 text-xs">
-                  {formatSyncTime(syncStatus.lastSync)}
-                </span>
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="h-6 w-6 p-0 ml-1"
+                  className="h-6 w-6 p-0"
                   onClick={handleManualSync}
-                  disabled={syncStatus.isSyncing || !syncStatus.isOnline}
                 >
-                  <RefreshCw className={`w-3 h-3 ${syncStatus.isSyncing ? 'animate-spin' : ''}`} />
+                  <RefreshCw className="w-3 h-3" />
                 </Button>
               </div>
               <Button variant="ghost" onClick={handleLogout} className="text-gray-600 hover:text-red-600">
