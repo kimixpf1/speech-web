@@ -10,7 +10,8 @@ import { DetailPage } from '@/components/DetailPage';
 import { AdminLogin } from '@/components/AdminLogin';
 import { AdminDashboard } from '@/components/AdminDashboard';
 import { SuggestionBox } from '@/components/SuggestionBox';
-import { getArticles, getLocalArticlesSync, setupRealtimeSubscription, type Speech } from '@/services/articleServiceEnhanced';
+import { getArticles, setupRealtimeSubscription, type Speech } from '@/services/articleServiceEnhanced';
+import { speechesData } from '@/data/speeches';
 import { initAnalytics } from '@/services/analytics';
 import { initSupabaseAnalytics } from '@/services/supabaseAnalytics';
 import { isAdminLoggedIn } from '@/services/adminAuth';
@@ -20,8 +21,8 @@ function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedYear, setSelectedYear] = useState('all');
-  // 用静态数据作为初始值，避免闪烁
-  const [articles, setArticles] = useState<Speech[]>(() => getLocalArticlesSync());
+  // 直接用静态数据初始化，确保有52篇
+  const [articles, setArticles] = useState<Speech[]>(speechesData);
   const scrollRestored = useRef(false);
 
   // 恢复滚动位置
