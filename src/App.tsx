@@ -42,21 +42,17 @@ function HomePage() {
     initAnalytics();
     initSupabaseAnalytics();
 
-    // 先从本地缓存快速加载
-    const localArticles = getLocalArticlesSync();
-    if (localArticles.length > 0) {
-      setArticles(localArticles);
-    }
-    setIsLoading(false);
-
-    // 从云端获取最新数据
-    const loadFromCloud = async () => {
-      const cloudArticles = await getArticles();
-      if (cloudArticles.length > 0) {
-        setArticles(cloudArticles);
+    // 从云端获取数据（会自动同步52篇文章）
+    const loadArticles = async () => {
+      const articles = await getArticles();
+      if (articles.length > 0) {
+        setArticles(articles);
       }
     };
-    loadFromCloud();
+    
+    // 先加载一次
+    loadArticles();
+    setIsLoading(false);
 
     // 设置实时订阅
     const unsubscribe = setupRealtimeSubscription(
@@ -78,7 +74,7 @@ function HomePage() {
 
     // 定期刷新
     const interval = setInterval(() => {
-      loadFromCloud();
+      loadArticles();
     }, 30000);
 
     return () => {
