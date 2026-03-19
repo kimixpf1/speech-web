@@ -169,22 +169,31 @@ export function getLocalArticlesSync(): Speech[] {
   return [...speechesData];
 }
 
-// 添加文章
+// 添加文章（自动上传云端备份）
 export async function addArticle(article: Speech): Promise<{ success: boolean; error?: string }> {
   try {
+    console.log('新增文章，准备上传云端备份:', article.id, article.title);
+    
     if (navigator.onLine) {
+      // 上传到云端
       const { error } = await supabase
         .from(ARTICLES_TABLE)
         .upsert(toDbFormat(article), { onConflict: 'id' });
 
       if (error) {
-        console.error('Failed to add:', error);
-        return { success: false, error: error.message };
+        console.error('云端上传失败:', error);
+        return { success: false, error: `云端上传失败: ${error.message}` };
       }
 
+      console.log('云端备份成功！文章已保存:', article.id);
+      
+      // 更新本地缓存
       const allArticles = await fetchFromCloud();
       saveLocalCache(allArticles);
+      console.log('当前云端文章总数:', allArticles.length);
     } else {
+      // 离线时保存到本地，等在线时自动同步
+      console.log('当前离线，文章暂存本地，将在联网后同步');
       const cached = getLocalCache();
       const index = cached.findIndex(a => a.id === article.id);
       if (index === -1) {
@@ -198,23 +207,27 @@ export async function addArticle(article: Speech): Promise<{ success: boolean; e
 
     return { success: true };
   } catch (e) {
-    console.error('Add article error:', e);
+    console.error('添加文章错误:', e);
     return { success: false, error: e instanceof Error ? e.message : '未知错误' };
   }
 }
 
-// 更新文章
+// 更新文章（自动同步云端）
 export async function updateArticle(article: Speech): Promise<boolean> {
   try {
+    console.log('更新文章，同步云端:', article.id);
+    
     if (navigator.onLine) {
       const { error } = await supabase
         .from(ARTICLES_TABLE)
         .upsert(toDbFormat(article), { onConflict: 'id' });
 
       if (error) {
-        console.error('Failed to update:', error);
+        console.error('云端更新失败:', error);
         return false;
       }
+
+      console.log('云端更新成功:', article.id);
 
       const allArticles = await fetchFromCloud();
       saveLocalCache(allArticles);
@@ -230,14 +243,16 @@ export async function updateArticle(article: Speech): Promise<boolean> {
 
     return true;
   } catch (e) {
-    console.error('Update article error:', e);
+    console.error('更新文章错误:', e);
     return false;
   }
 }
 
-// 删除文章
+// 删除文章（同步云端）
 export async function deleteArticle(id: string): Promise<boolean> {
   try {
+    console.log('删除文章，同步云端:', id);
+    
     if (navigator.onLine) {
       const { error } = await supabase
         .from(ARTICLES_TABLE)
@@ -245,12 +260,15 @@ export async function deleteArticle(id: string): Promise<boolean> {
         .eq('id', id);
 
       if (error) {
-        console.error('Failed to delete:', error);
+        console.error('云端删除失败:', error);
         return false;
       }
 
+      console.log('云端删除成功:', id);
+
       const allArticles = await fetchFromCloud();
       saveLocalCache(allArticles);
+      console.log('当前云端文章总数:', allArticles.length);
     } else {
       const cached = getLocalCache();
       const filtered = cached.filter(a => a.id !== id);
@@ -259,7 +277,7 @@ export async function deleteArticle(id: string): Promise<boolean> {
 
     return true;
   } catch (e) {
-    console.error('Delete article error:', e);
+    console.error('删除文章错误:', e);
     return false;
   }
 }
