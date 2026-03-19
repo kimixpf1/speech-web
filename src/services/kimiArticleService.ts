@@ -70,45 +70,59 @@ export async function validateKimiApiKey(apiKey: string): Promise<{ valid: boole
 }
 
 /**
- * 使用Kimi API提取文章内容
+ * 使用CORS代理获取网页内容
  */
-export async function extractArticleWithKimi(url: string, apiKey?: string): Promise<ExtractedArticle> {
-  const key = apiKey || getKimiApiKey();
-  
-  if (!key) {
-    throw new Error('请先配置Kimi API Key');
-  }
-
-  // 首先获取网页内容
-  let pageContent = '';
-  
-  // 使用CORS代理获取网页
+async function fetchWithCorsProxy(url: string): Promise<string> {
+  // 多个CORS代理，按优先级排序
   const corsProxies = [
-    'https://corsproxy.io/?',
-    'https://api.allorigins.win/raw?url=',
+    // 代理1: corsproxy.io
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    // 代理2: allorigins
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    // 代理3: cors-anywhere的替代品
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
   ];
-  
-  for (const proxy of corsProxies) {
+
+  let lastError: Error | null = null;
+
+  for (const proxyUrl of corsProxies) {
     try {
-      const proxyUrl = proxy + encodeURIComponent(url);
-      const response = await fetch(proxyUrl);
+      console.log('Trying proxy:', proxyUrl.substring(0, 50) + '...');
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超时
+
+      const response = await fetch(proxyUrl, {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        }
+      });
+
+      clearTimeout(timeoutId);
+
       if (response.ok) {
-        pageContent = await response.text();
-        if (pageContent && pageContent.length > 100) {
-          break;
+        const text = await response.text();
+        if (text && text.length > 100) {
+          console.log('Successfully fetched content, length:', text.length);
+          return text;
         }
       }
     } catch (e) {
-      console.log(`Proxy ${proxy} failed:`, e);
+      lastError = e instanceof Error ? e : new Error('Unknown error');
+      console.log('Proxy failed:', lastError.message);
     }
   }
 
-  if (!pageContent) {
-    throw new Error('无法获取网页内容，请检查链接是否正确');
-  }
+  throw new Error(lastError?.message || '所有代理都无法访问该网页');
+}
 
-  // 清理HTML，提取纯文本内容
-  const cleanContent = pageContent
+/**
+ * 清理HTML内容
+ */
+function cleanHtmlContent(html: string): string {
+  return html
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
     .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
@@ -117,12 +131,47 @@ export async function extractArticleWithKimi(url: string, apiKey?: string): Prom
     .replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, '')
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/<[^>]+>/g, '\n')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&ldquo;/g, '"')
+    .replace(/&rdquo;/g, '"')
+    .replace(/&mdash;/g, '—')
+    .replace(/&hellip;/g, '…')
     .replace(/\n+/g, '\n')
     .replace(/\s+/g, ' ')
     .trim();
+}
 
-  // 截取前15000字符（避免超出token限制）
+/**
+ * 使用Kimi API从网页内容提取文章
+ */
+export async function extractArticleWithKimi(url: string, apiKey?: string): Promise<ExtractedArticle> {
+  const key = apiKey || getKimiApiKey();
+  
+  if (!key) {
+    throw new Error('请先配置Kimi API Key');
+  }
+
+  // 获取网页内容
+  let pageContent = '';
+  
+  try {
+    pageContent = await fetchWithCorsProxy(url);
+  } catch (e) {
+    console.error('Failed to fetch page:', e);
+    throw new Error('无法获取网页内容。请检查链接是否正确，或尝试手动粘贴网页内容。');
+  }
+
+  if (!pageContent || pageContent.length < 100) {
+    throw new Error('获取的网页内容太少，请检查链接是否正确');
+  }
+
+  // 清理HTML
+  const cleanContent = cleanHtmlContent(pageContent);
+  
+  // 截取前15000字符
   const truncatedContent = cleanContent.substring(0, 15000);
+
+  console.log('Cleaned content length:', truncatedContent.length);
 
   const prompt = `你是一个专业的内容提取助手。请从以下网页内容中提取文章信息，要求精确、完整、准确。
 
@@ -154,6 +203,8 @@ ${truncatedContent}
 5. 解读分析要有深度，体现文章的重要意义`;
 
   try {
+    console.log('Calling Kimi API...');
+    
     const response = await fetch(KIMI_API_URL, {
       method: 'POST',
       headers: {
@@ -189,10 +240,11 @@ ${truncatedContent}
       throw new Error('API返回内容为空');
     }
 
+    console.log('API response received, parsing...');
+
     // 解析JSON
     let article: ExtractedArticle;
     try {
-      // 尝试提取JSON部分
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         article = JSON.parse(jsonMatch[0]);
@@ -200,21 +252,109 @@ ${truncatedContent}
         throw new Error('无法解析返回的JSON');
       }
     } catch (parseError) {
-      console.error('JSON解析错误:', content);
+      console.error('JSON解析错误:', content.substring(0, 500));
       throw new Error('解析文章内容失败，请重试');
     }
 
-    // 添加URL
     article.url = url;
 
-    // 验证必要字段
     if (!article.title || !article.fullText) {
       throw new Error('提取的内容不完整，请重试');
     }
 
+    console.log('Article extracted successfully:', article.title);
     return article;
   } catch (error) {
     console.error('Kimi API error:', error);
+    throw error;
+  }
+}
+
+/**
+ * 使用Kimi API从用户粘贴的内容提取文章（备用方案）
+ */
+export async function extractArticleFromText(content: string, url: string, apiKey?: string): Promise<ExtractedArticle> {
+  const key = apiKey || getKimiApiKey();
+  
+  if (!key) {
+    throw new Error('请先配置Kimi API Key');
+  }
+
+  if (!content || content.length < 50) {
+    throw new Error('请粘贴更多内容');
+  }
+
+  const truncatedContent = content.substring(0, 15000);
+
+  const prompt = `你是一个专业的内容提取助手。请从以下用户粘贴的网页内容中提取文章信息，要求精确、完整、准确。
+
+来源URL: ${url}
+
+用户粘贴的内容：
+${truncatedContent}
+
+请严格按照以下JSON格式输出，不要输出任何其他内容：
+
+{
+  "title": "文章完整标题",
+  "date": "发布日期，格式为YYYY-MM-DD",
+  "source": "来源，如：求是杂志、人民网、新华网等",
+  "author": "作者（如果有）",
+  "location": "地点（如果是考察调研类文章）",
+  "category": "分类，必须是以下之一：speech（重要讲话）、article（发表文章）、meeting（重要会议）、inspection（考察调研）",
+  "categoryName": "分类中文名",
+  "summary": "文章摘要，200-300字，概述主要内容",
+  "fullText": "原文全文，必须完整、一字不差地保留原文内容",
+  "analysis": "解读分析，300-500字，分析文章的核心要点、重要意义和背景"
+}`;
+
+  try {
+    const response = await fetch(KIMI_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model: 'moonshot-v1-8k',
+        messages: [
+          {
+            role: 'system',
+            content: '你是一个专业的内容提取助手。请严格按照JSON格式输出。'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 8000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || `API请求失败`);
+    }
+
+    const data = await response.json();
+    const apiContent = data.choices?.[0]?.message?.content;
+
+    if (!apiContent) {
+      throw new Error('API返回内容为空');
+    }
+
+    const jsonMatch = apiContent.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('解析失败');
+    }
+
+    const article: ExtractedArticle = JSON.parse(jsonMatch[0]);
+    article.url = url;
+
+    return article;
+  } catch (error) {
+    console.error('Extract from text error:', error);
     throw error;
   }
 }
