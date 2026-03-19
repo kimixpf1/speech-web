@@ -31,15 +31,15 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
       return;
     }
 
-    // 模拟登录延迟
-    setTimeout(() => {
-      if (loginAdmin(username, password)) {
+    // 使用 Supabase Auth 登录
+    loginAdmin(username, password).then((result) => {
+      if (result.success) {
         onLoginSuccess();
       } else {
-        setError('用户名或密码错误');
+        setError(result.error || '用户名或密码错误');
       }
       setIsLoading(false);
-    }, 500);
+    });
   };
 
   return (

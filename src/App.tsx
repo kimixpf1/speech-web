@@ -14,7 +14,7 @@ import { getArticles, setupRealtimeSubscription, type Speech } from '@/services/
 import { speechesData } from '@/data/speeches';
 import { initAnalytics } from '@/services/analytics';
 import { initSupabaseAnalytics } from '@/services/supabaseAnalytics';
-import { isAdminLoggedIn } from '@/services/adminAuth';
+import { isAdminLoggedInSync, isAdminLoggedIn } from '@/services/adminAuth';
 import './App.css';
 
 function HomePage() {
@@ -166,12 +166,14 @@ function AboutPage() {
 
 function AdminLoginWrapper() {
   const navigate = useNavigate();
-  
+
   useEffect(() => {
     // 如果已经登录，直接跳转到后台
-    if (isAdminLoggedIn()) {
-      navigate('/admin/dashboard');
-    }
+    isAdminLoggedIn().then((isLoggedIn) => {
+      if (isLoggedIn) {
+        navigate('/admin/dashboard');
+      }
+    });
   }, [navigate]);
 
   return <AdminLogin onLoginSuccess={() => navigate('/admin/dashboard')} />;
@@ -179,12 +181,14 @@ function AdminLoginWrapper() {
 
 function AdminDashboardWrapper() {
   const navigate = useNavigate();
-  
+
   useEffect(() => {
     // 如果未登录，跳转到登录页
-    if (!isAdminLoggedIn()) {
-      navigate('/admin/login');
-    }
+    isAdminLoggedIn().then((isLoggedIn) => {
+      if (!isLoggedIn) {
+        navigate('/admin/login');
+      }
+    });
   }, [navigate]);
 
   return <AdminDashboard onLogout={() => navigate('/admin/login')} />;
