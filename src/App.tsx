@@ -23,19 +23,21 @@ function HomePage() {
   const [articles, setArticles] = useState<Speech[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 恢复滚动位置（从详情页返回时）
+  // 恢复滚动位置（从详情页返回时，等待内容加载完成后恢复）
   useEffect(() => {
-    const savedPosition = localStorage.getItem('scrollPosition');
-    if (savedPosition) {
-      const position = parseInt(savedPosition, 10);
-      localStorage.removeItem('scrollPosition');
-      
-      // 使用 requestAnimationFrame 确保在渲染后滚动
-      requestAnimationFrame(() => {
-        window.scrollTo(0, position);
-      });
+    if (!isLoading && articles.length > 0) {
+      const savedPosition = localStorage.getItem('scrollPosition');
+      if (savedPosition) {
+        const position = parseInt(savedPosition, 10);
+        localStorage.removeItem('scrollPosition');
+        
+        // 等待DOM渲染完成后滚动
+        setTimeout(() => {
+          window.scrollTo(0, position);
+        }, 100);
+      }
     }
-  }, []);
+  }, [isLoading, articles.length]);
 
   // 初始化访问统计并加载文章
   useEffect(() => {
