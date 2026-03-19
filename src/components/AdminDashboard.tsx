@@ -35,7 +35,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { logoutAdmin, isAdminLoggedIn } from '@/services/adminAuth';
+import { logoutAdmin, isAdminLoggedIn, isAdminLoggedInSync } from '@/services/adminAuth';
 import { 
   getSuggestions, 
   getUnreadCount, 
@@ -180,31 +180,33 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [recentRuns, setRecentRuns] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!isAdminLoggedIn()) {
-      navigate('/admin/login');
-      return;
-    }
-    loadData();
-    
+    isAdminLoggedIn().then((isLoggedIn) => {
+      if (!isLoggedIn) {
+        navigate('/admin/login');
+        return;
+      }
+      loadData();
+    });
+
     // 设置建议实时监听器
     const cleanup = setupSuggestionListener((updatedSuggestions) => {
       setSuggestions(updatedSuggestions);
       setUnreadCount(updatedSuggestions.filter(s => s.status === 'unread').length);
     });
-    
+
     // 每30秒刷新一次数据
     const interval = setInterval(async () => {
       // 从云端刷新文章列表
       const articles = await getArticles();
       setArticles(articles);
-      
+
       // 刷新建议
       const suggestions = await getSuggestions();
       const unread = await getUnreadCount();
       setSuggestions(suggestions);
       setUnreadCount(unread);
     }, 30000);
-    
+
     return () => {
       cleanup();
       clearInterval(interval);
@@ -244,8 +246,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     setTimeout(() => setSuccessMessage(''), 3000);
   };
 
-  const handleLogout = () => {
-    logoutAdmin();
+  const handleLogout = async () => {
+    await logoutAdmin();
     onLogout();
     navigate('/');
   };
