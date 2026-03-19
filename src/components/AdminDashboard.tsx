@@ -594,8 +594,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         location: newArticle.location,
       };
 
-      const success = await addArticle(article);
-      if (success) {
+      const result = await addArticle(article);
+      if (result.success) {
         // 如果有抓取到的全文内容，保存到详情页
         if (fetchedContent) {
           const detail: ArticleDetailContent = {
@@ -620,10 +620,15 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         setFetchedContent('');
         setFetchedAnalysis('');
         await loadData();
-        setSuccessMessage('添加成功');
-        setTimeout(() => setSuccessMessage(''), 3000);
+        
+        if (result.cloudError) {
+          setSuccessMessage(`添加成功（云端同步失败：${result.cloudError}）`);
+        } else {
+          setSuccessMessage('添加成功');
+        }
+        setTimeout(() => setSuccessMessage(''), 5000);
       } else {
-        alert('添加失败，ID可能已存在');
+        alert('添加失败：' + (result.cloudError || 'ID可能已存在'));
       }
     } catch (error) {
       console.error('Add article error:', error);
@@ -646,10 +651,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       url: pending.url || '',
       location: pending.location,
     };
-    if (await addArticle(article)) {
+    const result = await addArticle(article);
+    if (result.success) {
       await approveArticle(pending.id);
       await loadData();
-      setSuccessMessage('已发布');
+      setSuccessMessage(result.cloudError ? `已发布（云端同步失败）` : '已发布');
       setTimeout(() => setSuccessMessage(''), 3000);
     }
   };
