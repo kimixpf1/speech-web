@@ -88,6 +88,15 @@ import {
   type TriggerResult,
   type WorkflowRun
 } from '@/services/githubActionsService';
+import {
+  fetchArticleFromUrl,
+  isValidUrl,
+  type FetchedArticle
+} from '@/services/articleFetchService';
+import {
+  saveArticleDetail,
+  type ArticleDetailContent
+} from '@/services/articleDetailService';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -116,6 +125,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     month: new Date().getMonth() + 1,
     day: new Date().getDate(),
   });
+
+  // URL自动提取状态
+  const [fetchUrl, setFetchUrl] = useState('');
+  const [fetchingArticle, setFetchingArticle] = useState(false);
+  const [fetchError, setFetchError] = useState('');
+  const [fetchedContent, setFetchedContent] = useState('');
   
   // 删除确认对话框
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -461,6 +476,48 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     }
   };
 
+  // 从URL自动提取文章内容
+  const handleFetchFromUrl = async () => {
+    if (!fetchUrl.trim()) {
+      setFetchError('请输入文章URL');
+      return;
+    }
+
+    if (!isValidUrl(fetchUrl.trim())) {
+      setFetchError('请输入有效的URL地址');
+      return;
+    }
+
+    setFetchingArticle(true);
+    setFetchError('');
+    setFetchedContent('');
+
+    try {
+      const article = await fetchArticleFromUrl(fetchUrl.trim());
+
+      // 自动填充表单
+      setNewArticle({
+        ...newArticle,
+        title: article.title,
+        date: article.date,
+        source: article.source,
+        summary: article.summary,
+        url: article.url,
+      });
+
+      // 保存全文内容用于详情页
+      setFetchedContent(article.content);
+
+      setSuccessMessage('文章内容已自动提取，请检查并保存');
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (error) {
+      console.error('Fetch article error:', error);
+      setFetchError(error instanceof Error ? error.message : '提取文章失败，请手动填写');
+    } finally {
+      setFetchingArticle(false);
+    }
+  };
+
   const handleAddArticle = async () => {
     if (!newArticle.title || !newArticle.date || !newArticle.source || !newArticle.summary) {
       alert('请填写完整信息');
@@ -473,8 +530,9 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       const month = parseInt(dateParts[1]);
       const day = parseInt(dateParts[2]);
 
+      const articleId = generateArticleId(year);
       const article: Speech = {
-        id: generateArticleId(year),
+        id: articleId,
         title: newArticle.title,
         date: newArticle.date,
         year,
@@ -490,6 +548,17 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
       const success = await addArticle(article);
       if (success) {
+        // 如果有抓取到的全文内容，保存到详情页
+        if (fetchedContent) {
+          const detail: ArticleDetailContent = {
+            id: articleId,
+            abstract: newArticle.summary,
+            fullText: fetchedContent,
+            analysis: '解读分析正在整理中...'
+          };
+          await saveArticleDetail(detail);
+        }
+
         setAddDialogOpen(false);
         setNewArticle({
           category: 'speech',
@@ -498,6 +567,9 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
           month: new Date().getMonth() + 1,
           day: new Date().getDate(),
         });
+        setFetchUrl('');
+        setFetchError('');
+        setFetchedContent('');
         await loadData();
         setSuccessMessage('添加成功');
         setTimeout(() => setSuccessMessage(''), 3000);
@@ -1105,6 +1177,42 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 </Card>
               )}
 
+              {/* AI搜索辅助面板 */}
+              <Card className="border-purple-200 bg-purple-50">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="w-5 h-5 text-purple-600" />
+                    <span className="font-medium text-purple-800">AI搜索辅助</span>
+                  </div>
+                  <p className="text-sm text-purple-700 mb-3">
+                    使用网页版AI搜索最新文章，找到后复制链接到"文章管理 → 新增文章"中自动提取内容
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <a
+                      href="https://kimi.moonshot.cn/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white rounded-md text-sm hover:bg-purple-700"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      打开Kimi搜索
+                    </a>
+                    <a
+                      href="https://chat.deepseek.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      打开DeepSeek
+                    </a>
+                  </div>
+                  <p className="text-xs text-purple-600 mt-3">
+                    推荐搜索关键词：习近平总书记 最新重要讲话 2026
+                  </p>
+                </CardContent>
+              </Card>
+
               {pendingArticles.length === 0 ? (
                 <Card>
                   <CardContent className="p-8 text-center">
@@ -1397,13 +1505,70 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       </Dialog>
 
       {/* 新增文章对话框 */}
-      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+      <Dialog open={addDialogOpen} onOpenChange={(open) => {
+        setAddDialogOpen(open);
+        if (!open) {
+          // 关闭时重置URL提取状态
+          setFetchUrl('');
+          setFetchError('');
+          setFetchedContent('');
+        }
+      }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>新增文章</DialogTitle>
-            <DialogDescription>添加新文章</DialogDescription>
+            <DialogDescription>添加新文章，或输入原文链接自动提取</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* URL自动提取区域 */}
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-800">智能提取</span>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="粘贴原文链接，自动提取标题、日期、摘要等内容"
+                    value={fetchUrl}
+                    onChange={(e) => setFetchUrl(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleFetchFromUrl}
+                    disabled={fetchingArticle || !fetchUrl.trim()}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {fetchingArticle ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                        提取中
+                      </>
+                    ) : (
+                      '提取'
+                    )}
+                  </Button>
+                </div>
+                {fetchError && (
+                  <p className="text-sm text-red-600 mt-2">{fetchError}</p>
+                )}
+                {fetchedContent && (
+                  <p className="text-sm text-green-600 mt-2">
+                    已提取全文内容（{fetchedContent.length}字），保存后将自动生成详情页
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-gray-500">或手动填写</span>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <label className="text-sm font-medium">标题 <span className="text-red-500">*</span></label>
               <Input 
