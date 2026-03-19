@@ -1838,12 +1838,32 @@ export const speechesDetailData: Record<string, Partial<SpeechDetail>> = {
 
 // 获取文章详情
 export function getSpeechDetail(id: string): { abstract: string; fullText: string; analysis: string } | null {
+  // 先从静态数据查找
   const baseData = speechesDetailData[id];
-  if (!baseData) return null;
-  
-  return {
-    abstract: baseData.abstract || '摘要正在整理中，敬请期待...',
-    fullText: baseData.fullText || '原文全文正在整理中，敬请期待...',
-    analysis: baseData.analysis || '解读分析正在整理中，敬请期待...'
-  };
+  if (baseData) {
+    return {
+      abstract: baseData.abstract || '摘要正在整理中，敬请期待...',
+      fullText: baseData.fullText || '原文全文正在整理中，敬请期待...',
+      analysis: baseData.analysis || '解读分析正在整理中，敬请期待...'
+    };
+  }
+
+  // 从本地存储查找动态添加的文章详情
+  try {
+    const cached = localStorage.getItem('site_article_details_cache');
+    if (cached) {
+      const details = JSON.parse(cached);
+      if (details[id]) {
+        return {
+          abstract: details[id].abstract || '摘要正在整理中，敬请期待...',
+          fullText: details[id].fullText || '原文全文正在整理中，敬请期待...',
+          analysis: details[id].analysis || '解读分析正在整理中，敬请期待...'
+        };
+      }
+    }
+  } catch (error) {
+    console.error('Error reading local article details:', error);
+  }
+
+  return null;
 }
