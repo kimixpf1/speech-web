@@ -63,7 +63,9 @@ import {
   deleteArticle,
   addArticle,
   generateArticleId,
+  getArticles,
   getLocalArticlesSync,
+  syncArticles,
   type Speech
 } from '@/services/articleServiceEnhanced';
 import {
@@ -190,10 +192,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       setUnreadCount(updatedSuggestions.filter(s => s.status === 'unread').length);
     });
     
-    // 每10秒刷新一次数据
+    // 每30秒刷新一次数据
     const interval = setInterval(async () => {
-      // 刷新文章列表
-      const articles = getLocalArticlesSync();
+      // 从云端刷新文章列表
+      const articles = await getArticles();
       setArticles(articles);
       
       // 刷新建议
@@ -201,7 +203,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       const unread = await getUnreadCount();
       setSuggestions(suggestions);
       setUnreadCount(unread);
-    }, 10000);
+    }, 30000);
     
     return () => {
       cleanup();
@@ -221,10 +223,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       setSuggestions(await getSuggestions());
       setUnreadCount(await getUnreadCount());
 
-      // 直接从本地缓存获取文章，确保数据一致
-      const localArticles = getLocalArticlesSync();
-      console.log('Loaded articles from local cache:', localArticles.length);
-      setArticles(localArticles);
+      // 从云端获取文章
+      const articles = await getArticles();
+      console.log('Loaded articles from cloud:', articles.length);
+      setArticles(articles);
 
       const pending = await getPendingArticles();
       setPendingArticles(pending);
@@ -235,10 +237,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   };
   
   // 手动刷新
-  const handleManualSync = () => {
-    const articles = getLocalArticlesSync();
+  const handleManualSync = async () => {
+    const articles = await syncArticles();
     setArticles(articles);
-    setSuccessMessage('刷新成功');
+    setSuccessMessage('同步成功');
     setTimeout(() => setSuccessMessage(''), 3000);
   };
 

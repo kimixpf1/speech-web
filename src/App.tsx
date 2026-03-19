@@ -10,7 +10,7 @@ import { DetailPage } from '@/components/DetailPage';
 import { AdminLogin } from '@/components/AdminLogin';
 import { AdminDashboard } from '@/components/AdminDashboard';
 import { SuggestionBox } from '@/components/SuggestionBox';
-import { getLocalArticlesSync, type Speech } from '@/services/articleServiceEnhanced';
+import { getArticles, getLocalArticlesSync, setupRealtimeSubscription, type Speech } from '@/services/articleServiceEnhanced';
 import { initAnalytics } from '@/services/analytics';
 import { initSupabaseAnalytics } from '@/services/supabaseAnalytics';
 import { isAdminLoggedIn } from '@/services/adminAuth';
@@ -42,18 +42,47 @@ function HomePage() {
     initAnalytics();
     initSupabaseAnalytics();
 
-    // 从本地加载所有文章（静态数据 + 用户添加的文章）
-    const allArticles = getLocalArticlesSync();
-    setArticles(allArticles);
+    // 先从本地缓存快速加载
+    const localArticles = getLocalArticlesSync();
+    if (localArticles.length > 0) {
+      setArticles(localArticles);
+    }
     setIsLoading(false);
 
-    // 定期刷新文章列表（每30秒）
+    // 从云端获取最新数据
+    const loadFromCloud = async () => {
+      const cloudArticles = await getArticles();
+      if (cloudArticles.length > 0) {
+        setArticles(cloudArticles);
+      }
+    };
+    loadFromCloud();
+
+    // 设置实时订阅
+    const unsubscribe = setupRealtimeSubscription(
+      (updatedArticle) => {
+        setArticles(prev => {
+          const index = prev.findIndex(a => a.id === updatedArticle.id);
+          if (index !== -1) {
+            const updated = [...prev];
+            updated[index] = updatedArticle;
+            return updated;
+          }
+          return [updatedArticle, ...prev];
+        });
+      },
+      (deletedId) => {
+        setArticles(prev => prev.filter(a => a.id !== deletedId));
+      }
+    );
+
+    // 定期刷新
     const interval = setInterval(() => {
-      const refreshedArticles = getLocalArticlesSync();
-      setArticles(refreshedArticles);
+      loadFromCloud();
     }, 30000);
 
     return () => {
+      unsubscribe();
       clearInterval(interval);
     };
   }, [])
