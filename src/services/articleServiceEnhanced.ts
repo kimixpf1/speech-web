@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import type { Speech } from '@/data/speeches';
+import { speechesData, type Speech } from '@/data/speeches';
 
 // 表名
 const ARTICLES_TABLE = 'articles';
@@ -28,7 +28,7 @@ function toDbFormat(article: Speech): Record<string, unknown> {
     month: article.month,
     day: article.day,
     category: article.category,
-    categoryname: article.categoryName,  // 数据库字段名
+    categoryname: article.categoryName,
     source: article.source,
     location: article.location || '',
     summary: article.summary,
@@ -59,7 +59,6 @@ function saveLocalCache(articles: Speech[]): void {
   try {
     localStorage.setItem(ARTICLES_CACHE_KEY, JSON.stringify(articles));
     localStorage.setItem('last_sync_time', new Date().toISOString());
-    console.log('Saved to local cache:', articles.length, 'articles');
   } catch (e) {
     console.error('Failed to save local cache:', e);
   }
@@ -78,8 +77,6 @@ function getLocalCache(): Speech[] {
 // 从云端获取所有文章
 async function fetchFromCloud(): Promise<Speech[]> {
   try {
-    console.log('Fetching articles from Supabase...');
-    
     const { data, error } = await supabase
       .from(ARTICLES_TABLE)
       .select('*')
@@ -90,11 +87,7 @@ async function fetchFromCloud(): Promise<Speech[]> {
       return [];
     }
 
-    console.log('Fetched from Supabase:', data?.length || 0, 'articles');
-    
     if (data && data.length > 0) {
-      // 打印第一条数据的结构，便于调试
-      console.log('First article from DB:', data[0]);
       return data.map(fromDbFormat);
     }
 
@@ -105,11 +98,50 @@ async function fetchFromCloud(): Promise<Speech[]> {
   }
 }
 
-// 获取所有文章（优先从云端）
+// 同步静态数据到云端
+async function syncStaticDataToCloud(): Promise<void> {
+  try {
+    console.log('开始同步52篇文章到云端...');
+    
+    const batchSize = 10;
+    for (let i = 0; i < speechesData.length; i += batchSize) {
+      const batch = speechesData.slice(i, i + batchSize);
+      const dbData = batch.map(toDbFormat);
+      
+      const { error } = await supabase
+        .from(ARTICLES_TABLE)
+        .upsert(dbData, { onConflict: 'id' });
+
+      if (error) {
+        console.error(`同步批次 ${Math.floor(i / batchSize) + 1} 失败:`, error);
+      } else {
+        console.log(`已同步 ${Math.min(i + batchSize, speechesData.length)}/${speechesData.length} 篇文章`);
+      }
+    }
+    
+    console.log('云端同步完成！');
+  } catch (e) {
+    console.error('Sync error:', e);
+  }
+}
+
+// 获取所有文章
 export async function getArticles(): Promise<Speech[]> {
   try {
     if (navigator.onLine) {
       const cloudArticles = await fetchFromCloud();
+      
+      // 如果云端数据不完整，同步静态数据
+      if (cloudArticles.length < speechesData.length) {
+        console.log(`云端文章数(${cloudArticles.length})少于静态数据(${speechesData.length})，正在同步...`);
+        await syncStaticDataToCloud();
+        const syncedArticles = await fetchFromCloud();
+        if (syncedArticles.length >= speechesData.length) {
+          saveLocalCache(syncedArticles);
+          return syncedArticles;
+        }
+      }
+      
       if (cloudArticles.length > 0) {
         saveLocalCache(cloudArticles);
         return cloudArticles;
@@ -119,42 +151,40 @@ export async function getArticles(): Promise<Speech[]> {
     console.error('Get articles error:', e);
   }
 
-  // 离线或云端失败时，使用本地缓存
+  // 使用本地缓存或静态数据
   const cached = getLocalCache();
-  console.log('Using local cache:', cached.length, 'articles');
-  return cached;
+  if (cached.length > 0) {
+    return cached;
+  }
+
+  return [...speechesData];
 }
 
 // 同步获取文章（用于首屏快速加载）
 export function getLocalArticlesSync(): Speech[] {
-  return getLocalCache();
+  const cached = getLocalCache();
+  if (cached.length > 0) {
+    return cached;
+  }
+  return [...speechesData];
 }
 
-// 添加文章（同步到云端）
+// 添加文章
 export async function addArticle(article: Speech): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log('Adding article to cloud:', article.id, article.title);
-
     if (navigator.onLine) {
-      const dbData = toDbFormat(article);
-      console.log('Data to save:', dbData);
-      
       const { error } = await supabase
         .from(ARTICLES_TABLE)
-        .upsert(dbData, { onConflict: 'id' });
+        .upsert(toDbFormat(article), { onConflict: 'id' });
 
       if (error) {
-        console.error('Failed to add to cloud:', error);
+        console.error('Failed to add:', error);
         return { success: false, error: error.message };
       }
 
-      console.log('Article saved to cloud successfully');
-
-      // 重新从云端获取最新数据
       const allArticles = await fetchFromCloud();
       saveLocalCache(allArticles);
     } else {
-      // 离线时保存到本地
       const cached = getLocalCache();
       const index = cached.findIndex(a => a.id === article.id);
       if (index === -1) {
@@ -173,7 +203,7 @@ export async function addArticle(article: Speech): Promise<{ success: boolean; e
   }
 }
 
-// 更新文章（同步到云端）
+// 更新文章
 export async function updateArticle(article: Speech): Promise<boolean> {
   try {
     if (navigator.onLine) {
@@ -182,15 +212,13 @@ export async function updateArticle(article: Speech): Promise<boolean> {
         .upsert(toDbFormat(article), { onConflict: 'id' });
 
       if (error) {
-        console.error('Failed to update in cloud:', error);
+        console.error('Failed to update:', error);
         return false;
       }
 
-      // 重新从云端获取最新数据
       const allArticles = await fetchFromCloud();
       saveLocalCache(allArticles);
     } else {
-      // 离线时更新本地
       const cached = getLocalCache();
       const index = cached.findIndex(a => a.id === article.id);
       if (index !== -1) {
@@ -207,7 +235,7 @@ export async function updateArticle(article: Speech): Promise<boolean> {
   }
 }
 
-// 删除文章（从云端删除）
+// 删除文章
 export async function deleteArticle(id: string): Promise<boolean> {
   try {
     if (navigator.onLine) {
@@ -217,15 +245,13 @@ export async function deleteArticle(id: string): Promise<boolean> {
         .eq('id', id);
 
       if (error) {
-        console.error('Failed to delete from cloud:', error);
+        console.error('Failed to delete:', error);
         return false;
       }
 
-      // 重新从云端获取最新数据
       const allArticles = await fetchFromCloud();
       saveLocalCache(allArticles);
     } else {
-      // 离线时删除本地
       const cached = getLocalCache();
       const filtered = cached.filter(a => a.id !== id);
       saveLocalCache(filtered);
@@ -240,8 +266,8 @@ export async function deleteArticle(id: string): Promise<boolean> {
 
 // 生成文章ID
 export function generateArticleId(year: number): string {
-  const cached = getLocalCache();
-  const yearArticles = cached.filter(a => a.year === year);
+  const allArticles = getLocalArticlesSync();
+  const yearArticles = allArticles.filter(a => a.year === year);
   const maxNum = yearArticles.reduce((max, a) => {
     const match = a.id.match(new RegExp(`^${year}-(\\d+)$`));
     const num = match ? parseInt(match[1]) : 0;
@@ -250,16 +276,18 @@ export function generateArticleId(year: number): string {
   return `${year}-${String(maxNum + 1).padStart(2, '0')}`;
 }
 
-// 同步文章（从云端获取最新数据）
+// 同步文章
 export async function syncArticles(): Promise<Speech[]> {
-  console.log('Syncing articles from cloud...');
-  const articles = await getArticles();
-  console.log('Sync complete:', articles.length, 'articles');
-  return articles;
+  await syncStaticDataToCloud();
+  return getArticles();
 }
 
 // 初始化同步
 export async function initializeSync(): Promise<void> {
+  const cloudArticles = await fetchFromCloud();
+  if (cloudArticles.length < speechesData.length) {
+    await syncStaticDataToCloud();
+  }
   const articles = await getArticles();
   saveLocalCache(articles);
 }
@@ -275,7 +303,6 @@ export function setupRealtimeSubscription(
       'postgres_changes',
       { event: '*', schema: 'public', table: ARTICLES_TABLE },
       (payload) => {
-        console.log('Realtime event:', payload);
         if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
           if (onArticleChange && payload.new) {
             onArticleChange(fromDbFormat(payload.new as Record<string, unknown>));
