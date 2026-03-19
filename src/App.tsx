@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Hero } from '@/components/Hero';
@@ -22,39 +22,50 @@ function HomePage() {
   const [selectedYear, setSelectedYear] = useState('all');
   const [articles, setArticles] = useState<Speech[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const scrollRestored = useRef(false);
 
-  // 恢复滚动位置（从详情页返回时，等待内容加载完成后恢复）
+  // 恢复滚动位置（从详情页返回时）
   useEffect(() => {
-    if (!isLoading && articles.length > 0) {
-      const savedPosition = localStorage.getItem('scrollPosition');
-      if (savedPosition) {
-        const position = parseInt(savedPosition, 10);
-        localStorage.removeItem('scrollPosition');
+    const savedPosition = localStorage.getItem('scrollPosition');
+    if (savedPosition && !scrollRestored.current) {
+      const position = parseInt(savedPosition, 10);
+      localStorage.removeItem('scrollPosition');
+      scrollRestored.current = true;
+      
+      // 多次尝试滚动，确保内容已渲染
+      const tryScroll = (attempts: number) => {
+        if (attempts <= 0) return;
         
-        // 等待DOM渲染完成后滚动
-        setTimeout(() => {
+        requestAnimationFrame(() => {
           window.scrollTo(0, position);
-        }, 100);
-      }
+          
+          // 再次检查是否滚动到位
+          if (window.scrollY < position - 10 && attempts > 1) {
+            setTimeout(() => tryScroll(attempts - 1), 50);
+          }
+        });
+      };
+      
+      // 延迟执行，等待React渲染
+      setTimeout(() => tryScroll(5), 150);
     }
-  }, [isLoading, articles.length]);
+  }, [articles]);
 
   // 初始化访问统计并加载文章
   useEffect(() => {
     initAnalytics();
     initSupabaseAnalytics();
 
-    // 从云端获取数据（会自动同步52篇文章）
+    // 从云端获取数据
     const loadArticles = async () => {
-      const articles = await getArticles();
-      if (articles.length > 0) {
-        setArticles(articles);
+      const fetchedArticles = await getArticles();
+      if (fetchedArticles.length > 0) {
+        setArticles(fetchedArticles);
       }
+      setIsLoading(false);
     };
     
-    // 先加载一次
     loadArticles();
-    setIsLoading(false);
 
     // 设置实时订阅
     const unsubscribe = setupRealtimeSubscription(
