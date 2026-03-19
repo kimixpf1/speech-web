@@ -91,6 +91,7 @@ import {
 } from '@/services/githubActionsService';
 import {
   extractArticleWithKimi,
+  extractArticleFromText,
   saveKimiApiKey,
   getKimiApiKey,
   clearKimiApiKey,
@@ -143,6 +144,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [showKimiKeyDialog, setShowKimiKeyDialog] = useState(false);
   const [kimiKeyInput, setKimiKeyInput] = useState('');
   const [kimiKeyValidating, setKimiKeyValidating] = useState(false);
+
+  // 手动粘贴内容状态
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [manualContent, setManualContent] = useState('');
+  const [manualUrl, setManualUrl] = useState('');
+  const [processingManual, setProcessingManual] = useState(false);
 
   // 删除确认对话框
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -569,6 +576,51 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     setKimiApiKey('');
     setSuccessMessage('已清除Kimi API Key');
     setTimeout(() => setSuccessMessage(''), 3000);
+  };
+
+  // 处理手动粘贴的内容
+  const handleProcessManualContent = async () => {
+    if (!manualContent.trim()) {
+      alert('请粘贴网页内容');
+      return;
+    }
+
+    if (!kimiApiKey) {
+      setShowKimiKeyDialog(true);
+      return;
+    }
+
+    setProcessingManual(true);
+    try {
+      const url = manualUrl.trim() || 'https://example.com/article';
+      const article = await extractArticleFromText(manualContent, url);
+
+      setNewArticle({
+        ...newArticle,
+        title: article.title,
+        date: article.date,
+        source: article.source,
+        summary: article.summary,
+        url: article.url,
+        category: article.category || 'speech',
+        categoryName: article.categoryName || '重要讲话',
+        location: article.location,
+      });
+
+      setFetchedContent(article.fullText);
+      setFetchedAnalysis(article.analysis);
+      setShowManualInput(false);
+      setManualContent('');
+      setManualUrl('');
+
+      setSuccessMessage(`内容提取成功！标题: ${article.title}`);
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (error) {
+      console.error('Process manual content error:', error);
+      alert('提取失败：' + (error instanceof Error ? error.message : '未知错误'));
+    } finally {
+      setProcessingManual(false);
+    }
   };
 
   const handleAddArticle = async () => {
@@ -1573,6 +1625,9 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
           setFetchError('');
           setFetchedContent('');
           setFetchedAnalysis('');
+          setShowManualInput(false);
+          setManualContent('');
+          setManualUrl('');
         }
       }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -1638,8 +1693,58 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     </ul>
                   </div>
                 )}
+                {/* 手动粘贴入口 */}
+                <div className="mt-3 pt-3 border-t border-blue-200">
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={() => setShowManualInput(!showManualInput)}
+                    className="text-blue-600 p-0"
+                  >
+                    {showManualInput ? '隐藏手动输入' : '自动提取失败？点击手动粘贴内容'}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
+
+            {/* 手动粘贴内容区域 */}
+            {showManualInput && (
+              <Card className="bg-yellow-50 border-yellow-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="w-4 h-4 text-yellow-600" />
+                    <span className="text-sm font-medium text-yellow-800">手动粘贴内容</span>
+                  </div>
+                  <div className="space-y-3">
+                    <Input
+                      placeholder="原文链接（可选）"
+                      value={manualUrl}
+                      onChange={(e) => setManualUrl(e.target.value)}
+                    />
+                    <Textarea
+                      placeholder="请从网页复制粘贴文章内容到这里，AI将自动提取标题、日期、摘要等信息..."
+                      value={manualContent}
+                      onChange={(e) => setManualContent(e.target.value)}
+                      rows={8}
+                    />
+                    <Button
+                      onClick={handleProcessManualContent}
+                      disabled={processingManual || !manualContent.trim()}
+                      className="bg-yellow-600 hover:bg-yellow-700"
+                    >
+                      {processingManual ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                          处理中...
+                        </>
+                      ) : (
+                        'AI提取'
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
