@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BookOpen, Menu, X, Mail, Lock, Flag } from 'lucide-react';
+import { BookOpen, Menu, X, Mail, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface HeaderProps {
@@ -89,21 +89,6 @@ export function Header({ currentView, onViewChange }: HeaderProps) {
                 {item.label}
               </Button>
             ))}
-            {/* 政绩观专题 */}
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/zhengjiguan')}
-              className={`px-3 py-2 rounded-lg font-medium transition-all ${
-                location.pathname.startsWith('/zhengjiguan')
-                  ? 'bg-red-50 text-red-600'
-                  : isScrolled
-                  ? 'text-gray-700 hover:text-red-600 hover:bg-gray-50'
-                  : 'text-white/90 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              <Flag className="w-4 h-4 mr-1" />
-              政绩观专题
-            </Button>
             {/* 建议信箱 */}
             <Button
               variant="ghost"
@@ -161,22 +146,6 @@ export function Header({ currentView, onViewChange }: HeaderProps) {
                   {item.label}
                 </Button>
               ))}
-              {/* 移动端政绩观专题 */}
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  navigate('/zhengjiguan');
-                  setIsMobileMenuOpen(false);
-                }}
-                className={`justify-start px-4 py-3 rounded-lg font-medium ${
-                  location.pathname.startsWith('/zhengjiguan')
-                    ? 'bg-red-50 text-red-600'
-                    : 'text-gray-700 hover:text-red-600 hover:bg-gray-50'
-                }`}
-              >
-                <Flag className="w-5 h-5 mr-2" />
-                政绩观专题
-              </Button>
               {/* 移动端建议信箱 */}
               <Button
                 variant="ghost"
