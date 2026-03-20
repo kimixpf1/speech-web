@@ -20,8 +20,9 @@ export interface SyncStatus {
 }
 
 // 将 Speech 对象转换为数据库格式
+// 注意：只包含数据库表中实际存在的列
 function toDbFormat(article: Speech): Record<string, unknown> {
-  return {
+  const data: Record<string, unknown> = {
     id: article.id,
     title: article.title,
     date: article.date,
@@ -30,15 +31,28 @@ function toDbFormat(article: Speech): Record<string, unknown> {
     day: article.day,
     category: article.category,
     categoryname: article.categoryName,
-    domain: article.domain || 'economy',
-    domain_name: article.domainName || '经济',
-    is_zhengjiguan: article.isZhengjiguan || false,
-    zhengjiguan_level: article.zhengjiguanLevel || null,
     source: article.source,
     location: article.location || '',
     summary: article.summary,
     url: article.url || '',
   };
+
+  // 这些列可能不存在于旧数据库中，尝试添加
+  // 如果数据库报错，需要执行迁移脚本添加这些列
+  if (article.domain) {
+    data.domain = article.domain;
+  }
+  if (article.domainName) {
+    data.domain_name = article.domainName;
+  }
+  if (article.isZhengjiguan !== undefined) {
+    data.is_zhengjiguan = article.isZhengjiguan;
+  }
+  if (article.zhengjiguanLevel) {
+    data.zhengjiguan_level = article.zhengjiguanLevel;
+  }
+
+  return data;
 }
 
 // 将数据库格式转换为 Speech 对象
@@ -292,6 +306,24 @@ export async function addArticle(article: Speech): Promise<{ success: boolean; e
   }
 }
 
+// 将 Speech 对象转换为基本数据库格式（不包含可能缺失的列）
+function toBasicDbFormat(article: Speech): Record<string, unknown> {
+  return {
+    id: article.id,
+    title: article.title,
+    date: article.date,
+    year: article.year,
+    month: article.month,
+    day: article.day,
+    category: article.category,
+    categoryname: article.categoryName,
+    source: article.source,
+    location: article.location || '',
+    summary: article.summary,
+    url: article.url || '',
+  };
+}
+
 // 更新文章（自动同步云端）
 export async function updateArticle(article: Speech): Promise<{ success: boolean; error?: string }> {
   try {
@@ -308,10 +340,26 @@ export async function updateArticle(article: Speech): Promise<{ success: boolean
       const dbData = toDbFormat(article);
       console.log('准备上传数据:', JSON.stringify(dbData, null, 2));
       
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from(ARTICLES_TABLE)
         .upsert(dbData, { onConflict: 'id' })
         .select();
+
+      // 如果遇到列不存在的错误，尝试只更新基本字段
+      if (error && error.message && error.message.includes('Could not find')) {
+        console.warn('检测到缺失列错误，尝试仅更新基本字段...');
+        const basicData = toBasicDbFormat(article);
+        const result = await supabase
+          .from(ARTICLES_TABLE)
+          .upsert(basicData, { onConflict: 'id' })
+          .select();
+        data = result.data;
+        error = result.error;
+        
+        if (!error) {
+          console.warn('基本字段更新成功，但部分功能可能受限。请执行数据库迁移脚本添加缺失的列。');
+        }
+      }
 
       if (error) {
         console.error('云端更新失败:', error);
