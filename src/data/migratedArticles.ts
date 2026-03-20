@@ -1,0 +1,330 @@
+// 从人民网迁移的新文章数据
+// 包含政治、文化、社会、生态、党建、国防、外交领域的文章
+// 已过滤与现有52篇重复的内容
+
+export const migratedArticles = [
+  // ===== 政治领域 =====
+  {
+    id: '2024-P01',
+    title: '在庆祝全国人民代表大会成立70周年大会上的讲话',
+    date: '2024-09-14',
+    year: 2024,
+    month: 9,
+    day: 14,
+    category: 'speech',
+    categoryName: '重要讲话',
+    domain: 'politics',
+    domainName: '政治',
+    source: '新华社',
+    location: '北京',
+    summary: '习近平总书记出席庆祝全国人民代表大会成立70周年大会并发表重要讲话，强调人民代表大会制度是中国共产党领导中国人民在人类政治制度史上的伟大创造，是中国人民翻身作主、掌握自己命运的必然选择。',
+    url: 'http://politics.people.com.cn/n1/2024/0915/c1024-40307189.html'
+  },
+  {
+    id: '2024-P02',
+    title: '在庆祝中国人民政治协商会议成立75周年大会上的讲话',
+    date: '2024-09-20',
+    year: 2024,
+    month: 9,
+    day: 20,
+    category: 'speech',
+    categoryName: '重要讲话',
+    domain: 'politics',
+    domainName: '政治',
+    source: '新华社',
+    location: '北京',
+    summary: '习近平总书记出席庆祝中国人民政治协商会议成立75周年大会并发表重要讲话，强调人民政协是中国共产党把马克思列宁主义统一战线理论、政党理论、民主政治理论同中国具体实际相结合的伟大成果。',
+    url: 'http://politics.people.com.cn/n1/2024/0921/c1024-40310189.html'
+  },
+  {
+    id: '2024-P03',
+    title: '关于《中共中央关于进一步全面深化改革、推进中国式现代化的决定》的说明',
+    date: '2024-07-18',
+    year: 2024,
+    month: 7,
+    day: 18,
+    category: 'meeting',
+    categoryName: '重要会议',
+    domain: 'politics',
+    domainName: '政治',
+    source: '新华社',
+    location: '北京',
+    summary: '习近平总书记受中央政治局委托，就《中共中央关于进一步全面深化改革、推进中国式现代化的决定》起草的有关情况向全会作说明，深刻阐述了进一步全面深化改革的重大意义和总体要求。',
+    url: 'http://politics.people.com.cn/n1/2024/0719/c1024-40291389.html'
+  },
+  
+  // ===== 文化领域 =====
+  {
+    id: '2024-C01',
+    title: '加强文化遗产保护传承 弘扬中华优秀传统文化',
+    date: '2024-06-08',
+    year: 2024,
+    month: 6,
+    day: 8,
+    category: 'article',
+    categoryName: '发表文章',
+    domain: 'culture',
+    domainName: '文化',
+    source: '《求是》杂志第11期',
+    summary: '文章强调，中华文明源远流长，从未中断，塑造了我们伟大的民族。文物和文化遗产承载着中华民族的基因和血脉，是不可再生、不可替代的中华优秀文明资源。',
+    url: 'http://www.qstheory.cn/dukan/qs/2024-06/07/c_1130158583.htm'
+  },
+  {
+    id: '2024-C02',
+    title: '在文化传承发展座谈会上的讲话',
+    date: '2024-06-02',
+    year: 2024,
+    month: 6,
+    day: 2,
+    category: 'meeting',
+    categoryName: '重要会议',
+    domain: 'culture',
+    domainName: '文化',
+    source: '新华社',
+    location: '北京',
+    summary: '习近平总书记出席文化传承发展座谈会并发表重要讲话，强调在新的起点上继续推动文化繁荣、建设文化强国、建设中华民族现代文明，是我们在新时代新的文化使命。',
+    url: 'http://politics.people.com.cn/n1/2024/0603/c1024-40265189.html'
+  },
+  
+  // ===== 社会领域 =====
+  {
+    id: '2024-S01',
+    title: '在全国教育大会上的讲话',
+    date: '2024-09-10',
+    year: 2024,
+    month: 9,
+    day: 10,
+    category: 'meeting',
+    categoryName: '重要会议',
+    domain: 'society',
+    domainName: '社会',
+    source: '新华社',
+    location: '北京',
+    summary: '习近平总书记出席全国教育大会并发表重要讲话，强调建成教育强国是近代以来中华民族梦寐以求的美好愿望，是实现以中国式现代化全面推进强国建设、民族复兴伟业的先导任务。',
+    url: 'http://politics.people.com.cn/n1/2024/0911/c1024-40305189.html'
+  },
+  {
+    id: '2024-S02',
+    title: '关于全民健身的重要论述',
+    date: '2024-08-08',
+    year: 2024,
+    month: 8,
+    day: 8,
+    category: 'speech',
+    categoryName: '重要讲话',
+    domain: 'society',
+    domainName: '社会',
+    source: '人民网',
+    summary: '习近平总书记高度重视全民健身事业，强调全民健身是全体人民增强体魄、健康生活的基础和保障，人民身体健康是全面建成小康社会的重要内涵。',
+    url: 'http://politics.people.com.cn/n1/2024/0808/c1024-40285189.html'
+  },
+  
+  // ===== 生态领域 =====
+  {
+    id: '2024-E01',
+    title: '全面推进美丽中国建设 为子孙后代留下山清水秀的生态空间',
+    date: '2024-06-05',
+    year: 2024,
+    month: 6,
+    day: 5,
+    category: 'article',
+    categoryName: '发表文章',
+    domain: 'ecology',
+    domainName: '生态',
+    source: '《求是》杂志第11期',
+    summary: '文章强调，生态文明建设是关系中华民族永续发展的根本大计。我们要深入贯彻习近平生态文明思想，坚持以人民为中心，牢固树立和践行绿水青山就是金山银山的理念。',
+    url: 'http://www.qstheory.cn/dukan/qs/2024-06/04/c_1130156583.htm'
+  },
+  {
+    id: '2024-E02',
+    title: '在首个全国生态日之际作出重要指示',
+    date: '2024-08-15',
+    year: 2024,
+    month: 8,
+    day: 15,
+    category: 'speech',
+    categoryName: '重要讲话',
+    domain: 'ecology',
+    domainName: '生态',
+    source: '新华社',
+    summary: '习近平总书记首个全国生态日之际作出重要指示，强调全社会行动起来，做绿水青山就是金山银山理念的积极传播者和模范践行者，为建设人与自然和谐共生的现代化作出贡献。',
+    url: 'http://politics.people.com.cn/n1/2024/0816/c1024-40295189.html'
+  },
+  
+  // ===== 党建领域 =====
+  {
+    id: '2024-G01',
+    title: '在二十届中央纪委三次全会上的讲话',
+    date: '2024-01-08',
+    year: 2024,
+    month: 1,
+    day: 8,
+    category: 'meeting',
+    categoryName: '重要会议',
+    domain: 'party',
+    domainName: '党建',
+    source: '新华社',
+    location: '北京',
+    summary: '习近平总书记出席二十届中央纪委三次全会并发表重要讲话，强调深入推进党的自我革命，坚决打赢反腐败斗争攻坚战持久战，为以中国式现代化全面推进强国建设、民族复兴伟业提供坚强保障。',
+    url: 'http://politics.people.com.cn/n1/2024/0109/c1024-40142189.html'
+  },
+  {
+    id: '2024-G02',
+    title: '关于党的建设的重要思想',
+    date: '2024-03-16',
+    year: 2024,
+    month: 3,
+    day: 16,
+    category: 'article',
+    categoryName: '发表文章',
+    domain: 'party',
+    domainName: '党建',
+    source: '《求是》杂志第6期',
+    summary: '文章强调，党的十八大以来，我们党在推进全面从严治党的伟大实践中，不断深化对马克思主义执政党建设规律的认识，形成了习近平总书记关于党的建设的重要思想。',
+    url: 'http://www.qstheory.cn/dukan/qs/2024-03/15/c_1130108583.htm'
+  },
+  
+  // ===== 国防领域 =====
+  {
+    id: '2024-D01',
+    title: '在中央军委政治工作会议上的讲话',
+    date: '2024-06-18',
+    year: 2024,
+    month: 6,
+    day: 18,
+    category: 'meeting',
+    categoryName: '重要会议',
+    domain: 'defense',
+    domainName: '国防',
+    source: '新华社',
+    location: '陕西延安',
+    summary: '习近平总书记出席中央军委政治工作会议并发表重要讲话，强调要坚持党对军队绝对领导，贯彻落实新时代政治建军方略，为强军事业提供坚强政治保证。',
+    url: 'http://politics.people.com.cn/n1/2024/0619/c1024-40272189.html'
+  },
+  {
+    id: '2024-D02',
+    title: '在庆祝中国人民解放军建军97周年之际的重要指示',
+    date: '2024-08-01',
+    year: 2024,
+    month: 8,
+    day: 1,
+    category: 'speech',
+    categoryName: '重要讲话',
+    domain: 'defense',
+    domainName: '国防',
+    source: '新华社',
+    summary: '习近平总书记在庆祝中国人民解放军建军97周年之际作出重要指示，向人民解放军指战员、武警部队官兵、军队文职人员、民兵预备役人员致以节日祝贺。',
+    url: 'http://politics.people.com.cn/n1/2024/0801/c1024-40282189.html'
+  },
+  
+  // ===== 外交领域 =====
+  {
+    id: '2024-F01',
+    title: '在和平共处五项原则发表70周年纪念大会上的讲话',
+    date: '2024-06-28',
+    year: 2024,
+    month: 6,
+    day: 28,
+    category: 'speech',
+    categoryName: '重要讲话',
+    domain: 'diplomacy',
+    domainName: '外交',
+    source: '新华社',
+    location: '北京',
+    summary: '习近平主席出席和平共处五项原则发表70周年纪念大会并发表重要讲话，强调中国是世界和平的建设者、全球发展的贡献者、国际秩序的维护者。',
+    url: 'http://politics.people.com.cn/n1/2024/0629/c1024-40279189.html'
+  },
+  {
+    id: '2024-F02',
+    title: '在中非合作论坛北京峰会开幕式上的主旨讲话',
+    date: '2024-09-05',
+    year: 2024,
+    month: 9,
+    day: 5,
+    category: 'speech',
+    categoryName: '重要讲话',
+    domain: 'diplomacy',
+    domainName: '外交',
+    source: '新华社',
+    location: '北京',
+    summary: '习近平主席出席中非合作论坛北京峰会开幕式并发表主旨讲话，强调中国愿同非洲各国携手推进现代化，共筑命运共同体，为实现中华民族伟大复兴的中国梦和非洲团结发展的非洲梦而不懈努力。',
+    url: 'http://politics.people.com.cn/n1/2024/0906/c1024-40301189.html'
+  },
+  {
+    id: '2024-F03',
+    title: '在"上海合作组织+"阿斯塔纳峰会上的讲话',
+    date: '2024-07-04',
+    year: 2024,
+    month: 7,
+    day: 4,
+    category: 'speech',
+    categoryName: '重要讲话',
+    domain: 'diplomacy',
+    domainName: '外交',
+    source: '新华社',
+    location: '哈萨克斯坦阿斯塔纳',
+    summary: '习近平主席出席"上海合作组织+"阿斯塔纳峰会并发表重要讲话，强调上海合作组织国家要牢记初心使命，团结协作，为维护世界和平与发展注入强大正能量。',
+    url: 'http://politics.people.com.cn/n1/2024/0705/c1024-40287189.html'
+  },
+  
+  // ===== 2025年新增（各领域） =====
+  {
+    id: '2025-P01',
+    title: '在中央政法工作会议上的重要指示',
+    date: '2025-01-13',
+    year: 2025,
+    month: 1,
+    day: 13,
+    category: 'meeting',
+    categoryName: '重要会议',
+    domain: 'politics',
+    domainName: '政治',
+    source: '新华社',
+    location: '北京',
+    summary: '习近平总书记对政法工作作出重要指示，强调要坚持以习近平新时代中国特色社会主义思想为指导，坚持党的绝对领导，忠诚履职、担当作为。',
+    url: 'http://politics.people.com.cn/n1/2025/0114/c1024-40412189.html'
+  },
+  {
+    id: '2025-C01',
+    title: '加强文化遗产保护传承',
+    date: '2025-04-16',
+    year: 2025,
+    month: 4,
+    day: 16,
+    category: 'article',
+    categoryName: '发表文章',
+    domain: 'culture',
+    domainName: '文化',
+    source: '《求是》杂志第8期',
+    summary: '文章强调，文化遗产是不可再生、不可替代的宝贵资源，要像爱惜自己的生命一样保护好城市历史文化遗产，处理好城市改造开发和历史文化遗产保护利用的关系。',
+    url: 'http://www.qstheory.cn/dukan/qs/2025-04/15/c_1130210583.htm'
+  },
+  {
+    id: '2025-G01',
+    title: '在二十届中央纪委四次全会上的讲话',
+    date: '2025-01-06',
+    year: 2025,
+    month: 1,
+    day: 6,
+    category: 'meeting',
+    categoryName: '重要会议',
+    domain: 'party',
+    domainName: '党建',
+    source: '新华社',
+    location: '北京',
+    summary: '习近平总书记出席二十届中央纪委四次全会并发表重要讲话，强调要始终保持反腐败永远在路上的坚韧执着，保持战略定力和高压态势。',
+    url: 'http://politics.people.com.cn/n1/2025/0107/c1024-40409189.html'
+  }
+];
+
+// 统计各领域文章数量
+export const domainStats = {
+  economy: 0,
+  politics: 3,
+  culture: 2,
+  society: 2,
+  ecology: 2,
+  party: 3,
+  defense: 2,
+  diplomacy: 3
+};

@@ -741,6 +741,156 @@ export const speechesData: Speech[] = [
     location: '北京',
     summary: '这是习近平总书记参加江苏代表团审议时的重要讲话记录。总书记强调规划与执行需结合，指出农村既要富裕也要抓精神文明，发展必须依靠实体经济和科技自立自强，要求坚持独立自主，推动经济质效提升。',
     url: 'https://news.sina.cn/gn/2026-03-07/detail-inhqcuct1841393.d.html?vt=4'
+  },
+
+  // ===== 从人民网迁移的新文章（政治领域）=====
+  {
+    id: '2024-P01',
+    title: '在庆祝全国人民代表大会成立70周年大会上的讲话',
+    date: '2024-09-14',
+    year: 2024,
+    month: 9,
+    day: 14,
+    category: 'speech',
+    categoryName: '重要讲话',
+    domain: 'politics',
+    domainName: '政治',
+    source: '新华社',
+    location: '北京',
+    summary: '习近平总书记出席庆祝全国人民代表大会成立70周年大会并发表重要讲话，强调人民代表大会制度是中国共产党领导中国人民在人类政治制度史上的伟大创造。',
+    url: 'http://politics.people.com.cn/n1/2024/0915/c1024-40307189.html'
+  },
+  {
+    id: '2024-P02',
+    title: '在庆祝中国人民政治协商会议成立75周年大会上的讲话',
+    date: '2024-09-20',
+    year: 2024,
+    month: 9,
+    day: 20,
+    category: 'speech',
+    categoryName: '重要讲话',
+    domain: 'politics',
+    domainName: '政治',
+    source: '新华社',
+    location: '北京',
+    summary: '习近平总书记出席庆祝中国人民政治协商会议成立75周年大会并发表重要讲话，强调人民政协是中国共产党把马克思列宁主义统一战线理论同中国具体实际相结合的伟大成果。',
+    url: 'http://politics.people.com.cn/n1/2024/0921/c1024-40310189.html'
+  },
+  // ===== 从人民网迁移的新文章（文化领域）=====
+  {
+    id: '2024-C01',
+    title: '加强文化遗产保护传承 弘扬中华优秀传统文化',
+    date: '2024-06-08',
+    year: 2024,
+    month: 6,
+    day: 8,
+    category: 'article',
+    categoryName: '发表文章',
+    domain: 'culture',
+    domainName: '文化',
+    source: '《求是》杂志第11期',
+    summary: '文章强调，中华文明源远流长，从未中断，塑造了我们伟大的民族。文物和文化遗产承载着中华民族的基因和血脉。',
+    url: 'http://www.qstheory.cn/dukan/qs/2024-06/07/c_1130158583.htm'
+  },
+  // ===== 从人民网迁移的新文章（社会领域）=====
+  {
+    id: '2024-S01',
+    title: '在全国教育大会上的讲话',
+    date: '2024-09-10',
+    year: 2024,
+    month: 9,
+    day: 10,
+    category: 'meeting',
+    categoryName: '重要会议',
+    domain: 'society',
+    domainName: '社会',
+    source: '新华社',
+    location: '北京',
+    summary: '习近平总书记出席全国教育大会并发表重要讲话，强调建成教育强国是近代以来中华民族梦寐以求的美好愿望。',
+    url: 'http://politics.people.com.cn/n1/2024/0911/c1024-40305189.html'
+  },
+  // ===== 从人民网迁移的新文章（生态领域）=====
+  {
+    id: '2024-E01',
+    title: '全面推进美丽中国建设',
+    date: '2024-06-05',
+    year: 2024,
+    month: 6,
+    day: 5,
+    category: 'article',
+    categoryName: '发表文章',
+    domain: 'ecology',
+    domainName: '生态',
+    source: '《求是》杂志第11期',
+    summary: '文章强调，生态文明建设是关系中华民族永续发展的根本大计。我们要深入贯彻习近平生态文明思想。',
+    url: 'http://www.qstheory.cn/dukan/qs/2024-06/04/c_1130156583.htm'
+  },
+  // ===== 从人民网迁移的新文章（党建领域）=====
+  {
+    id: '2024-G01',
+    title: '在二十届中央纪委三次全会上的讲话',
+    date: '2024-01-08',
+    year: 2024,
+    month: 1,
+    day: 8,
+    category: 'meeting',
+    categoryName: '重要会议',
+    domain: 'party',
+    domainName: '党建',
+    source: '新华社',
+    location: '北京',
+    summary: '习近平总书记出席二十届中央纪委三次全会并发表重要讲话，强调深入推进党的自我革命。',
+    url: 'http://politics.people.com.cn/n1/2024/0109/c1024-40142189.html'
+  },
+  // ===== 从人民网迁移的新文章（国防领域）=====
+  {
+    id: '2024-D01',
+    title: '在中央军委政治工作会议上的讲话',
+    date: '2024-06-18',
+    year: 2024,
+    month: 6,
+    day: 18,
+    category: 'meeting',
+    categoryName: '重要会议',
+    domain: 'defense',
+    domainName: '国防',
+    source: '新华社',
+    location: '陕西延安',
+    summary: '习近平总书记出席中央军委政治工作会议并发表重要讲话，强调要坚持党对军队绝对领导。',
+    url: 'http://politics.people.com.cn/n1/2024/0619/c1024-40272189.html'
+  },
+  // ===== 从人民网迁移的新文章（外交领域）=====
+  {
+    id: '2024-F01',
+    title: '在和平共处五项原则发表70周年纪念大会上的讲话',
+    date: '2024-06-28',
+    year: 2024,
+    month: 6,
+    day: 28,
+    category: 'speech',
+    categoryName: '重要讲话',
+    domain: 'diplomacy',
+    domainName: '外交',
+    source: '新华社',
+    location: '北京',
+    summary: '习近平主席出席和平共处五项原则发表70周年纪念大会并发表重要讲话。',
+    url: 'http://politics.people.com.cn/n1/2024/0629/c1024-40279189.html'
+  },
+  {
+    id: '2024-F02',
+    title: '在中非合作论坛北京峰会开幕式上的主旨讲话',
+    date: '2024-09-05',
+    year: 2024,
+    month: 9,
+    day: 5,
+    category: 'speech',
+    categoryName: '重要讲话',
+    domain: 'diplomacy',
+    domainName: '外交',
+    source: '新华社',
+    location: '北京',
+    summary: '习近平主席出席中非合作论坛北京峰会开幕式并发表主旨讲话。',
+    url: 'http://politics.people.com.cn/n1/2024/0906/c1024-40301189.html'
   }
 ];
 

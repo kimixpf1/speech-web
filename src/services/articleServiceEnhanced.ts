@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { speechesData, type Speech } from '@/data/speeches';
+import { zhengjiguanArticles } from '@/data/zhengjiguanArticles';
 
 // 表名
 const ARTICLES_TABLE = 'articles';
@@ -185,21 +186,57 @@ export async function getArticles(): Promise<Speech[]> {
 // 获取政绩观专题文章
 export async function getZhengjiguanArticles(): Promise<Speech[]> {
   try {
-    const { data, error } = await supabase
-      .from(ARTICLES_TABLE)
-      .select('*')
-      .eq('is_zhengjiguan', true)
-      .order('date', { ascending: false });
+    // 先尝试从云端获取
+    if (navigator.onLine) {
+      const { data, error } = await supabase
+        .from(ARTICLES_TABLE)
+        .select('*')
+        .eq('is_zhengjiguan', true)
+        .order('date', { ascending: false });
 
-    if (error) {
-      console.error('获取政绩观文章失败:', error);
-      return [];
+      if (!error && data && data.length > 0) {
+        return data.map(fromDbFormat);
+      }
+
+      // 云端没有数据，同步静态数据到云端
+      if (!error && (!data || data.length === 0)) {
+        console.log('云端无政绩观文章，正在同步静态数据...');
+        await syncZhengjiguanToCloud();
+        // 重新获取
+        const { data: newData } = await supabase
+          .from(ARTICLES_TABLE)
+          .select('*')
+          .eq('is_zhengjiguan', true)
+          .order('date', { ascending: false });
+        if (newData && newData.length > 0) {
+          return newData.map(fromDbFormat);
+        }
+      }
     }
-
-    return data ? data.map(fromDbFormat) : [];
   } catch (e) {
     console.error('Get zhengjiguan articles error:', e);
-    return [];
+  }
+
+  // 回退到静态数据
+  console.log('使用静态政绩观文章数据');
+  return [...zhengjiguanArticles];
+}
+
+// 同步政绩观文章到云端
+async function syncZhengjiguanToCloud(): Promise<void> {
+  try {
+    const dbData = zhengjiguanArticles.map(toDbFormat);
+    const { error } = await supabase
+      .from(ARTICLES_TABLE)
+      .upsert(dbData, { onConflict: 'id' });
+
+    if (error) {
+      console.error('同步政绩观文章失败:', error);
+    } else {
+      console.log('已同步', zhengjiguanArticles.length, '篇政绩观文章到云端');
+    }
+  } catch (e) {
+    console.error('Sync zhengjiguan error:', e);
   }
 }
 
@@ -210,7 +247,6 @@ export function getLocalArticlesSync(): Speech[] {
     return cached.filter(a => !a.isZhengjiguan);
   }
   return [...speechesData].map(ensureDomainField).filter(a => !a.isZhengjiguan);
-}
 }
 
 // 添加文章（自动上传云端备份）
