@@ -412,15 +412,15 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     if (!editingArticle) return;
 
     try {
-      const success = await updateArticle(editingArticle);
-      if (success) {
+      const result = await updateArticle(editingArticle);
+      if (result.success) {
         setEditDialogOpen(false);
         setEditingArticle(null);
         await loadData();
         setSuccessMessage('保存成功');
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
-        alert('保存失败，请重试');
+        alert('保存失败：' + (result.error || '请重试'));
       }
     } catch (error) {
       console.error('Save article error:', error);

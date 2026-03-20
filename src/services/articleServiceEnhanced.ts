@@ -152,14 +152,14 @@ export async function getArticles(): Promise<Speech[]> {
     if (navigator.onLine) {
       const cloudArticles = await fetchFromCloud();
       
-      // 如果云端数据不完整，同步静态数据
-      if (cloudArticles.length < speechesData.length) {
-        console.log(`云端文章数(${cloudArticles.length})少于静态数据(${speechesData.length})，正在同步...`);
+      // 只有云端完全无数据时才同步静态数据（初始化场景）
+      // 注意：不再根据数量比较来触发同步，避免覆盖用户修改
+      if (cloudArticles.length === 0) {
+        console.log('云端无数据，正在初始化同步...');
         await syncStaticDataToCloud();
         const syncedArticles = await fetchFromCloud();
-        if (syncedArticles.length >= speechesData.length) {
+        if (syncedArticles.length > 0) {
           saveLocalCache(syncedArticles);
-          // 排除政绩观专题文章
           return syncedArticles.filter(a => !a.isZhengjiguan);
         }
       }
@@ -293,38 +293,59 @@ export async function addArticle(article: Speech): Promise<{ success: boolean; e
 }
 
 // 更新文章（自动同步云端）
-export async function updateArticle(article: Speech): Promise<boolean> {
+export async function updateArticle(article: Speech): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log('更新文章，同步云端:', article.id);
+    console.log('更新文章，同步云端:', article.id, article.title);
     
     if (navigator.onLine) {
-      const { error } = await supabase
+      // 检查用户是否已登录
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('用户未登录，无法更新文章');
+        return { success: false, error: '请先登录管理员账户' };
+      }
+
+      const dbData = toDbFormat(article);
+      console.log('准备上传数据:', JSON.stringify(dbData, null, 2));
+      
+      const { data, error } = await supabase
         .from(ARTICLES_TABLE)
-        .upsert(toDbFormat(article), { onConflict: 'id' });
+        .upsert(dbData, { onConflict: 'id' })
+        .select();
 
       if (error) {
         console.error('云端更新失败:', error);
-        return false;
+        console.error('错误详情:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
+        return { success: false, error: `云端更新失败: ${error.message}` };
       }
 
-      console.log('云端更新成功:', article.id);
+      console.log('云端更新成功:', article.id, '返回数据:', data);
 
+      // 更新本地缓存
       const allArticles = await fetchFromCloud();
       saveLocalCache(allArticles);
+      console.log('本地缓存已更新，当前文章数:', allArticles.length);
     } else {
+      // 离线时保存到本地
       const cached = getLocalCache();
       const index = cached.findIndex(a => a.id === article.id);
       if (index !== -1) {
         cached[index] = article;
         cached.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         saveLocalCache(cached);
+        console.log('离线模式：已保存到本地缓存');
       }
     }
 
-    return true;
+    return { success: true };
   } catch (e) {
     console.error('更新文章错误:', e);
-    return false;
+    return { success: false, error: e instanceof Error ? e.message : '未知错误' };
   }
 }
 
