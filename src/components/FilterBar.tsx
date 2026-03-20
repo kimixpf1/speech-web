@@ -1,4 +1,5 @@
-import { Calendar, X, Mic, FileText, Users, MapPin, LayoutGrid, TrendingUp, Landmark, BookOpen, Leaf, Flag, Shield, Globe } from 'lucide-react';
+import { Calendar, X, Mic, FileText, Users, MapPin, LayoutGrid, TrendingUp, Landmark, BookOpen, Leaf, Flag, Shield, Globe, Award } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -69,6 +70,7 @@ export function FilterBar({
   onYearChange,
   resultCount,
 }: FilterBarProps) {
+  const navigate = useNavigate();
   const hasActiveFilters = selectedDomain !== 'all' || selectedCategory !== 'all' || selectedYear !== 'all';
 
   const clearFilters = () => {
@@ -89,7 +91,7 @@ export function FilterBar({
                 const Icon = domainIconMap[domain.icon] || LayoutGrid;
                 const isActive = selectedDomain === domain.value;
                 const colors = domainColors[domain.value];
-                
+
                 return (
                   <button
                     key={domain.value}
@@ -105,6 +107,14 @@ export function FilterBar({
                   </button>
                 );
               })}
+              {/* 政绩观专题按钮 */}
+              <button
+                onClick={() => navigate('/zhengjiguan')}
+                className="flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-gradient-to-r from-red-600 to-red-500 text-white hover:from-red-700 hover:to-red-600 shadow-sm"
+              >
+                <Award className="w-3.5 h-3.5" />
+                政绩观专题
+              </button>
             </div>
           </div>
 
