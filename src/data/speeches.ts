@@ -5,8 +5,16 @@ export interface Speech {
   year: number;
   month: number;
   day: number;
+  // 类型分类
   category: 'speech' | 'article' | 'meeting' | 'inspection';
   categoryName: string;
+  // 领域分类
+  domain: 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy';
+  domainName: string;
+  // 政绩观专题
+  isZhengjiguan?: boolean;
+  zhengjiguanLevel?: 'central' | 'jiangsu' | 'suzhou';
+  // 其他字段
   source: string;
   summary: string;
   url?: string;
@@ -742,6 +750,26 @@ export const categoryOptions = [
   { value: 'article', label: '发表文章', icon: 'FileText' },
   { value: 'meeting', label: '重要会议', icon: 'Users' },
   { value: 'inspection', label: '考察调研', icon: 'MapPin' }
+];
+
+// 领域分类配置
+export const domainOptions = [
+  { value: 'all', label: '全部领域', icon: 'LayoutGrid' },
+  { value: 'economy', label: '经济', icon: 'TrendingUp', color: 'blue' },
+  { value: 'politics', label: '政治', icon: 'Landmark', color: 'red' },
+  { value: 'culture', label: '文化', icon: 'BookOpen', color: 'purple' },
+  { value: 'society', label: '社会', icon: 'Users', color: 'green' },
+  { value: 'ecology', label: '生态', icon: 'Leaf', color: 'emerald' },
+  { value: 'party', label: '党建', icon: 'Flag', color: 'orange' },
+  { value: 'defense', label: '国防', icon: 'Shield', color: 'slate' },
+  { value: 'diplomacy', label: '外交', icon: 'Globe', color: 'cyan' }
+];
+
+// 政绩观层级配置
+export const zhengjiguanLevels = [
+  { value: 'central', label: '中央', icon: 'Building2' },
+  { value: 'jiangsu', label: '江苏省', icon: 'Building' },
+  { value: 'suzhou', label: '苏州市', icon: 'Home' }
 ];
 
 export const yearOptions = [

@@ -10,6 +10,7 @@ import { DetailPage } from '@/components/DetailPage';
 import { AdminLogin } from '@/components/AdminLogin';
 import { AdminDashboard } from '@/components/AdminDashboard';
 import { SuggestionBox } from '@/components/SuggestionBox';
+import { ZhengjiguanPage } from '@/components/ZhengjiguanPage';
 import { getArticles, setupRealtimeSubscription, type Speech } from '@/services/articleServiceEnhanced';
 import { speechesData } from '@/data/speeches';
 import { initAnalytics } from '@/services/analytics';
@@ -19,6 +20,7 @@ import './App.css';
 
 function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDomain, setSelectedDomain] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedYear, setSelectedYear] = useState('all');
   // 直接用静态数据初始化，确保首次渲染就有52篇文章，避免闪烁
@@ -99,6 +101,11 @@ function HomePage() {
   // Filter speeches
   const filteredSpeeches = useMemo(() => {
     return articles.filter((speech) => {
+      // Domain filter
+      if (selectedDomain !== 'all' && speech.domain !== selectedDomain) {
+        return false;
+      }
+
       // Category filter
       if (selectedCategory !== 'all' && speech.category !== selectedCategory) {
         return false;
@@ -120,7 +127,7 @@ function HomePage() {
 
       return true;
     });
-  }, [searchQuery, selectedCategory, selectedYear, articles]);
+  }, [searchQuery, selectedDomain, selectedCategory, selectedYear, articles]);
 
   return (
     <>
@@ -130,6 +137,8 @@ function HomePage() {
         stats={stats}
       />
       <FilterBar
+        selectedDomain={selectedDomain}
+        onDomainChange={setSelectedDomain}
         selectedCategory={selectedCategory}
         onCategoryChange={setSelectedCategory}
         selectedYear={selectedYear}
@@ -226,6 +235,8 @@ function MainLayout() {
         <Route path="/admin/login" element={<AdminLoginWrapper />} />
         <Route path="/admin/dashboard" element={<AdminDashboardWrapper />} />
         <Route path="/detail/:id" element={<DetailPage />} />
+        <Route path="/zhengjiguan" element={<ZhengjiguanPage />} />
+        <Route path="/zhengjiguan/:id" element={<DetailPage />} />
       </Routes>
       {!hideHeaderFooter && <Footer />}
     </div>

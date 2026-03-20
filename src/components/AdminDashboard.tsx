@@ -123,6 +123,9 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [newArticle, setNewArticle] = useState<Partial<Speech>>({
     category: 'speech',
     categoryName: '重要讲话',
+    domain: 'economy',
+    domainName: '经济',
+    isZhengjiguan: false,
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1,
     day: new Date().getDate(),
@@ -597,6 +600,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         day,
         category: newArticle.category as 'speech' | 'article' | 'meeting' | 'inspection',
         categoryName: newArticle.categoryName || '重要讲话',
+        domain: newArticle.domain as 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy' || 'economy',
+        domainName: newArticle.domainName || '经济',
+        isZhengjiguan: newArticle.isZhengjiguan || false,
+        zhengjiguanLevel: newArticle.zhengjiguanLevel,
         source: newArticle.source,
         summary: newArticle.summary,
         url: newArticle.url || '',
@@ -620,6 +627,9 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         setNewArticle({
           category: 'speech',
           categoryName: '重要讲话',
+          domain: 'economy',
+          domainName: '经济',
+          isZhengjiguan: false,
           year: new Date().getFullYear(),
           month: new Date().getMonth() + 1,
           day: new Date().getDate(),
@@ -1696,7 +1706,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">分类 <span className="text-red-500">*</span></label>
+                <label className="text-sm font-medium">类型 <span className="text-red-500">*</span></label>
                 <select 
                   className="w-full h-10 px-3 rounded-md border border-input bg-background"
                   value={newArticle.category}
@@ -1716,6 +1726,63 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <option value="meeting">重要会议</option>
                   <option value="inspection">考察调研</option>
                 </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">领域 <span className="text-red-500">*</span></label>
+                <select 
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                  value={newArticle.domain || 'economy'}
+                  onChange={(e) => {
+                    const domain = e.target.value as 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy';
+                    const domainNames: Record<string, string> = {
+                      economy: '经济',
+                      politics: '政治',
+                      culture: '文化',
+                      society: '社会',
+                      ecology: '生态',
+                      party: '党建',
+                      defense: '国防',
+                      diplomacy: '外交'
+                    };
+                    setNewArticle({...newArticle, domain, domainName: domainNames[domain]});
+                  }}
+                >
+                  <option value="economy">经济</option>
+                  <option value="politics">政治</option>
+                  <option value="culture">文化</option>
+                  <option value="society">社会</option>
+                  <option value="ecology">生态</option>
+                  <option value="party">党建</option>
+                  <option value="defense">国防</option>
+                  <option value="diplomacy">外交</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">政绩观专题</label>
+                <div className="flex items-center gap-4 h-10">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={newArticle.isZhengjiguan || false}
+                      onChange={(e) => setNewArticle({...newArticle, isZhengjiguan: e.target.checked})}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">是政绩观文章</span>
+                  </label>
+                  {newArticle.isZhengjiguan && (
+                    <select 
+                      className="flex-1 h-8 px-2 rounded-md border border-input bg-background text-sm"
+                      value={newArticle.zhengjiguanLevel || 'central'}
+                      onChange={(e) => setNewArticle({...newArticle, zhengjiguanLevel: e.target.value as 'central' | 'jiangsu' | 'suzhou'})}
+                    >
+                      <option value="central">中央</option>
+                      <option value="jiangsu">江苏省</option>
+                      <option value="suzhou">苏州市</option>
+                    </select>
+                  )}
+                </div>
               </div>
             </div>
             <div className="space-y-2">
