@@ -15,6 +15,18 @@ const categoryConfig: Record<string, { icon: React.ElementType; color: string; b
   inspection: { icon: MapPinIcon, color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-100' },
 };
 
+// 领域配置
+const domainConfig: Record<string, { color: string; bgColor: string }> = {
+  economy: { color: 'text-blue-600', bgColor: 'bg-blue-50' },
+  politics: { color: 'text-red-600', bgColor: 'bg-red-50' },
+  culture: { color: 'text-purple-600', bgColor: 'bg-purple-50' },
+  society: { color: 'text-green-600', bgColor: 'bg-green-50' },
+  ecology: { color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
+  party: { color: 'text-orange-600', bgColor: 'bg-orange-50' },
+  defense: { color: 'text-slate-600', bgColor: 'bg-slate-50' },
+  diplomacy: { color: 'text-cyan-600', bgColor: 'bg-cyan-50' },
+};
+
 function SpeechCard({ speech }: { speech: Speech }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const config = categoryConfig[speech.category];
@@ -45,7 +57,14 @@ function SpeechCard({ speech }: { speech: Speech }) {
 
             {/* Meta Info */}
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-3 flex-wrap">
-              <Badge variant="outline" className={`${config.color} border-current text-sm px-2 py-0.5`}>
+              {/* 领域标签 */}
+              {speech.domain && speech.domainName && (
+                <Badge variant="outline" className={`${domainConfig[speech.domain]?.color || 'text-gray-600'} border-current text-xs px-2 py-0.5`}>
+                  {speech.domainName}
+                </Badge>
+              )}
+              {/* 类型标签 */}
+              <Badge variant="outline" className={`${config.color} border-current text-xs px-2 py-0.5`}>
                 {speech.categoryName}
               </Badge>
               <span className="flex items-center gap-1">

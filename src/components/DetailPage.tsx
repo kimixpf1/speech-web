@@ -24,6 +24,18 @@ const categoryConfig: Record<string, { icon: React.ElementType; color: string; b
   inspection: { icon: MapPinIcon, color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-200', label: '考察调研' },
 };
 
+// 领域配置
+const domainConfig: Record<string, { color: string; bgColor: string; borderColor: string; label: string }> = {
+  economy: { color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-200', label: '经济' },
+  politics: { color: 'text-red-600', bgColor: 'bg-red-50', borderColor: 'border-red-200', label: '政治' },
+  culture: { color: 'text-purple-600', bgColor: 'bg-purple-50', borderColor: 'border-purple-200', label: '文化' },
+  society: { color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200', label: '社会' },
+  ecology: { color: 'text-emerald-600', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200', label: '生态' },
+  party: { color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-200', label: '党建' },
+  defense: { color: 'text-slate-600', bgColor: 'bg-slate-50', borderColor: 'border-slate-200', label: '国防' },
+  diplomacy: { color: 'text-cyan-600', bgColor: 'bg-cyan-50', borderColor: 'border-cyan-200', label: '外交' },
+};
+
 export function DetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -432,6 +444,13 @@ export function DetailPage() {
           <div className="mb-10">
             {/* 分类标签 */}
             <div className="flex items-center gap-3 mb-5">
+              {/* 领域标签 */}
+              {speech.domain && speech.domainName && (
+                <Badge className={`${domainConfig[speech.domain]?.bgColor || 'bg-gray-50'} ${domainConfig[speech.domain]?.color || 'text-gray-600'} border ${domainConfig[speech.domain]?.borderColor || 'border-gray-200'} text-lg px-4 py-1.5`}>
+                  {speech.domainName}
+                </Badge>
+              )}
+              {/* 类型标签 */}
               <Badge className={`${config.bgColor} ${config.color} border ${config.borderColor} text-lg px-4 py-1.5`}>
                 <Icon className="w-5 h-5 mr-2" />
                 {speech.categoryName}

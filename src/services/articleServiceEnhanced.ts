@@ -29,6 +29,10 @@ function toDbFormat(article: Speech): Record<string, unknown> {
     day: article.day,
     category: article.category,
     categoryname: article.categoryName,
+    domain: article.domain || 'economy',
+    domain_name: article.domainName || '经济',
+    is_zhengjiguan: article.isZhengjiguan || false,
+    zhengjiguan_level: article.zhengjiguanLevel || null,
     source: article.source,
     location: article.location || '',
     summary: article.summary,
@@ -47,10 +51,24 @@ function fromDbFormat(dbArticle: Record<string, unknown>): Speech {
     day: dbArticle.day as number,
     category: dbArticle.category as 'speech' | 'article' | 'meeting' | 'inspection',
     categoryName: (dbArticle.categoryname || dbArticle.categoryName || '重要讲话') as string,
+    domain: (dbArticle.domain || 'economy') as 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy',
+    domainName: (dbArticle.domain_name || dbArticle.domainName || '经济') as string,
+    isZhengjiguan: (dbArticle.is_zhengjiguan || false) as boolean,
+    zhengjiguanLevel: dbArticle.zhengjiguan_level as 'central' | 'jiangsu' | 'suzhou' | undefined,
     source: dbArticle.source as string,
     location: (dbArticle.location || '') as string,
     summary: dbArticle.summary as string,
     url: (dbArticle.url || '') as string,
+  };
+}
+
+// 确保文章有默认领域字段
+export function ensureDomainField(article: Speech): Speech {
+  return {
+    ...article,
+    domain: article.domain || 'economy',
+    domainName: article.domainName || '经济',
+    isZhengjiguan: article.isZhengjiguan || false,
   };
 }
 
@@ -101,12 +119,14 @@ async function fetchFromCloud(): Promise<Speech[]> {
 // 同步静态数据到云端
 async function syncStaticDataToCloud(): Promise<void> {
   try {
-    console.log('开始同步52篇文章到云端...');
+    console.log('开始同步文章到云端...');
     
     const batchSize = 10;
     for (let i = 0; i < speechesData.length; i += batchSize) {
       const batch = speechesData.slice(i, i + batchSize);
-      const dbData = batch.map(toDbFormat);
+      // 确保每篇文章都有领域字段（默认为经济）
+      const articlesWithDomain = batch.map(article => ensureDomainField(article));
+      const dbData = articlesWithDomain.map(toDbFormat);
       
       const { error } = await supabase
         .from(ARTICLES_TABLE)
@@ -125,7 +145,7 @@ async function syncStaticDataToCloud(): Promise<void> {
   }
 }
 
-// 获取所有文章
+// 获取所有文章（排除政绩观专题文章）
 export async function getArticles(): Promise<Speech[]> {
   try {
     if (navigator.onLine) {
@@ -138,13 +158,15 @@ export async function getArticles(): Promise<Speech[]> {
         const syncedArticles = await fetchFromCloud();
         if (syncedArticles.length >= speechesData.length) {
           saveLocalCache(syncedArticles);
-          return syncedArticles;
+          // 排除政绩观专题文章
+          return syncedArticles.filter(a => !a.isZhengjiguan);
         }
       }
       
       if (cloudArticles.length > 0) {
         saveLocalCache(cloudArticles);
-        return cloudArticles;
+        // 排除政绩观专题文章
+        return cloudArticles.filter(a => !a.isZhengjiguan);
       }
     }
   } catch (e) {
@@ -154,19 +176,41 @@ export async function getArticles(): Promise<Speech[]> {
   // 使用本地缓存或静态数据
   const cached = getLocalCache();
   if (cached.length > 0) {
-    return cached;
+    return cached.filter(a => !a.isZhengjiguan);
   }
 
-  return [...speechesData];
+  return [...speechesData].map(ensureDomainField).filter(a => !a.isZhengjiguan);
+}
+
+// 获取政绩观专题文章
+export async function getZhengjiguanArticles(): Promise<Speech[]> {
+  try {
+    const { data, error } = await supabase
+      .from(ARTICLES_TABLE)
+      .select('*')
+      .eq('is_zhengjiguan', true)
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.error('获取政绩观文章失败:', error);
+      return [];
+    }
+
+    return data ? data.map(fromDbFormat) : [];
+  } catch (e) {
+    console.error('Get zhengjiguan articles error:', e);
+    return [];
+  }
 }
 
 // 同步获取文章（用于首屏快速加载）
 export function getLocalArticlesSync(): Speech[] {
   const cached = getLocalCache();
   if (cached.length > 0) {
-    return cached;
+    return cached.filter(a => !a.isZhengjiguan);
   }
-  return [...speechesData];
+  return [...speechesData].map(ensureDomainField).filter(a => !a.isZhengjiguan);
+}
 }
 
 // 添加文章（自动上传云端备份）
