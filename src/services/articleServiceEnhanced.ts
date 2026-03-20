@@ -20,143 +20,18 @@ export interface SyncStatus {
   isSyncing: boolean;
 }
 
-// 数据库架构缓存
+// 数据库架构缓存 - 已更新包含新列
 let cachedSchema: Set<string> | null = null;
-
-// 获取数据库表的实际列
-async function getTableSchema(): Promise<Set<string>> {
-  if (cachedSchema) {
-    return cachedSchema;
-  }
-
-  // 尝试从本地缓存获取
-  try {
-    const cached = localStorage.getItem(SCHEMA_CACHE_KEY);
-    if (cached) {
-      const columns = JSON.parse(cached);
-      cachedSchema = new Set(columns);
-      return cachedSchema;
-    }
-  } catch {
-    // 忽略错误
-  }
-
-  // 尝试从数据库获取架构
-  try {
-    // 使用 RPC 或直接查询来获取列信息
-    const { data, error } = await supabase
-      .rpc('get_table_columns', { table_name: ARTICLES_TABLE })
-      .catch(() => {
-        // RPC 可能不存在，使用回退方法
-        return { data: null, error: true };
-      });
-
-    if (data && !error) {
-      const columns = new Set(data.map((row: { column_name: string }) => row.column_name));
-      cachedSchema = columns;
-      localStorage.setItem(SCHEMA_CACHE_KEY, JSON.stringify([...columns]));
-      return columns;
-    }
-  } catch {
-    // 忽略错误
-  }
-
-  // 默认使用基本列（安全模式）
-  const defaultColumns = new Set([
-    'id', 'title', 'date', 'year', 'month', 'day',
-    'category', 'categoryname', 'source', 'location', 'summary', 'url', 'created_at'
-  ]);
-  cachedSchema = defaultColumns;
-  return defaultColumns;
-}
-
-// 检测列是否存在
-async function hasColumn(columnName: string): Promise<boolean> {
-  const schema = await getTableSchema();
-  return schema.has(columnName);
-}
 
 // 清除架构缓存（用于数据库升级后刷新）
 export function clearSchemaCache(): void {
   cachedSchema = null;
   localStorage.removeItem(SCHEMA_CACHE_KEY);
+  console.log('数据库架构缓存已清除');
 }
 
-// 将 Speech 对象转换为数据库格式
-// 智能检测列是否存在，只使用实际存在的列
-async function toDbFormatSmart(article: Speech): Promise<Record<string, unknown>> {
-  const schema = await getTableSchema();
-
-  const data: Record<string, unknown> = {
-    id: article.id,
-    title: article.title,
-    date: article.date,
-    year: article.year,
-    month: article.month,
-    day: article.day,
-    category: article.category,
-    categoryname: article.categoryName,
-    source: article.source,
-    location: article.location || '',
-    summary: article.summary,
-    url: article.url || '',
-  };
-
-  // 只添加实际存在的列
-  if (schema.has('domain') && article.domain) {
-    data.domain = article.domain;
-  }
-  if (schema.has('domain_name') && article.domainName) {
-    data.domain_name = article.domainName;
-  }
-  if (schema.has('is_zhengjiguan') && article.isZhengjiguan !== undefined) {
-    data.is_zhengjiguan = article.isZhengjiguan;
-  }
-  if (schema.has('zhengjiguan_level') && article.zhengjiguanLevel) {
-    data.zhengjiguan_level = article.zhengjiguanLevel;
-  }
-
-  return data;
-}
-
-// 将 Speech 对象转换为数据库格式（同步版本，用于兼容）
+// 将 Speech 对象转换为数据库格式（完整版，包含所有列）
 function toDbFormat(article: Speech): Record<string, unknown> {
-  const data: Record<string, unknown> = {
-    id: article.id,
-    title: article.title,
-    date: article.date,
-    year: article.year,
-    month: article.month,
-    day: article.day,
-    category: article.category,
-    categoryname: article.categoryName,
-    source: article.source,
-    location: article.location || '',
-    summary: article.summary,
-    url: article.url || '',
-  };
-
-  // 如果架构缓存可用，检查列是否存在
-  if (cachedSchema) {
-    if (cachedSchema.has('domain') && article.domain) {
-      data.domain = article.domain;
-    }
-    if (cachedSchema.has('domain_name') && article.domainName) {
-      data.domain_name = article.domainName;
-    }
-    if (cachedSchema.has('is_zhengjiguan') && article.isZhengjiguan !== undefined) {
-      data.is_zhengjiguan = article.isZhengjiguan;
-    }
-    if (cachedSchema.has('zhengjiguan_level') && article.zhengjiguanLevel) {
-      data.zhengjiguan_level = article.zhengjiguanLevel;
-    }
-  }
-
-  return data;
-}
-
-// 基本字段格式（安全模式，只使用基本列）
-function toBasicDbFormat(article: Speech): Record<string, unknown> {
   return {
     id: article.id,
     title: article.title,
@@ -166,6 +41,10 @@ function toBasicDbFormat(article: Speech): Record<string, unknown> {
     day: article.day,
     category: article.category,
     categoryname: article.categoryName,
+    domain: article.domain || 'economy',
+    domain_name: article.domainName || '经济',
+    is_zhengjiguan: article.isZhengjiguan || false,
+    zhengjiguan_level: article.zhengjiguanLevel || null,
     source: article.source,
     location: article.location || '',
     summary: article.summary,
@@ -257,8 +136,8 @@ async function syncStaticDataToCloud(): Promise<void> {
     const batchSize = 10;
     for (let i = 0; i < speechesData.length; i += batchSize) {
       const batch = speechesData.slice(i, i + batchSize);
-      // 使用基本字段格式（安全模式）
-      const dbData = batch.map(article => toBasicDbFormat(article));
+      // 使用完整字段格式
+      const dbData = batch.map(article => toDbFormat(article));
 
       const { error } = await supabase
         .from(ARTICLES_TABLE)
@@ -317,17 +196,48 @@ export async function getArticles(): Promise<Speech[]> {
 
 // 获取政绩观专题文章
 export async function getZhengjiguanArticles(): Promise<Speech[]> {
-  // 直接返回静态数据，避免数据库列不存在的问题
-  // 如果需要云端同步，需要先执行数据库迁移添加 is_zhengjiguan 列
+  try {
+    // 先尝试从云端获取
+    if (navigator.onLine) {
+      const { data, error } = await supabase
+        .from(ARTICLES_TABLE)
+        .select('*')
+        .eq('is_zhengjiguan', true)
+        .order('date', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        console.log('从云端获取政绩观文章:', data.length, '篇');
+        return data.map(fromDbFormat);
+      }
+
+      // 云端没有数据，同步静态数据到云端
+      if (!error && (!data || data.length === 0)) {
+        console.log('云端无政绩观文章，正在同步静态数据...');
+        await syncZhengjiguanToCloud();
+        // 重新获取
+        const { data: newData } = await supabase
+          .from(ARTICLES_TABLE)
+          .select('*')
+          .eq('is_zhengjiguan', true)
+          .order('date', { ascending: false });
+        if (newData && newData.length > 0) {
+          return newData.map(fromDbFormat);
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Get zhengjiguan articles error:', e);
+  }
+
+  // 回退到静态数据
   console.log('返回静态政绩观文章数据');
   return [...zhengjiguanArticles];
 }
 
-// 同步政绩观文章到云端（需要数据库迁移后才能使用）
+// 同步政绩观文章到云端
 async function syncZhengjiguanToCloud(): Promise<void> {
   try {
-    // 使用基本字段格式
-    const dbData = zhengjiguanArticles.map(article => toBasicDbFormat(article));
+    const dbData = zhengjiguanArticles.map(toDbFormat);
     const { error } = await supabase
       .from(ARTICLES_TABLE)
       .upsert(dbData, { onConflict: 'id' });
@@ -368,13 +278,13 @@ export async function addArticle(article: Speech): Promise<{ success: boolean; e
     saveLocalCache(cached);
 
     if (navigator.onLine) {
-      // 使用基本字段格式（安全模式）
-      const basicData = toBasicDbFormat(article);
+      // 使用完整字段格式（数据库已迁移，支持所有列）
+      const dbData = toDbFormat(article);
 
       // 上传到云端
       const { error } = await supabase
         .from(ARTICLES_TABLE)
-        .upsert(basicData, { onConflict: 'id' });
+        .upsert(dbData, { onConflict: 'id' });
 
       if (error) {
         console.error('云端上传失败:', error);
@@ -393,24 +303,6 @@ export async function addArticle(article: Speech): Promise<{ success: boolean; e
     console.error('添加文章错误:', e);
     return { success: false, error: e instanceof Error ? e.message : '未知错误' };
   }
-}
-
-// 将 Speech 对象转换为基本数据库格式（不包含可能缺失的列）
-function toBasicDbFormat(article: Speech): Record<string, unknown> {
-  return {
-    id: article.id,
-    title: article.title,
-    date: article.date,
-    year: article.year,
-    month: article.month,
-    day: article.day,
-    category: article.category,
-    categoryname: article.categoryName,
-    source: article.source,
-    location: article.location || '',
-    summary: article.summary,
-    url: article.url || '',
-  };
 }
 
 // 更新文章（自动同步云端）
@@ -436,28 +328,22 @@ export async function updateArticle(article: Speech): Promise<{ success: boolean
         return { success: false, error: '请先登录管理员账户' };
       }
 
-      // 使用基本字段格式（安全模式，避免列不存在错误）
-      const basicData = toBasicDbFormat(article);
-      console.log('准备上传基本数据:', JSON.stringify(basicData, null, 2));
+      // 使用完整字段格式（数据库已迁移，支持所有列）
+      const dbData = toDbFormat(article);
+      console.log('准备上传数据:', JSON.stringify(dbData, null, 2));
 
-      // 首先尝试使用基本字段更新
-      let { data, error } = await supabase
+      const { data, error } = await supabase
         .from(ARTICLES_TABLE)
-        .upsert(basicData, { onConflict: 'id' })
+        .upsert(dbData, { onConflict: 'id' })
         .select();
 
       if (error) {
-        console.error('基本字段更新失败:', error);
+        console.error('云端更新失败:', error);
         return { success: false, error: `云端更新失败: ${error.message}` };
       }
 
       console.log('云端更新成功:', article.id, '返回数据:', data);
-
-      // 更新成功后，更新架构缓存时间戳
       localStorage.setItem('last_sync_time', new Date().toISOString());
-
-      // 不要重新获取云端数据覆盖本地修改
-      // 只更新该文章的本地状态
       console.log('文章更新完成:', article.id);
     } else {
       console.log('离线模式：已保存到本地缓存');
