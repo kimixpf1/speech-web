@@ -1,4 +1,4 @@
-name: Fetch New Articles
+name: Discover New Articles
 
 on:
   schedule:
@@ -8,8 +8,9 @@ on:
   workflow_dispatch:  # 允许手动触发
 
 jobs:
-  fetch:
+  discover:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -18,12 +19,14 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
-        run: pip install requests
+      - name: Install Python dependencies
+        run: pip install -r .github/scripts/requirements.txt
 
-      - name: Fetch articles
+      - name: Install Playwright browser
+        run: playwright install chromium --with-deps
+
+      - name: Discover articles
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
-        run: python .github/fetch_articles.py
+        run: python .github/scripts/discover_articles.py
