@@ -1198,42 +1198,131 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 </Card>
               )}
 
-              {/* 区域2: 搜索执行记录 */}
+              {/* 区域2: 搜索执行记录 + 每日总结 */}
               {searchLogs.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-gray-600 flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      自动搜索执行记录
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="space-y-2">
-                      {searchLogs.map((log) => (
-                        <div key={log.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                          <div className="flex items-center gap-3">
-                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                              log.status === 'success' ? 'bg-green-500' :
-                              log.status === 'partial_fail' ? 'bg-yellow-500' : 'bg-red-500'
-                            }`}></span>
-                            <span className="text-sm text-gray-700">
-                              {new Date(log.executed_at).toLocaleString('zh-CN', {
-                                month: 'short', day: 'numeric',
-                                hour: '2-digit', minute: '2-digit'
-                              })}
-                            </span>
+                <>
+                  {/* 每日总结卡片 */}
+                  <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm text-blue-800 flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4" />
+                        今日运行总结
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="grid grid-cols-4 gap-4 text-center">
+                        <div>
+                          <div className="text-2xl font-bold text-blue-700">
+                            {searchLogs.filter(l => {
+                              const logDate = new Date(l.executed_at).toDateString();
+                              return logDate === new Date().toDateString();
+                            }).length}
                           </div>
-                          <div className="flex items-center gap-4 text-xs text-gray-500">
-                            <span>爬取: {log.crawl_count}条</span>
-                            <span>搜索: {log.search_count}条</span>
-                            <span className="font-medium text-gray-700">新增: {log.new_count}条</span>
-                            <span>{log.duration_seconds}秒</span>
-                          </div>
+                          <div className="text-xs text-blue-600">运行次数</div>
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                        <div>
+                          <div className="text-2xl font-bold text-green-700">
+                            {searchLogs.filter(l => new Date(l.executed_at).toDateString() === new Date().toDateString())
+                              .reduce((sum, l) => sum + (l.crawl_count || 0), 0)}
+                          </div>
+                          <div className="text-xs text-green-600">爬取条数</div>
+                        </div>
+                        <div>
+                          <div className="text-2xl font-bold text-purple-700">
+                            {searchLogs.filter(l => new Date(l.executed_at).toDateString() === new Date().toDateString())
+                              .reduce((sum, l) => sum + (l.search_count || 0), 0)}
+                          </div>
+                          <div className="text-xs text-purple-600">搜索条数</div>
+                        </div>
+                        <div>
+                          <div className="text-2xl font-bold text-red-700">
+                            {searchLogs.filter(l => new Date(l.executed_at).toDateString() === new Date().toDateString())
+                              .reduce((sum, l) => sum + (l.new_count || 0), 0)}
+                          </div>
+                          <div className="text-xs text-red-600">新增文章</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* 详细执行记录 */}
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm text-gray-600 flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        自动搜索执行记录（最近5次）
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="space-y-3">
+                        {searchLogs.map((log) => (
+                          <div key={log.id} className="bg-gray-50 rounded-lg p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                  log.status === 'success' ? 'bg-green-500' :
+                                  log.status === 'partial_fail' ? 'bg-yellow-500' : 'bg-red-500'
+                                }`}></span>
+                                <span className="text-sm font-medium text-gray-700">
+                                  {new Date(log.executed_at).toLocaleString('zh-CN', {
+                                    month: 'short', day: 'numeric',
+                                    hour: '2-digit', minute: '2-digit'
+                                  })}
+                                </span>
+                                <span className={`text-xs px-2 py-0.5 rounded ${
+                                  log.status === 'success' ? 'bg-green-100 text-green-700' :
+                                  log.status === 'partial_fail' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                                }`}>
+                                  {log.status === 'success' ? '成功' : log.status === 'partial_fail' ? '部分失败' : '失败'}
+                                </span>
+                              </div>
+                              <span className="text-xs text-gray-500">{log.duration_seconds}秒</span>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 text-xs">
+                              <div className="bg-white rounded p-2 text-center">
+                                <div className="text-gray-500">爬取</div>
+                                <div className="font-bold text-gray-700">{log.crawl_count}条</div>
+                              </div>
+                              <div className="bg-white rounded p-2 text-center">
+                                <div className="text-gray-500">搜索</div>
+                                <div className="font-bold text-gray-700">{log.search_count}条</div>
+                              </div>
+                              <div className="bg-white rounded p-2 text-center">
+                                <div className="text-gray-500">新增</div>
+                                <div className="font-bold text-green-600">{log.new_count}条</div>
+                              </div>
+                            </div>
+                            {/* 详细日志 */}
+                            {log.details?.crawler_results && (
+                              <div className="mt-2 pt-2 border-t border-gray-200">
+                                <div className="text-xs text-gray-500 mb-1">爬虫详情：</div>
+                                <div className="flex flex-wrap gap-1">
+                                  {Object.entries(log.details.crawler_results).map(([key, val]: [string, any]) => (
+                                    <span key={key} className={`text-xs px-2 py-0.5 rounded ${
+                                      val.status === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                                    }`}>
+                                      {val.name || key}: {val.count}条
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {log.details?.search_results && (
+                              <div className="mt-2 pt-2 border-t border-gray-200">
+                                <div className="text-xs text-gray-500 mb-1">搜索详情：</div>
+                                <div className="text-xs text-gray-600">
+                                  {log.details.search_results.overall_status === 'skipped' ? '跳过（Playwright未安装）' :
+                                   log.details.search_results.overall_status === 'failed' ? `失败: ${log.details.search_results.error || '未知错误'}` :
+                                   `状态: ${log.details.search_results.overall_status || '完成'}`}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
               )}
 
               {/* GitHub Token 未配置提示 */}
