@@ -32,11 +32,13 @@ function HomePage() {
   );
   // 直接用静态数据初始化，确保首次渲染就有52篇文章，避免闪烁
   const [articles, setArticles] = useState<Speech[]>(speechesData);
-  // 滚动恢复相关状态
-  const scrollRestoredRef = useRef(false);
-  const targetScrollPositionRef = useRef<number | null>(null);
-  // 用于控制页面是否可见（滚动恢复期间隐藏，避免闪烁）
-  const [isScrollRestoring, setIsScrollRestoring] = useState(false);
+  // 滚动恢复目标位置
+  const targetScrollRef = useRef<number | null>(null);
+  // 首次渲染就决定是否隐藏（避免第一帧闪烁）
+  const needsRestore = localStorage.getItem('scrollPosition') !== null;
+  const [isScrollRestoring, setIsScrollRestoring] = useState(needsRestore);
+  // 标记云端数据是否已加载
+  const cloudDataLoadedRef = useRef(false);
 
   // 禁用浏览器自动滚动恢复
   useEffect(() => {
@@ -45,65 +47,38 @@ function HomePage() {
     }
   }, []);
 
-  // 当路由变化时（从详情页返回），执行滚动恢复
+  // 初始化时读取保存的滚动位置（同步，在首次绘制前）
   useLayoutEffect(() => {
     const savedPosition = localStorage.getItem('scrollPosition');
     if (savedPosition) {
       const targetPosition = parseInt(savedPosition, 10);
       localStorage.removeItem('scrollPosition');
-
-      // 设置目标位置和隐藏页面
-      targetScrollPositionRef.current = targetPosition;
-      scrollRestoredRef.current = false;
-      setIsScrollRestoring(true);
-
+      targetScrollRef.current = targetPosition;
       // 立即尝试滚动
       window.scrollTo(0, targetPosition);
     }
   }, [location.key]);
 
-  // 当页面渲染完成后，确保滚动位置正确
-  useEffect(() => {
-    if (targetScrollPositionRef.current === null || scrollRestoredRef.current) {
+  // 当文章数据变化时（尤其是云端数据加载后），执行滚动恢复
+  useLayoutEffect(() => {
+    if (targetScrollRef.current === null) {
       return;
     }
 
-    const targetPosition = targetScrollPositionRef.current;
+    const targetPosition = targetScrollRef.current;
+    const pageHeight = document.documentElement.scrollHeight;
 
-    // 立即滚动
+    // 如果页面还不够高且云端数据未加载，先滚动到尽可能的位置，继续等待
+    if (targetPosition > pageHeight - window.innerHeight && !cloudDataLoadedRef.current) {
+      window.scrollTo(0, targetPosition);
+      return;
+    }
+
+    // 页面已足够高或云端数据已加载，执行最终滚动
+    // useLayoutEffect 在浏览器绘制前同步执行，所以此处设置滚动和显示状态是安全的
     window.scrollTo(0, targetPosition);
-
-    // 使用一个持续监控确保位置正确
-    let animationId: number;
-    let checkCount = 0;
-    const maxChecks = 30;
-
-    const ensurePosition = () => {
-      checkCount++;
-      const currentY = window.scrollY;
-      const diff = Math.abs(currentY - targetPosition);
-
-      // 如果位置偏离，重新滚动
-      if (diff > 5) {
-        window.scrollTo(0, targetPosition);
-      }
-
-      // 继续检查直到稳定或超时
-      if (checkCount < maxChecks) {
-        animationId = requestAnimationFrame(ensurePosition);
-      } else {
-        // 完成，显示页面
-        scrollRestoredRef.current = true;
-        targetScrollPositionRef.current = null;
-        setIsScrollRestoring(false);
-      }
-    };
-
-    animationId = requestAnimationFrame(ensurePosition);
-
-    return () => {
-      cancelAnimationFrame(animationId);
-    };
+    targetScrollRef.current = null;
+    setIsScrollRestoring(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [articles]);
 
@@ -130,6 +105,7 @@ function HomePage() {
       const fetchedArticles = await getArticles();
       if (fetchedArticles.length > 0) {
         setArticles(fetchedArticles);
+        cloudDataLoadedRef.current = true;
       }
     };
     
