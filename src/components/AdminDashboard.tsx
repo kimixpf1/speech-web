@@ -26,7 +26,10 @@ import {
   X,
   Sparkles,
   Settings,
-  Loader2
+  Loader2,
+  Copy,
+  Clock,
+  ArrowRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -72,7 +75,10 @@ import {
   getPendingArticles,
   approveArticle,
   rejectArticle,
-  type PendingArticle
+  deletePendingArticle,
+  getSearchLogs,
+  type PendingArticle,
+  type SearchLog
 } from '@/services/pendingArticleService';
 import {
   saveGitHubToken,
@@ -167,6 +173,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [pendingArticles, setPendingArticles] = useState<PendingArticle[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
 
+  // 搜索日志
+  const [searchLogs, setSearchLogs] = useState<SearchLog[]>([]);
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+
   // GitHub搜索功能状态
   const [githubToken, setGithubTokenState] = useState(getGitHubToken() || '');
   const [showTokenDialog, setShowTokenDialog] = useState(false);
@@ -236,6 +246,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       const pending = await getPendingArticles();
       setPendingArticles(pending);
       setPendingCount(pending.length);
+
+      // 加载搜索日志
+      const logs = await getSearchLogs(5);
+      setSearchLogs(logs);
     } catch (error) {
       console.error('Failed to load data:', error);
     }
@@ -686,6 +700,41 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     setTimeout(() => setSuccessMessage(''), 3000);
   };
 
+  // 复制URL到剪贴板
+  const handleCopyUrl = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedUrl(url);
+      setTimeout(() => setCopiedUrl(null), 2000);
+    } catch {
+      // fallback
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setCopiedUrl(url);
+      setTimeout(() => setCopiedUrl(null), 2000);
+    }
+  };
+
+  // 快速新增到系统：预填数据并跳转到文章管理Tab
+  const handleQuickAdd = (article: PendingArticle) => {
+    setNewArticle({
+      title: article.title || '',
+      date: article.date || '',
+      category: (article.category as Speech['category']) || 'speech',
+      categoryName: article.categoryName || '重要讲话',
+      source: article.source || '',
+      summary: article.summary || '',
+      url: article.url || '',
+      location: article.location || '',
+    });
+    setActiveTab('articles');
+    setAddDialogOpen(true);
+  };
+
   // GitHub Token 配置
   const handleSaveToken = async () => {
     if (!tokenInput.trim()) return;
@@ -739,10 +788,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         setSearchStage('completed');
         setSearchMessage('搜索完成！正在加载结果...');
         
-        // 刷新待审核列表
+        // 刷新文章列表
         setTimeout(async () => {
           await loadData();
-          setSearchMessage('搜索完成！已刷新待审核列表，请查看新文章。');
+          setSearchMessage('搜索完成！已刷新文章列表，请查看近期新增文章。');
         }, 2000);
       } else if (run.conclusion === 'failure') {
         setSearchStage('failed');
@@ -882,8 +931,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 访问统计
               </TabsTrigger>
               <TabsTrigger value="pending" className="gap-2">
-                <Bell className="w-4 h-4" />
-                待审核
+                <Sparkles className="w-4 h-4" />
+                近期新增
                 {pendingCount > 0 && (
                   <Badge variant="destructive" className="ml-1">{pendingCount}</Badge>
                 )}
@@ -1042,10 +1091,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               </Card>
             </TabsContent>
 
-            {/* 待审核文章 */}
+            {/* 近期新增文章 */}
             <TabsContent value="pending" className="space-y-6">
+              {/* 区域1: 顶部操作栏 */}
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">待审核文章</h2>
+                <h2 className="text-xl font-bold text-gray-900">近期新增文章</h2>
                 <div className="flex gap-2">
                   <Button 
                     variant="outline" 
@@ -1078,23 +1128,21 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     ) : (
                       <>
                         <Sparkles className="w-4 h-4 mr-1" />
-                        AI搜索最新文章
+                        手动触发搜索
                       </>
                     )}
                   </Button>
                 </div>
               </div>
 
-              {/* 搜索过程状态显示 */}
+              {/* 搜索进度 */}
               {searching && (
                 <Card className="border-blue-200 bg-blue-50">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                       <Loader2 className="w-5 h-5 text-blue-600 animate-spin flex-shrink-0 mt-0.5" />
                       <div className="flex-1">
-                        <p className="text-blue-800 font-medium mb-1">
-                          {searchMessage}
-                        </p>
+                        <p className="text-blue-800 font-medium mb-1">{searchMessage}</p>
                         <div className="flex items-center gap-4 mt-2 text-sm">
                           <div className="flex items-center gap-2">
                             <span className={`w-2 h-2 rounded-full ${searchStage === 'triggering' ? 'bg-blue-600 animate-pulse' : 'bg-gray-300'}`}></span>
@@ -1110,14 +1158,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           </div>
                         </div>
                         {searchResult?.workflowUrl && (
-                          <a 
-                            href={searchResult.workflowUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-sm text-blue-600 hover:underline mt-2 inline-flex items-center gap-1"
-                          >
+                          <a href={searchResult.workflowUrl} target="_blank" rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:underline mt-2 inline-flex items-center gap-1">
                             <ExternalLink className="w-3 h-3" />
-                            查看GitHub Actions运行详情
+                            查看运行详情
                           </a>
                         )}
                       </div>
@@ -1130,79 +1174,50 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               {(searchStage === 'completed' || searchStage === 'failed') && !searching && (
                 <Card className={searchStage === 'completed' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
                   <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-center gap-3">
                       {searchStage === 'completed' ? (
-                        <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
+                        <Check className="w-5 h-5 text-green-600" />
                       ) : (
-                        <X className="w-5 h-5 text-red-600 flex-shrink-0" />
+                        <X className="w-5 h-5 text-red-600" />
                       )}
-                      <div>
-                        <p className={searchStage === 'completed' ? 'text-green-700' : 'text-red-700'}>
-                          {searchMessage}
-                        </p>
-                        {searchResult?.workflowUrl && (
-                          <a 
-                            href={searchResult.workflowUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-sm text-blue-600 hover:underline mt-2 inline-flex items-center gap-1"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                            查看GitHub Actions运行详情
-                          </a>
-                        )}
-                      </div>
+                      <p className={searchStage === 'completed' ? 'text-green-700' : 'text-red-700'}>
+                        {searchMessage}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
               )}
 
-              {/* 最近的搜索记录 */}
-              {githubToken && recentRuns.length > 0 && !searching && (
+              {/* 区域2: 搜索执行记录 */}
+              {searchLogs.length > 0 && (
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-gray-600 flex items-center justify-between">
-                      <span>最近的搜索记录</span>
-                      <Button variant="ghost" size="sm" onClick={loadRecentRuns} className="h-6 px-2">
-                        <RefreshCw className="w-3 h-3" />
-                      </Button>
+                    <CardTitle className="text-sm text-gray-600 flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      自动搜索执行记录
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <div className="space-y-2">
-                      {recentRuns.slice(0, 3).map((run) => (
-                        <div key={run.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${
-                              run.status === 'in_progress' ? 'bg-blue-500 animate-pulse' :
-                              run.status === 'queued' ? 'bg-yellow-500' :
-                              run.conclusion === 'success' ? 'bg-green-500' :
-                              run.conclusion === 'failure' ? 'bg-red-500' : 'bg-gray-400'
+                      {searchLogs.map((log) => (
+                        <div key={log.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                          <div className="flex items-center gap-3">
+                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                              log.status === 'success' ? 'bg-green-500' :
+                              log.status === 'partial_fail' ? 'bg-yellow-500' : 'bg-red-500'
                             }`}></span>
                             <span className="text-sm text-gray-700">
-                              {run.status === 'in_progress' ? '正在运行' :
-                               run.status === 'queued' ? '排队中' :
-                               run.conclusion === 'success' ? '运行成功' :
-                               run.conclusion === 'failure' ? '运行失败' : '已完成'}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs text-gray-500">
-                              {new Date(run.created_at).toLocaleString('zh-CN', { 
-                                month: 'short', 
-                                day: 'numeric', 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
+                              {new Date(log.executed_at).toLocaleString('zh-CN', {
+                                month: 'short', day: 'numeric',
+                                hour: '2-digit', minute: '2-digit'
                               })}
                             </span>
-                            <a 
-                              href={run.html_url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-xs text-blue-500 hover:underline"
-                            >
-                              查看
-                            </a>
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-gray-500">
+                            <span>爬取: {log.crawl_count}条</span>
+                            <span>搜索: {log.search_count}条</span>
+                            <span className="font-medium text-gray-700">新增: {log.new_count}条</span>
+                            <span>{log.duration_seconds}秒</span>
                           </div>
                         </div>
                       ))}
@@ -1215,101 +1230,114 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               {!githubToken && (
                 <Card className="border-yellow-200 bg-yellow-50">
                   <CardContent className="p-4">
-                    <p className="text-yellow-700">
-                      未配置GitHub Token，点击"配置"按钮输入您的GitHub Personal Access Token以使用AI搜索功能
+                    <p className="text-yellow-700 text-sm">
+                      未配置GitHub Token，点击"配置"按钮设置Token以使用手动触发搜索功能。系统每天 8:00 和 20:00 仍会自动执行。
                     </p>
                   </CardContent>
                 </Card>
               )}
 
-              {/* AI搜索辅助面板 */}
+              {/* 区域3: AI搜索辅助面板 */}
               <Card className="border-purple-200 bg-purple-50">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <Sparkles className="w-5 h-5 text-purple-600" />
-                    <span className="font-medium text-purple-800">AI搜索辅助</span>
+                    <span className="font-medium text-purple-800">AI搜索辅助（手动补充）</span>
                   </div>
                   <p className="text-sm text-purple-700 mb-3">
-                    使用网页版AI搜索最新文章，找到后复制链接到"文章管理 → 新增文章"中自动提取内容
+                    找到文章后 → 复制URL → 点击下方文章的"新增到系统"按钮，或进入"文章管理"标签页新增文章
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <a
-                      href="https://kimi.moonshot.cn/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white rounded-md text-sm hover:bg-purple-700"
-                    >
+                    <a href="https://kimi.moonshot.cn/" target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white rounded-md text-sm hover:bg-purple-700">
                       <ExternalLink className="w-4 h-4" />
                       打开Kimi搜索
                     </a>
-                    <a
-                      href="https://chat.deepseek.com/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
-                    >
+                    <a href="https://chat.deepseek.com/" target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700">
                       <ExternalLink className="w-4 h-4" />
                       打开DeepSeek
                     </a>
                   </div>
                   <p className="text-xs text-purple-600 mt-3">
-                    推荐搜索关键词：习近平总书记 最新重要讲话 2026
+                    推荐关键词：习近平总书记 {new Date().getFullYear()}年{new Date().getMonth() + 1}月 最新重要讲话 会议 文章 考察
                   </p>
                 </CardContent>
               </Card>
 
+              {/* 区域4: 文章列表 */}
               {pendingArticles.length === 0 ? (
                 <Card>
                   <CardContent className="p-8 text-center">
-                    <Bell className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">暂无待审核文章</p>
-                    <p className="text-gray-400 text-sm mt-1">系统每天 8:00 和 20:00 自动抓取，或点击"AI搜索最新文章"手动触发</p>
+                    <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">暂无新发现的文章</p>
+                    <p className="text-gray-400 text-sm mt-1">系统每天 8:00 和 20:00 自动从官方网站抓取最新文章</p>
                   </CardContent>
                 </Card>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-500">共 {pendingArticles.length} 篇待处理</p>
                   {pendingArticles.map((article) => (
-                    <Card key={article.id} className="border-l-4 border-l-orange-400">
+                    <Card key={article.id} className="border-l-4 border-l-purple-400 hover:shadow-md transition-shadow">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1 flex-wrap">
-                              <Badge variant="outline">{article.categoryName || '重要讲话'}</Badge>
-                              <span className="text-sm text-gray-500">{article.date}</span>
-                              <span className="text-sm text-gray-400">{article.source}</span>
+                            {/* 元信息行 */}
+                            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                              <span className="text-sm font-medium text-gray-600">{article.date}</span>
+                              <Badge variant="outline" className="text-xs">{article.categoryName || '重要讲话'}</Badge>
+                              <Badge variant="secondary" className="text-xs">{article.source || '官方媒体'}</Badge>
+                              {article.discovered_by && (
+                                <Badge variant="outline" className="text-xs bg-purple-50 text-purple-600 border-purple-200">
+                                  {article.discovered_by === 'crawl' ? '自动爬取' : '搜索发现'}
+                                </Badge>
+                              )}
                             </div>
+                            {/* 标题 */}
                             <h3 className="font-medium text-gray-900 mb-1">{article.title}</h3>
+                            {/* 摘要 */}
                             {article.summary && article.summary !== article.title && (
-                              <p className="text-sm text-gray-600 line-clamp-2">{article.summary}</p>
+                              <p className="text-sm text-gray-600 line-clamp-2 mb-1">{article.summary}</p>
                             )}
+                            {/* URL */}
                             {article.url && (
-                              <a
-                                href={article.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-blue-500 hover:underline flex items-center gap-1 mt-1"
-                              >
-                                <ExternalLink className="w-3 h-3" />
-                                查看原文
-                              </a>
+                              <div className="flex items-center gap-2 mt-1">
+                                <a href={article.url} target="_blank" rel="noopener noreferrer"
+                                  className="text-xs text-blue-500 hover:underline flex items-center gap-1 truncate max-w-md">
+                                  <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                                  {article.url}
+                                </a>
+                              </div>
                             )}
                           </div>
-                          <div className="flex gap-2 flex-shrink-0">
+                          {/* 操作按钮 */}
+                          <div className="flex flex-col gap-2 flex-shrink-0">
+                            {article.url && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs"
+                                onClick={() => handleCopyUrl(article.url!)}
+                              >
+                                <Copy className="w-3 h-3 mr-1" />
+                                {copiedUrl === article.url ? '已复制' : '复制URL'}
+                              </Button>
+                            )}
                             <Button
                               size="sm"
-                              className="bg-green-600 hover:bg-green-700 text-white"
-                              onClick={() => handleApprovePending(article)}
+                              className="bg-purple-600 hover:bg-purple-700 text-white text-xs"
+                              onClick={() => handleQuickAdd(article)}
                             >
-                              <Check className="w-4 h-4 mr-1" />
-                              发布
+                              <ArrowRight className="w-3 h-3 mr-1" />
+                              新增到系统
                             </Button>
                             <Button
                               size="sm"
-                              variant="outline"
-                              className="text-red-600"
+                              variant="ghost"
+                              className="text-xs text-gray-400 hover:text-red-600"
                               onClick={() => handleRejectPending(article.id)}
                             >
-                              <X className="w-4 h-4 mr-1" />
+                              <X className="w-3 h-3 mr-1" />
                               忽略
                             </Button>
                           </div>
