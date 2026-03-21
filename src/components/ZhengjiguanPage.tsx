@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo, useLayoutEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Calendar, MapPin, ExternalLink, ChevronDown, ChevronUp, Mic, FileText, Users, MapPin as MapPinIcon, BookOpen, Building2, Building, Home } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -42,7 +42,7 @@ function SpeechCard({ speech }: { speech: Speech }) {
             <a 
               href={`/speech-web/#/zhengjiguan/${speech.id}`}
               onClick={() => {
-                localStorage.setItem('scrollPosition', window.scrollY.toString());
+                localStorage.setItem('zhengjiguan_scrollPosition', window.scrollY.toString());
               }}
               className="block text-lg font-semibold text-gray-900 group-hover:text-red-600 transition-colors line-clamp-2 mb-3 cursor-pointer"
             >
@@ -96,7 +96,7 @@ function SpeechCard({ speech }: { speech: Speech }) {
               <a
                 href={`/speech-web/#/zhengjiguan/${speech.id}`}
                 onClick={() => {
-                  localStorage.setItem('scrollPosition', window.scrollY.toString());
+                  localStorage.setItem('zhengjiguan_scrollPosition', window.scrollY.toString());
                 }}
                 className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1 transition-colors ml-auto"
               >
@@ -183,13 +183,64 @@ function ContentList({ speeches }: ContentListProps) {
 
 export function ZhengjiguanPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [articles, setArticles] = useState<Speech[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('all');
 
+  // 滚动恢复
+  const targetScrollRef = useRef<number | null>(null);
+  const [isScrollRestoring, setIsScrollRestoring] = useState(
+    () => localStorage.getItem('zhengjiguan_scrollPosition') !== null
+  );
+
+  // 禁用浏览器自动滚动恢复
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'auto' });
-    
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+  }, []);
+
+  // 读取保存的滚动位置
+  useLayoutEffect(() => {
+    const savedPosition = localStorage.getItem('zhengjiguan_scrollPosition');
+    if (savedPosition) {
+      targetScrollRef.current = parseInt(savedPosition, 10);
+    }
+  }, [location.key]);
+
+  // 等数据加载完成后再恢复滚动位置
+  useLayoutEffect(() => {
+    if (targetScrollRef.current === null) return;
+    if (articles.length === 0) return;
+
+    const targetPosition = targetScrollRef.current;
+    window.scrollTo(0, targetPosition);
+    localStorage.removeItem('zhengjiguan_scrollPosition');
+    targetScrollRef.current = null;
+    setIsScrollRestoring(false);
+  }, [articles]);
+
+  // 安全超时
+  useEffect(() => {
+    if (!isScrollRestoring) return;
+    const timer = setTimeout(() => {
+      if (targetScrollRef.current !== null) {
+        window.scrollTo(0, targetScrollRef.current);
+        localStorage.removeItem('zhengjiguan_scrollPosition');
+        targetScrollRef.current = null;
+      }
+      setIsScrollRestoring(false);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [isScrollRestoring]);
+
+  useEffect(() => {
+    // 如果没有保存的滚动位置，才滚动到顶部
+    if (!localStorage.getItem('zhengjiguan_scrollPosition')) {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+
     const loadArticles = async () => {
       const data = await getZhengjiguanArticles();
       setArticles(data);

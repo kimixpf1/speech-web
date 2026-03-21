@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Calendar, MapPin, ExternalLink, Share2, Mic, FileText, Users, MapPin as MapPinIcon, BookOpen, FileText as FileTextIcon, TrendingUp, Copy, Check, MessageCircle, Volume2, Download, Play, Pause } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -243,16 +243,24 @@ export function DetailPage() {
   const handleBack = async () => {
     // 显示返回进度条
     setIsReturning(true);
-    
-    // 预加载首页数据，确保返回后有数据可以正确恢复滚动位置
+
+    // 判断来源页面：如果是政绩观详情页，返回政绩观列表；否则返回首页
+    const isZhengjiguanDetail = window.location.hash.includes('/zhengjiguan/');
+    const targetPath = isZhengjiguanDetail ? '/zhengjiguan' : '/';
+
+    // 预加载数据
     try {
-      await getArticles();
+      if (isZhengjiguanDetail) {
+        await getZhengjiguanArticles();
+      } else {
+        await getArticles();
+      }
     } catch (e) {
-      console.error('预加载首页数据失败:', e);
+      console.error('预加载数据失败:', e);
     }
-    
-    // 数据准备好后，跳转到首页
-    navigate('/', { replace: true });
+
+    // 数据准备好后，跳转到目标页面
+    navigate(targetPath, { replace: true });
   };
 
   // 初始化语音合成
