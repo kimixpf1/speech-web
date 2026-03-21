@@ -20,14 +20,21 @@ import './App.css';
 
 function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDomain, setSelectedDomain] = useState('all');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedYear, setSelectedYear] = useState('all');
+  const [selectedDomain, setSelectedDomain] = useState(
+    () => sessionStorage.getItem('selectedDomain') || 'economy'
+  );
+  const [selectedCategory, setSelectedCategory] = useState(
+    () => sessionStorage.getItem('selectedCategory') || 'all'
+  );
+  const [selectedYear, setSelectedYear] = useState(
+    () => sessionStorage.getItem('selectedYear') || 'all'
+  );
   // 直接用静态数据初始化，确保首次渲染就有52篇文章，避免闪烁
   const [articles, setArticles] = useState<Speech[]>(speechesData);
   const scrollRestored = useRef(false);
+  const pendingScrollPosition = useRef<number | null>(null);
 
-  // 恢复滚动位置
+  // 读取待恢复的滚动位置
   useEffect(() => {
     // 禁用浏览器自动滚动恢复
     if ('scrollRestoration' in window.history) {
@@ -36,12 +43,42 @@ function HomePage() {
     
     const savedPosition = localStorage.getItem('scrollPosition');
     if (savedPosition && !scrollRestored.current) {
-      const position = parseInt(savedPosition, 10);
+      pendingScrollPosition.current = parseInt(savedPosition, 10);
       localStorage.removeItem('scrollPosition');
-      scrollRestored.current = true;
-      window.scrollTo(0, position);
     }
   }, []);
+
+  // 当文章列表变化时尝试恢复滚动位置（确保内容已渲染）
+  useEffect(() => {
+    if (pendingScrollPosition.current !== null && !scrollRestored.current && articles.length > 0) {
+      const targetPosition = pendingScrollPosition.current;
+      scrollRestored.current = true;
+      pendingScrollPosition.current = null;
+      // 使用 requestAnimationFrame 确保DOM已更新
+      requestAnimationFrame(() => {
+        window.scrollTo(0, targetPosition);
+        // 双重保障：如果第一次没到位（内容动态加载中），再试一次
+        setTimeout(() => {
+          if (Math.abs(window.scrollY - targetPosition) > 100) {
+            window.scrollTo(0, targetPosition);
+          }
+        }, 200);
+      });
+    }
+  }, [articles]);
+
+  // 持久化筛选状态到sessionStorage（返回时恢复，关闭标签页后重置为economy默认）
+  useEffect(() => {
+    sessionStorage.setItem('selectedDomain', selectedDomain);
+  }, [selectedDomain]);
+
+  useEffect(() => {
+    sessionStorage.setItem('selectedCategory', selectedCategory);
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    sessionStorage.setItem('selectedYear', selectedYear);
+  }, [selectedYear]);
 
   // 初始化访问统计并加载文章
   useEffect(() => {
