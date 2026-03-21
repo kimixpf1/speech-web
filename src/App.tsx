@@ -29,13 +29,12 @@ function HomePage() {
     () => sessionStorage.getItem('selectedYear') || 'all'
   );
   const [articles, setArticles] = useState<Speech[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  // 滚动恢复：初始化时即检查，有保存位置则一开始就隐藏页面
+  const [isLoading, setIsLoading] = useState(true);
+  // 滚动恢复：有保存位置时需要等数据加载完
   const targetScrollRef = useRef<number | null>(null);
   const [isScrollRestoring, setIsScrollRestoring] = useState(
     () => localStorage.getItem('scrollPosition') !== null
   );
-  const cloudDataLoadedRef = useRef(false);
 
   // 禁用浏览器自动滚动恢复
   useEffect(() => {
@@ -49,32 +48,33 @@ function HomePage() {
     const savedPosition = localStorage.getItem('scrollPosition');
     if (savedPosition) {
       targetScrollRef.current = parseInt(savedPosition, 10);
-      localStorage.removeItem('scrollPosition');
     }
   }, [location.key]);
 
-  // 滚动恢复：立即恢复位置，不等待云端数据
-  // 使用 useLayoutEffect 确保在渲染前执行
+  // 等数据加载完成后再恢复滚动位置
   useLayoutEffect(() => {
     if (targetScrollRef.current === null) return;
+    if (isLoading || articles.length === 0) return;
 
-    // 立即滚动到目标位置
+    // 数据已加载，恢复滚动位置
     const targetPosition = targetScrollRef.current;
     window.scrollTo(0, targetPosition);
+    localStorage.removeItem('scrollPosition');
     targetScrollRef.current = null;
     setIsScrollRestoring(false);
-  }, []);
+  }, [isLoading, articles]);
 
-  // 安全超时：如果100ms内还没完成滚动恢复，也要显示页面
+  // 安全超时：最多等5秒
   useEffect(() => {
     if (!isScrollRestoring) return;
     const timer = setTimeout(() => {
       if (targetScrollRef.current !== null) {
         window.scrollTo(0, targetScrollRef.current);
+        localStorage.removeItem('scrollPosition');
         targetScrollRef.current = null;
       }
       setIsScrollRestoring(false);
-    }, 100);
+    }, 5000);
     return () => clearTimeout(timer);
   }, [isScrollRestoring]);
 
