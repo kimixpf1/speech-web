@@ -572,30 +572,43 @@ def crawl_xinhua() -> List[Dict]:
     return unique
 
 
-def run_crawlers() -> List[Dict]:
-    """运行所有爬虫，返回合并结果"""
+def run_crawlers() -> tuple:
+    """运行所有爬虫，返回合并结果和详细日志"""
     all_articles = []
-    results = {}
+    crawl_details = {}
 
     crawlers = [
-        ('people_jhsjk', crawl_people_jhsjk),
-        ('people_xijinping', crawl_people_xijinping),
-        ('xinhua', crawl_xinhua),
-        ('qstheory', crawl_qstheory),
+        ('people_jhsjk', crawl_people_jhsjk, '人民网金句库'),
+        ('people_xijinping', crawl_people_xijinping, '人民网习近平专栏'),
+        ('xinhua', crawl_xinhua, '新华网'),
+        ('qstheory', crawl_qstheory, '求是网'),
     ]
 
-    for name, crawler in crawlers:
+    for name, crawler, display_name in crawlers:
+        print(f'\n  [{display_name}] 开始爬取...')
         try:
             articles = crawler()
             all_articles.extend(articles)
-            results[name] = {'count': len(articles), 'status': 'success'}
+            crawl_details[name] = {
+                'name': display_name,
+                'count': len(articles),
+                'status': 'success',
+                'error': None
+            }
+            print(f'  [{display_name}] 成功: {len(articles)} 条')
         except Exception as e:
-            print(f'  [{name}] 爬取失败: {e}')
+            error_msg = str(e)[:200]
+            print(f'  [{display_name}] 失败: {error_msg}')
             traceback.print_exc()
-            results[name] = {'count': 0, 'status': 'failed', 'error': str(e)}
+            crawl_details[name] = {
+                'name': display_name,
+                'count': 0,
+                'status': 'failed',
+                'error': error_msg
+            }
         time.sleep(REQUEST_DELAY)
 
-    return all_articles
+    return all_articles, crawl_details
 
 
 # ============ 方案B: Playwright 搜索引擎自动化 ============
@@ -608,16 +621,17 @@ SEARCH_QUERIES = [
 ]
 
 
-def run_playwright_search() -> List[Dict]:
-    """使用 Playwright 通过百度搜索文章"""
+def run_playwright_search() -> tuple:
+    """使用 Playwright 通过百度搜索文章，返回结果和详细日志"""
     print('\n[方案B] Playwright 百度搜索...')
     articles = []
+    search_details = {}
 
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
         print('  [跳过] playwright 未安装')
-        return articles
+        return articles, {'status': 'skipped', 'reason': 'playwright未安装'}
 
     try:
         with sync_playwright() as p:
@@ -629,40 +643,35 @@ def run_playwright_search() -> List[Dict]:
             page = context.new_page()
 
             for query in SEARCH_QUERIES:
+                query_key = query.replace(' ', '_')[:30]
+                print(f'  搜索: {query}')
                 try:
-                    print(f'  搜索: {query}')
                     page.goto('https://www.baidu.com/', timeout=30000)
                     page.wait_for_load_state('domcontentloaded')
 
-                    # 输入搜索关键词
                     search_input = page.locator('#kw')
                     search_input.fill(query)
                     page.locator('#su').click()
 
-                    # 等待搜索结果
                     page.wait_for_selector('.result', timeout=15000)
                     time.sleep(2)
 
-                    # 解析搜索结果
                     results = page.locator('.result')
                     count = results.count()
+                    found = 0
                     print(f'  找到 {count} 个结果')
 
                     for i in range(min(count, 10)):
                         try:
                             result = results.nth(i)
-                            # 获取标题和链接
                             title_el = result.locator('h3 a').first
                             if not title_el.count():
                                 continue
                             title = title_el.inner_text().strip()
                             href = title_el.get_attribute('href') or ''
 
-                            # 百度搜索结果的链接需要跳转获取真实URL
-                            # 尝试从data-url或mu属性获取真实链接
                             real_url = result.get_attribute('mu') or ''
                             if not real_url:
-                                # 从结果的展示链接中获取
                                 cite_el = result.locator('.c-showurl, cite').first
                                 if cite_el.count():
                                     display_url = cite_el.inner_text().strip()
@@ -673,10 +682,8 @@ def run_playwright_search() -> List[Dict]:
                             if not url or not title:
                                 continue
 
-                            # 清理标题中的HTML标签和高亮
                             title = re.sub(r'<[^>]+>', '', title).strip()
 
-                            # 获取日期（如果摘要中有的话）
                             date_str = ''
                             try:
                                 abstract_el = result.locator('.c-abstract, .content-right_8Zs40').first
@@ -688,7 +695,6 @@ def run_playwright_search() -> List[Dict]:
                             except Exception:
                                 pass
 
-                            # 只保留官方来源
                             if is_official_url(url):
                                 articles.append({
                                     'title': title,
@@ -696,19 +702,38 @@ def run_playwright_search() -> List[Dict]:
                                     'date': date_str,
                                     'source': detect_source(url),
                                 })
-                        except Exception as e:
+                                found += 1
+                        except Exception:
                             continue
 
-                    time.sleep(REQUEST_DELAY + 1)  # 多等一秒避免被封
+                    search_details[query_key] = {
+                        'query': query,
+                        'total_results': count,
+                        'official_found': found,
+                        'status': 'success'
+                    }
+
+                    time.sleep(REQUEST_DELAY + 1)
 
                 except Exception as e:
-                    print(f'  搜索 "{query}" 失败: {e}')
+                    error_msg = str(e)[:100]
+                    print(f'  搜索 "{query}" 失败: {error_msg}')
+                    search_details[query_key] = {
+                        'query': query,
+                        'status': 'failed',
+                        'error': error_msg
+                    }
                     continue
 
             browser.close()
+            search_details['overall_status'] = 'success'
+
     except Exception as e:
-        print(f'  Playwright 执行失败: {e}')
+        error_msg = str(e)[:200]
+        print(f'  Playwright 执行失败: {error_msg}')
         traceback.print_exc()
+        search_details['overall_status'] = 'failed'
+        search_details['error'] = error_msg
 
     # 去重
     seen = set()
@@ -719,7 +744,7 @@ def run_playwright_search() -> List[Dict]:
             unique.append(a)
 
     print(f'  方案B总计: {len(unique)} 条')
-    return unique
+    return unique, search_details
 
 
 # ============ 主函数 ============
@@ -727,9 +752,10 @@ def run_playwright_search() -> List[Dict]:
 def main():
     start_time = time.time()
     today = date.today()
+    run_id = datetime.now().strftime('%Y%m%d_%H%M%S')
 
     print('=' * 60)
-    print(f'文章自动发现 - {today}')
+    print(f'文章自动发现 - {today} (运行ID: {run_id})')
     print(f'Supabase: {"已配置" if SUPABASE_URL else "未配置"}')
     print('=' * 60)
 
@@ -743,17 +769,19 @@ def main():
     existing_titles = get_existing_titles()
     print(f'  已有 {len(existing_urls)} 个URL, {len(existing_titles)} 个标题')
 
-    # 运行爬虫（方案A）
-    crawl_articles = run_crawlers()
+    # 运行爬虫（方案A）- 返回元组 (articles, details)
+    crawl_articles, crawl_details = run_crawlers()
     crawl_raw_count = len(crawl_articles)
     print(f'\n方案A 原始结果: {crawl_raw_count} 条')
 
-    # 运行搜索（方案B）
+    # 运行搜索（方案B）- 返回元组 (articles, details)
     search_articles = []
+    search_details = {}
     try:
-        search_articles = run_playwright_search()
+        search_articles, search_details = run_playwright_search()
     except Exception as e:
         print(f'\n方案B 执行失败: {e}')
+        search_details = {'status': 'failed', 'error': str(e)[:200]}
     search_raw_count = len(search_articles)
     print(f'方案B 原始结果: {search_raw_count} 条')
 
@@ -793,7 +821,6 @@ def main():
             if article_date >= cutoff:
                 recent_articles.append(a)
         except (ValueError, TypeError):
-            # 日期解析失败的也保留
             recent_articles.append(a)
 
     if len(recent_articles) < len(new_articles):
@@ -801,47 +828,70 @@ def main():
         new_articles = recent_articles
 
     # 写入 Supabase
+    insert_success = True
     if new_articles:
         print(f'\n[写入] 插入 {len(new_articles)} 条新文章...')
         for i in range(0, len(new_articles), 20):
             batch = new_articles[i:i + 20]
             success = supabase_insert(batch)
             print(f'  批次 {i // 20 + 1}: {"成功" if success else "失败"} ({len(batch)} 条)')
+            if not success:
+                insert_success = False
     else:
         print('\n[写入] 无新文章需要插入')
 
     # 计算耗时
     duration = int(time.time() - start_time)
 
-    # 写入搜索日志
+    # 统计新增数量
     crawl_new = sum(1 for a in new_articles if a.get('discovered_by') == 'crawl')
     search_new = sum(1 for a in new_articles if a.get('discovered_by') == 'search')
 
+    # 写入搜索日志（增强版 - 包含详细日志）
     log_entry = {
         'crawl_count': crawl_raw_count,
         'search_count': search_raw_count,
         'new_count': len(new_articles),
-        'status': 'success' if new_articles or (crawl_raw_count > 0) else 'partial_fail',
+        'status': 'success' if insert_success else 'partial_fail',
         'details': {
+            'run_id': run_id,
+            'date': str(today),
+            'duration_seconds': duration,
             'crawl_raw': crawl_raw_count,
             'search_raw': search_raw_count,
             'crawl_new': crawl_new,
             'search_new': search_new,
             'total_existing_urls': len(existing_urls),
-            'date': str(today),
+            'crawler_results': crawl_details,
+            'search_results': search_details,
         },
         'duration_seconds': duration,
     }
 
     print(f'\n[日志] 写入搜索日志...')
-    insert_search_log(log_entry)
+    log_success = insert_search_log(log_entry)
 
     # 输出汇总
     print(f'\n{"=" * 60}')
-    print(f'执行完成! 耗时 {duration} 秒')
+    print(f'执行完成! 运行ID: {run_id}, 耗时 {duration} 秒')
+    print(f'\n爬虫结果 (方案A):')
+    for name, details in crawl_details.items():
+        status_icon = '✓' if details['status'] == 'success' else '✗'
+        print(f'  {status_icon} {details.get("name", name)}: {details.get("count", 0)} 条')
+        if details.get('error'):
+            print(f'      错误: {details["error"][:60]}')
+    print(f'\n搜索结果 (方案B):')
+    if search_details.get('overall_status') == 'skipped':
+        print(f'  - 跳过: {search_details.get("reason", "未知")}')
+    elif search_details.get('overall_status') == 'failed':
+        print(f'  - 失败: {search_details.get("error", "未知错误")[:60]}')
+    else:
+        print(f'  ✓ 百度搜索: {search_raw_count} 条')
+    print(f'\n总结:')
     print(f'  方案A(爬取): 原始 {crawl_raw_count} 条, 新增 {crawl_new} 条')
     print(f'  方案B(搜索): 原始 {search_raw_count} 条, 新增 {search_new} 条')
     print(f'  总计新增: {len(new_articles)} 条')
+    print(f'  日志写入: {"成功" if log_success else "失败"}')
     print('=' * 60)
 
 
