@@ -104,24 +104,35 @@ function getLocalCache(): Speech[] {
   }
 }
 
-// 从云端获取所有文章
+// 从云端获取所有文章（分批获取，支持超过1000条）
 async function fetchFromCloud(): Promise<Speech[]> {
   try {
-    const { data, error } = await supabase
-      .from(ARTICLES_TABLE)
-      .select('*')
-      .order('date', { ascending: false });
+    const allArticles: Speech[] = [];
+    const batchSize = 1000;
+    let from = 0;
 
-    if (error) {
-      console.error('Supabase fetch error:', error);
-      return [];
+    while (true) {
+      const { data, error } = await supabase
+        .from(ARTICLES_TABLE)
+        .select('*')
+        .order('date', { ascending: false })
+        .range(from, from + batchSize - 1);
+
+      if (error) {
+        console.error('Supabase fetch error:', error);
+        break;
+      }
+
+      if (!data || data.length === 0) break;
+
+      allArticles.push(...data.map(fromDbFormat));
+
+      // 如果本批不满，说明已经取完
+      if (data.length < batchSize) break;
+      from += batchSize;
     }
 
-    if (data && data.length > 0) {
-      return data.map(fromDbFormat);
-    }
-
-    return [];
+    return allArticles;
   } catch (e) {
     console.error('Fetch from cloud error:', e);
     return [];

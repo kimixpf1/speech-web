@@ -43,13 +43,13 @@ export function Hero({ searchQuery, onSearchChange, stats }: HeroProps) {
 
           {/* Title */}
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
-            习近平总书记关于经济工作
-            <span className="block text-yellow-300 mt-3">重要讲话精神学习平台</span>
+            习近平总书记
+            <span className="block text-yellow-300 mt-3">重要讲话学习平台</span>
           </h1>
 
           {/* Description */}
           <p className="text-lg sm:text-xl text-white/80 mb-8 max-w-2xl mx-auto leading-relaxed">
-            汇集人民日报、新华社、求是杂志等权威媒体发布的关于经济工作的重要讲话、发表文章、重要会议和考察调研动态
+            汇集人民日报、新华社、求是杂志等权威媒体发布的重要讲话、发表文章、重要会议和考察调研动态
           </p>
 
           {/* Search Box */}

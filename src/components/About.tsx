@@ -11,7 +11,7 @@ export function About() {
     {
       icon: Users,
       title: '服务学习',
-      description: '为广大党员干部和群众提供便捷的学习平台，助力深入学习贯彻习近平总书记关于经济工作的重要讲话精神。'
+      description: '为广大党员干部和群众提供便捷的学习平台，助力深入学习贯彻习近平总书记重要讲话精神。'
     },
     {
       icon: Sparkles,
@@ -44,10 +44,10 @@ export function About() {
           <span className="text-sm font-medium">关于平台</span>
         </div>
         <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-3">
-          习近平总书记关于经济工作重要讲话精神学习平台
+          习近平总书记重要讲话学习平台
         </h1>
         <p className="text-gray-600 leading-relaxed">
-          本平台致力于收集整理习近平总书记关于经济工作的重要讲话、发表文章、重要会议和考察调研动态，
+          本平台致力于收集整理习近平总书记的重要讲话、发表文章、重要会议和考察调研动态，
           为广大党员干部和群众提供一个集中、便捷、权威的学习资源平台。
         </p>
       </div>
@@ -157,8 +157,8 @@ export function About() {
             <h3 className="font-semibold text-red-800">内容时间范围</h3>
           </div>
           <p className="text-sm text-red-700 leading-relaxed">
-            本平台收录了 <strong>2024年至2026年</strong> 期间习近平总书记关于经济工作的重要讲话、发表文章、
-            重要会议和考察调研动态，共计 <strong>40+篇</strong> 内容，持续更新中。
+            本平台收录了 <strong>2024年至2026年</strong> 期间习近平总书记的重要讲话、发表文章、
+            重要会议和考察调研动态，共计 <strong>1200+篇</strong> 内容，持续更新中。
           </p>
         </div>
       </div>

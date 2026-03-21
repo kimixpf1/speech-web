@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { speechesData } from '@/data/speeches';
+import { zhengjiguanArticles } from '@/data/zhengjiguanArticles';
 import { getSpeechDetail, type SpeechDetail } from '@/data/speechesDetail';
-import { getArticles, getLocalArticlesSync, type Speech } from '@/services/articleServiceEnhanced';
+import { getArticles, getLocalArticlesSync, getZhengjiguanArticles, type Speech } from '@/services/articleServiceEnhanced';
 import {
   Dialog,
   DialogContent,
@@ -55,8 +56,9 @@ export function DetailPage() {
     window.scrollTo({ top: 0, behavior: 'auto' });
     
     if (id) {
-      // 先从静态数据查找
-      let baseSpeech = speechesData.find(s => s.id === id);
+      // 先从静态数据查找（包括主列表和政绩观专题）
+      let baseSpeech = speechesData.find(s => s.id === id)
+        || zhengjiguanArticles.find(s => s.id === id);
       
       // 如果静态数据中没有，从本地缓存同步查找
       if (!baseSpeech) {
@@ -74,10 +76,17 @@ export function DetailPage() {
           analysis: detail?.analysis || '解读分析正在整理中...'
         } as SpeechDetail);
       } else {
-        // 本地也没有，从云端获取
+        // 本地也没有，从云端获取（同时查主文章和政绩观文章）
         const loadFromCloud = async () => {
           const cloudArticles = await getArticles();
-          const cloudSpeech = cloudArticles.find(s => s.id === id);
+          let cloudSpeech = cloudArticles.find(s => s.id === id);
+          
+          // 主列表没找到，查政绩观专题
+          if (!cloudSpeech) {
+            const zjgArticles = await getZhengjiguanArticles();
+            cloudSpeech = zjgArticles.find(s => s.id === id);
+          }
+          
           if (cloudSpeech) {
             const detail = getSpeechDetail(id);
             setSpeech({
@@ -330,7 +339,7 @@ export function DetailPage() {
           new Paragraph({
             children: [
               new TextRun({
-                text: `本文档由「习近平总书记关于经济工作重要讲话精神学习平台」生成`,
+                text: `本文档由「习近平总书记重要讲话学习平台」生成`,
                 size: 18,
                 color: '666666',
               }),
@@ -435,7 +444,7 @@ export function DetailPage() {
           {/* 页面标题 */}
           <div className="text-center mb-10 pb-6 border-b-2 border-red-100">
             <h1 className="text-3xl lg:text-4xl font-bold text-red-700 mb-3">
-              习近平总书记关于经济工作重要讲话精神
+              习近平总书记重要讲话精神
             </h1>
             <p className="text-xl text-gray-500">学习平台</p>
           </div>
@@ -577,7 +586,7 @@ export function DetailPage() {
               <div>
                 <DialogTitle className="text-white text-lg font-bold">分享给同事学习</DialogTitle>
                 <DialogDescription className="text-white/80 text-sm mt-1">
-                  习近平总书记关于经济工作重要讲话精神
+                  习近平总书记重要讲话精神
                 </DialogDescription>
               </div>
             </div>
