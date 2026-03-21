@@ -42,13 +42,19 @@ function HomePage() {
     }
   }, []);
 
-  // 当路由变化时（从详情页返回），读取待恢复的滚动位置
+  // 当路由变化时（从详情页返回），读取待恢复的滚动位置并立即滚动
   useEffect(() => {
     const savedPosition = localStorage.getItem('scrollPosition');
     if (savedPosition) {
-      pendingScrollPosition.current = parseInt(savedPosition, 10);
-      scrollRestored.current = false; // 重置状态，允许重新恢复
+      const targetPosition = parseInt(savedPosition, 10);
       localStorage.removeItem('scrollPosition');
+      
+      // 立即滚动（无动画，避免闪烁）
+      window.scrollTo(0, targetPosition);
+      
+      // 设置 pending 状态，让 filteredSpeeches 变化时再次确认
+      pendingScrollPosition.current = targetPosition;
+      scrollRestored.current = false;
     }
   }, [location.key]); // location.key 变化表示路由变化
 
@@ -163,52 +169,47 @@ function HomePage() {
     return result;
   }, [searchQuery, selectedDomain, selectedCategory, selectedYear, articles]);
 
-  // 滚动恢复逻辑：使用轮询检查页面高度，确保能滚动到目标位置
+  // 滚动恢复逻辑：立即滚动，然后持续监控确保位置正确
   useEffect(() => {
     if (pendingScrollPosition.current === null || scrollRestored.current) {
       return;
     }
 
     const targetPosition = pendingScrollPosition.current;
-    let attempts = 0;
-    const maxAttempts = 50; // 最多尝试50次（约5秒）
-    const checkInterval = 100; // 每100ms检查一次
-
-    const tryScroll = () => {
-      attempts++;
-      const pageHeight = document.documentElement.scrollHeight;
-      const viewportHeight = window.innerHeight;
+    
+    // 立即滚动（无动画，避免闪烁）
+    window.scrollTo(0, targetPosition);
+    
+    // 持续监控：当页面高度变化时，确保滚动位置正确
+    let checkCount = 0;
+    const maxChecks = 30; // 最多检查30次（约3秒）
+    
+    const ensurePosition = () => {
+      checkCount++;
+      const currentY = window.scrollY;
       
-      // 检查页面是否有足够高度
-      const canScrollToTarget = pageHeight >= targetPosition + viewportHeight - 50;
-      
-      if (canScrollToTarget) {
-        // 页面高度足够，立即滚动（无动画）
+      // 如果滚动位置偏离超过100px，重新滚动
+      if (Math.abs(currentY - targetPosition) > 100) {
         window.scrollTo(0, targetPosition);
-        scrollRestored.current = true;
-        pendingScrollPosition.current = null;
-        return true;
-      } else if (attempts >= maxAttempts) {
-        // 超时，强制滚动
-        window.scrollTo(0, Math.min(targetPosition, pageHeight - viewportHeight));
-        scrollRestored.current = true;
-        pendingScrollPosition.current = null;
-        return true;
       }
-      return false;
+      
+      // 检查是否已经稳定
+      if (checkCount < maxChecks && Math.abs(window.scrollY - targetPosition) > 50) {
+        setTimeout(ensurePosition, 100);
+      } else {
+        // 位置已稳定或超时，标记完成
+        scrollRestored.current = true;
+        pendingScrollPosition.current = null;
+      }
     };
-
-    // 立即尝试一次
-    if (tryScroll()) return;
-
-    // 开始轮询
-    const timer = setInterval(() => {
-      if (tryScroll()) {
-        clearInterval(timer);
-      }
-    }, checkInterval);
-
-    return () => clearInterval(timer);
+    
+    // 延迟开始检查，给DOM渲染时间
+    setTimeout(ensurePosition, 50);
+    
+    return () => {
+      scrollRestored.current = true;
+      pendingScrollPosition.current = null;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredSpeeches]);
 
