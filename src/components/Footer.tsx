@@ -68,15 +68,15 @@ export function Footer() {
 
         {/* Bottom */}
         <div className="mt-8 pt-6 border-t border-gray-800">
-          {/* 法律声明 */}
+          {/* 版权与法律声明 */}
           <div className="mb-4 text-xs text-gray-500 leading-relaxed space-y-1">
-            <p className="font-medium text-gray-400">免责声明</p>
-            <p>本平台仅供内部学习交流使用，不作任何商业用途。所有文章内容版权归人民日报社、新华通讯社、求是杂志社等原始来源所有。</p>
-            <p>本平台内容来源于公开的官方媒体报道，仅做学习整理之用。如有侵权，请联系管理员删除。</p>
+            <p className="font-medium text-gray-400">版权声明与免责声明</p>
+            <p>本平台为非盈利性质的内部学习交流工具，不作任何商业用途。所有文章内容的版权归人民日报社、新华通讯社、求是杂志社等原始发布平台所有。</p>
+            <p>本平台内容来源于公开的官方媒体报道，仅做学习整理之用。部分摘要和解读由AI生成，仅供参考，不代表任何官方立场。如有侵权，请联系管理员删除。</p>
           </div>
           <div className="flex flex-col md:flex-row items-center justify-between gap-3">
             <p className="text-gray-500 text-sm text-center md:text-left">
-              {currentYear} 学习平台 · 仅供学习交流使用
+              &copy; {currentYear} 重要讲话学习平台 · 非盈利内部学习使用 · 文章版权归原发布平台所有
             </p>
             <p className="text-gray-500 text-sm flex items-center gap-1">
               用 <Heart className="w-4 h-4 text-red-500" /> 打造

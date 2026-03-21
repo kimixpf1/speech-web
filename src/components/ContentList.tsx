@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, ExternalLink, ChevronDown, ChevronUp, Mic, FileText, Users, MapPin as MapPinIcon, BookOpen } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,8 +30,15 @@ const domainConfig: Record<string, { color: string; bgColor: string }> = {
 
 function SpeechCard({ speech }: { speech: Speech }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const navigate = useNavigate();
   const config = categoryConfig[speech.category];
   const Icon = config.icon;
+
+  const handleNavigateToDetail = (e: React.MouseEvent) => {
+    e.preventDefault();
+    localStorage.setItem('scrollPosition', window.scrollY.toString());
+    navigate(`/detail/${speech.id}`);
+  };
 
   return (
     <Card className="group hover:shadow-lg transition-all duration-200 border-gray-100 overflow-hidden">
@@ -43,13 +51,10 @@ function SpeechCard({ speech }: { speech: Speech }) {
 
           {/* Content */}
           <div className="flex-1 min-w-0">
-            {/* Title - Clickable using <a> tag for reliable mobile navigation */}
+            {/* Title - Clickable */}
             <a 
-              href={`/speech-web/#/detail/${speech.id}`}
-              onClick={() => {
-                // 保存当前滚动位置
-                localStorage.setItem('scrollPosition', window.scrollY.toString());
-              }}
+              href={`#/detail/${speech.id}`}
+              onClick={handleNavigateToDetail}
               className="block text-lg font-semibold text-gray-900 group-hover:text-red-600 transition-colors line-clamp-2 mb-3 cursor-pointer"
             >
               {speech.title}
@@ -105,11 +110,8 @@ function SpeechCard({ speech }: { speech: Speech }) {
               </button>
 
               <a
-                href={`/speech-web/#/detail/${speech.id}`}
-                onClick={() => {
-                  // 保存当前滚动位置
-                  localStorage.setItem('scrollPosition', window.scrollY.toString());
-                }}
+                href={`#/detail/${speech.id}`}
+                onClick={handleNavigateToDetail}
                 className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1 transition-colors ml-auto"
               >
                 <BookOpen className="w-4 h-4" />

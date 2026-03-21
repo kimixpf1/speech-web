@@ -8,6 +8,7 @@ import { speechesData } from '@/data/speeches';
 import { zhengjiguanArticles } from '@/data/zhengjiguanArticles';
 import { getSpeechDetail, type SpeechDetail } from '@/data/speechesDetail';
 import { getArticles, getLocalArticlesSync, getZhengjiguanArticles, type Speech } from '@/services/articleServiceEnhanced';
+import { getArticleDetail } from '@/services/articleDetailService';
 import {
   Dialog,
   DialogContent,
@@ -56,6 +57,54 @@ export function DetailPage() {
     window.scrollTo({ top: 0, behavior: 'auto' });
     
     if (id) {
+      // 异步加载详情数据的辅助函数
+      const loadDetailAndSet = async (baseSpeech: Speech) => {
+        // 先从静态数据和localStorage查找详情
+        const staticDetail = getSpeechDetail(id);
+        if (staticDetail && staticDetail.fullText && !staticDetail.fullText.includes('正在整理中')) {
+          setSpeech({
+            ...baseSpeech,
+            abstract: staticDetail.abstract,
+            fullText: staticDetail.fullText,
+            analysis: staticDetail.analysis,
+          } as SpeechDetail);
+          return;
+        }
+
+        // 静态数据没有完整详情，从云端article_details表获取
+        setSpeech({
+          ...baseSpeech,
+          abstract: staticDetail?.abstract || '摘要加载中...',
+          fullText: staticDetail?.fullText || '原文加载中...',
+          analysis: staticDetail?.analysis || '解读加载中...',
+        } as SpeechDetail);
+
+        try {
+          const cloudDetail = await getArticleDetail(id);
+          if (cloudDetail && cloudDetail.fullText) {
+            setSpeech({
+              ...baseSpeech,
+              abstract: cloudDetail.abstract || staticDetail?.abstract || '摘要正在整理中...',
+              fullText: cloudDetail.fullText || staticDetail?.fullText || '原文全文正在整理中...',
+              analysis: cloudDetail.analysis || staticDetail?.analysis || '解读分析正在整理中...',
+            } as SpeechDetail);
+            return;
+          }
+        } catch (err) {
+          console.error('获取云端详情失败:', err);
+        }
+
+        // 云端也没有，显示占位文本
+        if (!staticDetail) {
+          setSpeech({
+            ...baseSpeech,
+            abstract: '摘要正在整理中...',
+            fullText: '原文全文正在整理中...',
+            analysis: '解读分析正在整理中...',
+          } as SpeechDetail);
+        }
+      };
+
       // 先从静态数据查找（包括主列表和政绩观专题）
       let baseSpeech = speechesData.find(s => s.id === id)
         || zhengjiguanArticles.find(s => s.id === id);
@@ -66,15 +115,9 @@ export function DetailPage() {
         baseSpeech = localArticles.find(s => s.id === id);
       }
       
-      // 如果找到了，显示数据
+      // 如果找到了，加载详情
       if (baseSpeech) {
-        const detail = getSpeechDetail(id);
-        setSpeech({
-          ...baseSpeech,
-          abstract: detail?.abstract || '摘要正在整理中...',
-          fullText: detail?.fullText || '原文全文正在整理中...',
-          analysis: detail?.analysis || '解读分析正在整理中...'
-        } as SpeechDetail);
+        loadDetailAndSet(baseSpeech);
       } else {
         // 本地也没有，从云端获取（同时查主文章和政绩观文章）
         const loadFromCloud = async () => {
@@ -88,13 +131,7 @@ export function DetailPage() {
           }
           
           if (cloudSpeech) {
-            const detail = getSpeechDetail(id);
-            setSpeech({
-              ...cloudSpeech,
-              abstract: detail?.abstract || '摘要正在整理中...',
-              fullText: detail?.fullText || '原文全文正在整理中...',
-              analysis: detail?.analysis || '解读分析正在整理中...'
-            } as SpeechDetail);
+            loadDetailAndSet(cloudSpeech);
           }
         };
         loadFromCloud();
@@ -525,6 +562,7 @@ export function DetailPage() {
               <p className="text-gray-700 leading-relaxed whitespace-pre-line text-xl">
                 {speech.abstract}
               </p>
+              <p className="text-xs text-gray-400 mt-4 pt-3 border-t border-yellow-200">摘要由AI生成，仅供参考</p>
             </CardContent>
           </Card>
 
@@ -542,6 +580,7 @@ export function DetailPage() {
                   {speech.fullText}
                 </div>
               </div>
+              <p className="text-xs text-gray-400 mt-4 pt-3 border-t border-gray-200">原文内容通过原文链接提取</p>
             </CardContent>
           </Card>
 
@@ -557,6 +596,7 @@ export function DetailPage() {
               <div className="text-gray-700 leading-loose whitespace-pre-line text-xl">
                 {speech.analysis}
               </div>
+              <p className="text-xs text-gray-400 mt-4 pt-3 border-t border-green-200">解读由AI生成，仅供参考</p>
             </CardContent>
           </Card>
 
