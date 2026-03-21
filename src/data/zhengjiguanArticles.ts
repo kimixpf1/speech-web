@@ -58,19 +58,7 @@ export const zhengjiguanArticles: Speech[] = [
     summary: '习近平总书记在参加江苏代表团审议时强调："要认真组织开展树立和践行正确政绩观学习教育，引导广大党员干部树立和践行正确政绩观。"',
     url: 'http://paper.people.com.cn/rmrb/pc/content/202603/10/content_30144447.html'
   },
-  {
-    id: 'ZJG-C05',
-    title: '人民日报评论员：以实干实绩书写中国式现代化新篇章',
-    date: '2026-02-25',
-    year: 2026, month: 2, day: 25,
-    category: 'article', categoryName: '发表文章',
-    domain: 'party', domainName: '党建',
-    isZhengjiguan: true,
-    zhengjiguanLevel: 'central',
-    source: '人民日报',
-    summary: '要以一体推进学查改为抓手，学深悟透习近平总书记关于树立和践行正确政绩观的重要论述，深入查找政绩观方面存在的问题。',
-    url: 'http://www.cppcc.gov.cn/zxww/2026/02/25/ARTI1771987911651192.shtml'
-  },
+
   {
     id: 'ZJG-C06',
     title: '学习新语丨树立和践行正确政绩观',
@@ -111,19 +99,6 @@ export const zhengjiguanArticles: Speech[] = [
     url: 'https://www.spp.gov.cn/zdgz/202602/t20260228_720810.shtml'
   },
   {
-    id: 'ZJG-C09',
-    title: '人民锐评：正确地做正确的事',
-    date: '2026-03-04',
-    year: 2026, month: 3, day: 4,
-    category: 'article', categoryName: '发表文章',
-    domain: 'party', domainName: '党建',
-    isZhengjiguan: true,
-    zhengjiguanLevel: 'central',
-    source: '人民网',
-    summary: '树立和践行正确政绩观，必须坚持问题导向、目标导向、结果导向相统一。以问题导向直面短板堵点，不回避矛盾。',
-    url: 'http://opinion.people.com.cn/n1/2026/0304/c441030-40674325.html'
-  },
-  {
     id: 'ZJG-C10',
     title: '学习进行时丨从总书记的两会故事领悟正确政绩观',
     date: '2026-03-06',
@@ -135,19 +110,6 @@ export const zhengjiguanArticles: Speech[] = [
     source: '新华网',
     summary: '习近平总书记在参加十四届全国人大四次会议江苏代表团审议时强调，管党治党越有效，经济社会发展的保障就越有力。',
     url: 'https://www.news.cn/politics/xxjxs/20260306/f94fee0e685f48f1955e485e4ac55fa6/c.html'
-  },
-  {
-    id: 'ZJG-C11',
-    title: '正确政绩观增添世界对中国作用的信心（和音）',
-    date: '2026-03-14',
-    year: 2026, month: 3, day: 14,
-    category: 'article', categoryName: '发表文章',
-    domain: 'party', domainName: '党建',
-    isZhengjiguan: true,
-    zhengjiguanLevel: 'central',
-    source: '人民日报',
-    summary: '正确政绩观所蕴含的求真务实、人民至上、谋划长远等执政理念，增强了国际社会对中国作用的信心。',
-    url: 'http://opinion.people.com.cn/n1/2026/0314/c461529-40681762.html'
   },
   {
     id: 'ZJG-C12',
