@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useLayoutEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Hero } from '@/components/Hero';
@@ -32,8 +32,11 @@ function HomePage() {
   );
   // 直接用静态数据初始化，确保首次渲染就有52篇文章，避免闪烁
   const [articles, setArticles] = useState<Speech[]>(speechesData);
-  const scrollRestored = useRef(false);
-  const pendingScrollPosition = useRef<number | null>(null);
+  // 滚动恢复相关状态
+  const scrollRestoredRef = useRef(false);
+  const targetScrollPositionRef = useRef<number | null>(null);
+  // 用于控制页面是否可见（滚动恢复期间隐藏，避免闪烁）
+  const [isScrollRestoring, setIsScrollRestoring] = useState(false);
 
   // 禁用浏览器自动滚动恢复
   useEffect(() => {
@@ -42,21 +45,67 @@ function HomePage() {
     }
   }, []);
 
-  // 当路由变化时（从详情页返回），读取待恢复的滚动位置并立即滚动
-  useEffect(() => {
+  // 当路由变化时（从详情页返回），执行滚动恢复
+  useLayoutEffect(() => {
     const savedPosition = localStorage.getItem('scrollPosition');
     if (savedPosition) {
       const targetPosition = parseInt(savedPosition, 10);
       localStorage.removeItem('scrollPosition');
-      
-      // 立即滚动（无动画，避免闪烁）
+
+      // 设置目标位置和隐藏页面
+      targetScrollPositionRef.current = targetPosition;
+      scrollRestoredRef.current = false;
+      setIsScrollRestoring(true);
+
+      // 立即尝试滚动
       window.scrollTo(0, targetPosition);
-      
-      // 设置 pending 状态，让 filteredSpeeches 变化时再次确认
-      pendingScrollPosition.current = targetPosition;
-      scrollRestored.current = false;
     }
-  }, [location.key]); // location.key 变化表示路由变化
+  }, [location.key]);
+
+  // 当页面渲染完成后，确保滚动位置正确
+  useEffect(() => {
+    if (targetScrollPositionRef.current === null || scrollRestoredRef.current) {
+      return;
+    }
+
+    const targetPosition = targetScrollPositionRef.current;
+
+    // 立即滚动
+    window.scrollTo(0, targetPosition);
+
+    // 使用一个持续监控确保位置正确
+    let animationId: number;
+    let checkCount = 0;
+    const maxChecks = 30;
+
+    const ensurePosition = () => {
+      checkCount++;
+      const currentY = window.scrollY;
+      const diff = Math.abs(currentY - targetPosition);
+
+      // 如果位置偏离，重新滚动
+      if (diff > 5) {
+        window.scrollTo(0, targetPosition);
+      }
+
+      // 继续检查直到稳定或超时
+      if (checkCount < maxChecks) {
+        animationId = requestAnimationFrame(ensurePosition);
+      } else {
+        // 完成，显示页面
+        scrollRestoredRef.current = true;
+        targetScrollPositionRef.current = null;
+        setIsScrollRestoring(false);
+      }
+    };
+
+    animationId = requestAnimationFrame(ensurePosition);
+
+    return () => {
+      cancelAnimationFrame(animationId);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [articles]);
 
   // 持久化筛选状态到sessionStorage（返回时恢复，关闭标签页后重置为economy默认）
   useEffect(() => {
@@ -169,54 +218,10 @@ function HomePage() {
     return result;
   }, [searchQuery, selectedDomain, selectedCategory, selectedYear, articles]);
 
-  // 滚动恢复逻辑：立即滚动，然后持续监控确保位置正确
-  useEffect(() => {
-    if (pendingScrollPosition.current === null || scrollRestored.current) {
-      return;
-    }
-
-    const targetPosition = pendingScrollPosition.current;
-    
-    // 立即滚动（无动画，避免闪烁）
-    window.scrollTo(0, targetPosition);
-    
-    // 持续监控：当页面高度变化时，确保滚动位置正确
-    let checkCount = 0;
-    const maxChecks = 30; // 最多检查30次（约3秒）
-    
-    const ensurePosition = () => {
-      checkCount++;
-      const currentY = window.scrollY;
-      
-      // 如果滚动位置偏离超过100px，重新滚动
-      if (Math.abs(currentY - targetPosition) > 100) {
-        window.scrollTo(0, targetPosition);
-      }
-      
-      // 检查是否已经稳定
-      if (checkCount < maxChecks && Math.abs(window.scrollY - targetPosition) > 50) {
-        setTimeout(ensurePosition, 100);
-      } else {
-        // 位置已稳定或超时，标记完成
-        scrollRestored.current = true;
-        pendingScrollPosition.current = null;
-      }
-    };
-    
-    // 延迟开始检查，给DOM渲染时间
-    setTimeout(ensurePosition, 50);
-    
-    return () => {
-      scrollRestored.current = true;
-      pendingScrollPosition.current = null;
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredSpeeches]);
-
   return (
-    <>
-      <Hero 
-        searchQuery={searchQuery} 
+    <div style={{ visibility: isScrollRestoring ? 'hidden' : 'visible' }}>
+      <Hero
+        searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         stats={stats}
       />
@@ -232,7 +237,7 @@ function HomePage() {
       <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6">
         <ContentList speeches={filteredSpeeches} />
       </main>
-    </>
+    </div>
   );
 }
 

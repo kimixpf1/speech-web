@@ -2,7 +2,7 @@
 // 来源：人民日报、新华社、求是、江苏省政府、苏州市政府等官方平台
 // 注意：文章从官方平台搜索添加，不在首页直接显示
 
-import { Speech } from './speeches';
+import type { Speech } from './speeches';
 
 export const zhengjiguanArticles: Speech[] = [
   // ===== 中央层面 =====
