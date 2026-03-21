@@ -19,6 +19,7 @@ import { isAdminLoggedInSync, isAdminLoggedIn } from '@/services/adminAuth';
 import './App.css';
 
 function HomePage() {
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDomain, setSelectedDomain] = useState(
     () => sessionStorage.getItem('selectedDomain') || 'economy'
@@ -34,19 +35,22 @@ function HomePage() {
   const scrollRestored = useRef(false);
   const pendingScrollPosition = useRef<number | null>(null);
 
-  // 读取待恢复的滚动位置
+  // 禁用浏览器自动滚动恢复
   useEffect(() => {
-    // 禁用浏览器自动滚动恢复
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual';
     }
-    
+  }, []);
+
+  // 当路由变化时（从详情页返回），读取待恢复的滚动位置
+  useEffect(() => {
     const savedPosition = localStorage.getItem('scrollPosition');
-    if (savedPosition && !scrollRestored.current) {
+    if (savedPosition) {
       pendingScrollPosition.current = parseInt(savedPosition, 10);
+      scrollRestored.current = false; // 重置状态，允许重新恢复
       localStorage.removeItem('scrollPosition');
     }
-  }, []);
+  }, [location.key]); // location.key 变化表示路由变化
 
   // 持久化筛选状态到sessionStorage（返回时恢复，关闭标签页后重置为economy默认）
   useEffect(() => {
@@ -159,45 +163,54 @@ function HomePage() {
     return result;
   }, [searchQuery, selectedDomain, selectedCategory, selectedYear, articles]);
 
-  // 当过滤后的文章列表变化时尝试恢复滚动位置（确保内容已渲染）
-  // 依赖 filteredSpeeches 而非 articles，因为实际渲染的是过滤后的列表
+  // 滚动恢复逻辑：使用轮询检查页面高度，确保能滚动到目标位置
   useEffect(() => {
-    if (pendingScrollPosition.current !== null && !scrollRestored.current && filteredSpeeches.length > 0) {
-      const targetPosition = pendingScrollPosition.current;
-      requestAnimationFrame(() => {
-        window.scrollTo(0, targetPosition);
-        setTimeout(() => {
-          if (Math.abs(window.scrollY - targetPosition) > 100) {
-            // 页面高度不够（云端数据尚未加载），再尝试一次
-            window.scrollTo(0, targetPosition);
-            setTimeout(() => {
-              if (Math.abs(window.scrollY - targetPosition) <= 100) {
-                scrollRestored.current = true;
-                pendingScrollPosition.current = null;
-              }
-              // else: 保留 pending 状态，下次 filteredSpeeches 变化时自动重试
-            }, 100);
-          } else {
-            scrollRestored.current = true;
-            pendingScrollPosition.current = null;
-          }
-        }, 200);
-      });
+    if (pendingScrollPosition.current === null || scrollRestored.current) {
+      return;
     }
-  }, [filteredSpeeches]);
 
-  // 安全超时：5秒后强制清除 pending 状态，防止无限重试
-  useEffect(() => {
-    if (pendingScrollPosition.current !== null) {
-      const timer = setTimeout(() => {
-        if (!scrollRestored.current) {
-          scrollRestored.current = true;
-          pendingScrollPosition.current = null;
-        }
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, []);
+    const targetPosition = pendingScrollPosition.current;
+    let attempts = 0;
+    const maxAttempts = 50; // 最多尝试50次（约5秒）
+    const checkInterval = 100; // 每100ms检查一次
+
+    const tryScroll = () => {
+      attempts++;
+      const pageHeight = document.documentElement.scrollHeight;
+      const viewportHeight = window.innerHeight;
+      
+      // 检查页面是否有足够高度
+      const canScrollToTarget = pageHeight >= targetPosition + viewportHeight - 50;
+      
+      if (canScrollToTarget) {
+        // 页面高度足够，立即滚动（无动画）
+        window.scrollTo(0, targetPosition);
+        scrollRestored.current = true;
+        pendingScrollPosition.current = null;
+        return true;
+      } else if (attempts >= maxAttempts) {
+        // 超时，强制滚动
+        window.scrollTo(0, Math.min(targetPosition, pageHeight - viewportHeight));
+        scrollRestored.current = true;
+        pendingScrollPosition.current = null;
+        return true;
+      }
+      return false;
+    };
+
+    // 立即尝试一次
+    if (tryScroll()) return;
+
+    // 开始轮询
+    const timer = setInterval(() => {
+      if (tryScroll()) {
+        clearInterval(timer);
+      }
+    }, checkInterval);
+
+    return () => clearInterval(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredSpeeches]);
 
   return (
     <>
