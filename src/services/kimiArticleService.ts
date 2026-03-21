@@ -119,9 +119,78 @@ async function fetchWithCorsProxy(url: string): Promise<string> {
 }
 
 /**
- * 清理HTML内容
+ * 清理HTML内容 - 提取文章正文
+ * 针对人民网、新华网等官方新闻网站优化
  */
 function cleanHtmlContent(html: string): string {
+  // 使用 DOMParser 解析 HTML（浏览器环境）
+  if (typeof DOMParser !== 'undefined') {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+
+      // 移除无关元素
+      const removeSelectors = [
+        'script', 'style', 'nav', 'header', 'footer', 'aside',
+        '.nav', '.header', '.footer', '.sidebar', '.comment', '.share',
+        '.recommend', '.related', '.ad', '.advertisement',
+        '[class*="nav"]', '[class*="sidebar"]', '[class*="footer"]',
+        '[class*="share"]', '[class*="recommend"]', '[class*="related"]',
+        '[class*="comment"]', '[class*="bread"]', '[class*="crumb"]',
+        '[id*="nav"]', '[id*="sidebar"]', '[id*="footer"]',
+      ];
+      removeSelectors.forEach(sel => {
+        doc.querySelectorAll(sel).forEach(el => el.remove());
+      });
+
+      // 尝试找到文章正文容器（按优先级）
+      const articleSelectors = [
+        '.rm_txt_con',          // 人民网
+        '.text_con',            // 人民网旧版
+        '#p-detail',            // 新华网
+        '.article-content',     // 通用
+        '.article_content',
+        '#article_content',
+        '.TRS_Editor',          // 政府网站常用
+        '.content',             // 通用
+        'article',
+        '[class*="article"]',
+        '.text',
+        '#text',
+        'main',
+      ];
+
+      for (const sel of articleSelectors) {
+        const el = doc.querySelector(sel);
+        if (el && el.textContent && el.textContent.trim().length > 200) {
+          // 提取段落文本
+          const paragraphs = el.querySelectorAll('p');
+          if (paragraphs.length > 0) {
+            return Array.from(paragraphs)
+              .map(p => p.textContent?.trim() || '')
+              .filter(t => t.length > 0)
+              .join('\n\n');
+          }
+          // 没有 <p> 标签时直接取 textContent
+          return el.textContent.trim()
+            .replace(/\s*\n\s*/g, '\n')
+            .replace(/\n{3,}/g, '\n\n');
+        }
+      }
+
+      // 兜底：取 body 的 textContent
+      const body = doc.body;
+      if (body) {
+        return body.textContent?.trim()
+          .replace(/\s*\n\s*/g, '\n')
+          .replace(/\n{3,}/g, '\n\n') || '';
+      }
+    } catch (e) {
+      console.warn('DOMParser 解析失败，使用正则清理:', e);
+    }
+  }
+
+  // 降级：正则清理（非浏览器环境或 DOMParser 失败）
   return html
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
@@ -132,12 +201,15 @@ function cleanHtmlContent(html: string): string {
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/<[^>]+>/g, '\n')
     .replace(/&nbsp;/g, ' ')
-    .replace(/&ldquo;/g, '"')
-    .replace(/&rdquo;/g, '"')
-    .replace(/&mdash;/g, '—')
-    .replace(/&hellip;/g, '…')
+    .replace(/&ldquo;/g, '\u201c')
+    .replace(/&rdquo;/g, '\u201d')
+    .replace(/&mdash;/g, '\u2014')
+    .replace(/&hellip;/g, '\u2026')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
     .replace(/\n+/g, '\n')
-    .replace(/\s+/g, ' ')
+    .replace(/[ \t]+/g, ' ')
     .trim();
 }
 
