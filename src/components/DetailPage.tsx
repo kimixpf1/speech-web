@@ -49,8 +49,12 @@ export function DetailPage() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechRate, setSpeechRate] = useState(1);
   const [showTtsDialog, setShowTtsDialog] = useState(false);
+  const [ttsError, setTtsError] = useState('');
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioQueueRef = useRef<HTMLAudioElement[]>([]);
+  const currentAudioIndexRef = useRef(0);
+  const isAudioPlayingRef = useRef(false);
 
   useEffect(() => {
     // 进入详情页时直接跳转到顶部（无动画）
@@ -59,19 +63,27 @@ export function DetailPage() {
     if (id) {
       // 异步加载详情数据的辅助函数
       const loadDetailAndSet = async (baseSpeech: Speech) => {
-        // 先从静态数据和localStorage查找详情
+        // 先从静态数据查找详情
         const staticDetail = getSpeechDetail(id);
-        if (staticDetail && staticDetail.fullText && !staticDetail.fullText.includes('正在整理中')) {
+        
+        // 判断静态数据是否完整（有fullText且长度合理、不是占位文本）
+        const isStaticComplete = staticDetail 
+          && staticDetail.fullText 
+          && staticDetail.fullText.length > 100
+          && !staticDetail.fullText.includes('正在整理中');
+        
+        if (isStaticComplete) {
+          // 静态数据完整，直接使用，不再获取云端数据
           setSpeech({
             ...baseSpeech,
-            abstract: staticDetail.abstract,
-            fullText: staticDetail.fullText,
-            analysis: staticDetail.analysis,
+            abstract: staticDetail!.abstract,
+            fullText: staticDetail!.fullText,
+            analysis: staticDetail!.analysis,
           } as SpeechDetail);
           return;
         }
 
-        // 静态数据没有完整详情，从云端article_details表获取
+        // 静态数据不完整，先显示占位，再从云端获取
         setSpeech({
           ...baseSpeech,
           abstract: staticDetail?.abstract || '摘要加载中...',
@@ -81,27 +93,16 @@ export function DetailPage() {
 
         try {
           const cloudDetail = await getArticleDetail(id);
-          if (cloudDetail && cloudDetail.fullText) {
+          if (cloudDetail && cloudDetail.fullText && cloudDetail.fullText.length > 100) {
             setSpeech({
               ...baseSpeech,
               abstract: cloudDetail.abstract || staticDetail?.abstract || '摘要正在整理中...',
-              fullText: cloudDetail.fullText || staticDetail?.fullText || '原文全文正在整理中...',
+              fullText: cloudDetail.fullText,
               analysis: cloudDetail.analysis || staticDetail?.analysis || '解读分析正在整理中...',
             } as SpeechDetail);
-            return;
           }
         } catch (err) {
           console.error('获取云端详情失败:', err);
-        }
-
-        // 云端也没有，显示占位文本
-        if (!staticDetail) {
-          setSpeech({
-            ...baseSpeech,
-            abstract: '摘要正在整理中...',
-            fullText: '原文全文正在整理中...',
-            analysis: '解读分析正在整理中...',
-          } as SpeechDetail);
         }
       };
 
@@ -165,6 +166,10 @@ export function DetailPage() {
   useEffect(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       synthRef.current = window.speechSynthesis;
+      // 某些移动浏览器需要等待 voiceschanged 事件
+      window.speechSynthesis.onvoiceschanged = () => {
+        synthRef.current = window.speechSynthesis;
+      };
     }
     
     return () => {
@@ -172,80 +177,176 @@ export function DetailPage() {
       if (synthRef.current) {
         synthRef.current.cancel();
       }
+      // 清理音频队列
+      stopAudioQueue();
     };
   }, []);
+
+  // 检测是否在微信浏览器中
+  const isWeChatBrowser = () => {
+    const ua = navigator.userAgent.toLowerCase();
+    return ua.includes('micromessenger') || ua.includes('wechat');
+  };
+
+  // 检测是否支持原生 speechSynthesis
+  const supportsSpeechSynthesis = () => {
+    return typeof window !== 'undefined' 
+      && 'speechSynthesis' in window 
+      && typeof SpeechSynthesisUtterance !== 'undefined';
+  };
+
+  // 将文本分割成适合TTS的小段（每段不超过maxLen字符）
+  const splitTextForTTS = (text: string, maxLen: number = 300): string[] => {
+    const chunks: string[] = [];
+    // 按句号、问号、感叹号、换行分割
+    const sentences = text.split(/(?<=[。！？\n])/);
+    let current = '';
+    for (const sentence of sentences) {
+      if ((current + sentence).length > maxLen && current.length > 0) {
+        chunks.push(current.trim());
+        current = sentence;
+      } else {
+        current += sentence;
+      }
+    }
+    if (current.trim()) {
+      chunks.push(current.trim());
+    }
+    return chunks.filter(c => c.length > 0);
+  };
+
+  // 停止音频队列播放
+  const stopAudioQueue = () => {
+    isAudioPlayingRef.current = false;
+    audioQueueRef.current.forEach(audio => {
+      audio.pause();
+      audio.src = '';
+    });
+    audioQueueRef.current = [];
+    currentAudioIndexRef.current = 0;
+  };
+
+  // 使用 Audio 元素的降级 TTS（适用于微信等不支持speechSynthesis的浏览器）
+  const playWithAudioFallback = (text: string) => {
+    setTtsError('');
+    stopAudioQueue();
+
+    const chunks = splitTextForTTS(text, 300);
+    if (chunks.length === 0) return;
+
+    // 为每个文本段创建音频 URL（使用百度翻译TTS，免费且支持中文）
+    const audioElements: HTMLAudioElement[] = chunks.map(chunk => {
+      const audio = new Audio();
+      const encodedText = encodeURIComponent(chunk);
+      audio.src = `https://fanyi.baidu.com/gettts?lan=zh&text=${encodedText}&spd=${Math.min(Math.max(Math.round(speechRate * 5), 1), 9)}&source=web`;
+      audio.preload = 'auto';
+      return audio;
+    });
+
+    audioQueueRef.current = audioElements;
+    currentAudioIndexRef.current = 0;
+    isAudioPlayingRef.current = true;
+    setIsSpeaking(true);
+
+    // 顺序播放音频队列
+    const playNext = () => {
+      if (!isAudioPlayingRef.current) return;
+      const idx = currentAudioIndexRef.current;
+      if (idx >= audioElements.length) {
+        setIsSpeaking(false);
+        isAudioPlayingRef.current = false;
+        return;
+      }
+
+      const audio = audioElements[idx];
+      audio.onended = () => {
+        currentAudioIndexRef.current++;
+        playNext();
+      };
+      audio.onerror = () => {
+        // 单个片段失败，跳过继续
+        console.warn(`TTS音频片段 ${idx + 1}/${audioElements.length} 加载失败，跳过`);
+        currentAudioIndexRef.current++;
+        playNext();
+      };
+      audio.play().catch(err => {
+        console.error('音频播放失败:', err);
+        setTtsError('音频播放失败，请重试');
+        setIsSpeaking(false);
+        isAudioPlayingRef.current = false;
+      });
+    };
+
+    playNext();
+  };
 
   // 语音播报功能 - 兼容手机端和微信浏览器
   const handleSpeak = () => {
     if (!speech) return;
-    
-    // 检查浏览器是否支持语音合成
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      alert('您的浏览器不支持语音播报功能，请使用Chrome、Safari或Edge浏览器');
-      return;
-    }
-    
-    // 确保 speechSynthesis 已初始化
-    if (!synthRef.current) {
-      synthRef.current = window.speechSynthesis;
-    }
+    setTtsError('');
     
     // 如果正在播放，停止
     if (isSpeaking) {
-      synthRef.current?.cancel();
+      if (synthRef.current) {
+        synthRef.current.cancel();
+      }
+      stopAudioQueue();
       setIsSpeaking(false);
       return;
     }
     
-    // 优化文本
-    let text = `${speech.title}。${speech.abstract}。${speech.fullText}。${speech.analysis}`;
-    text = text.replace(/\s+/g, ' ').replace(/\n+/g, ' ').trim();
-    
-    // 创建语音 utterance
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    // 设置语速
-    utterance.rate = speechRate;
-    utterance.pitch = 1;
-    
-    // 获取语音列表
-    let voices = synthRef.current?.getVoices() || [];
-    
-    // 选择中文语音
-    const zhVoice = voices.find(v => 
-      v.lang.includes('zh') || v.lang.includes('CN') || v.lang.includes('cmn')
-    );
-    if (zhVoice) {
-      utterance.voice = zhVoice;
+    // 准备文本
+    let text = `${speech.title}。${speech.abstract}`;
+    if (speech.fullText && !speech.fullText.includes('正在整理中')) {
+      text += `。${speech.fullText}`;
     }
-    
-    utterance.onend = () => {
-      setIsSpeaking(false);
-    };
-    
-    utterance.onerror = (e) => {
-      console.error('语音播报错误:', e);
-      // 忽略用户主动取消的错误 (canceled 或 interrupted)
-      const errorType = (e as any).error;
-      if (errorType === 'canceled' || errorType === 'interrupted' || errorType === 'aborted') {
-        return;
+    if (speech.analysis && !speech.analysis.includes('正在整理中')) {
+      text += `。${speech.analysis}`;
+    }
+    text = text.replace(/\s+/g, ' ').replace(/\n+/g, '。').trim();
+    if (text.length > 5000) {
+      text = text.substring(0, 5000) + '。后续内容省略。';
+    }
+
+    // 方案1：尝试使用原生 speechSynthesis（非微信浏览器）
+    if (supportsSpeechSynthesis() && !isWeChatBrowser()) {
+      if (!synthRef.current) {
+        synthRef.current = window.speechSynthesis;
       }
-      setIsSpeaking(false);
-      // 只在非用户主动取消时显示错误
-      if (errorType !== 'canceled') {
-        console.warn('语音播报失败:', errorType);
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = speechRate;
+      utterance.pitch = 1;
+      
+      const voices = synthRef.current?.getVoices() || [];
+      const zhVoice = voices.find(v => 
+        v.lang.includes('zh') || v.lang.includes('CN') || v.lang.includes('cmn')
+      );
+      if (zhVoice) {
+        utterance.voice = zhVoice;
       }
-    };
-    
-    utteranceRef.current = utterance;
-    
-    // 尝试播放
-    try {
-      synthRef.current?.speak(utterance);
-      setIsSpeaking(true);
-    } catch (e) {
-      console.error('语音播放失败:', e);
-      alert('语音播报启动失败，请检查浏览器设置');
+      
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = (e) => {
+        const errorType = (e as any).error;
+        if (errorType === 'canceled' || errorType === 'interrupted' || errorType === 'aborted') {
+          return;
+        }
+        console.warn('原生TTS失败，尝试降级方案:', errorType);
+        playWithAudioFallback(text);
+      };
+      
+      utteranceRef.current = utterance;
+      
+      try {
+        synthRef.current?.speak(utterance);
+        setIsSpeaking(true);
+      } catch {
+        playWithAudioFallback(text);
+      }
+    } else {
+      // 方案2：微信浏览器或不支持speechSynthesis，使用音频降级
+      playWithAudioFallback(text);
     }
   };
 
@@ -729,8 +830,15 @@ export function DetailPage() {
             </div>
             
             {/* 提示 */}
+            {ttsError && (
+              <p className="text-xs text-red-500 text-center bg-red-50 rounded p-2">
+                {ttsError}
+              </p>
+            )}
             <p className="text-xs text-gray-500 text-center">
-              语音播报使用浏览器内置语音合成技术，不同浏览器支持程度可能不同
+              {isWeChatBrowser() 
+                ? '微信浏览器将使用在线语音服务播报，需联网' 
+                : '语音播报使用浏览器内置语音合成技术'}
             </p>
           </div>
         </DialogContent>

@@ -89,22 +89,44 @@ function getBrowserInfo(): { browser: string; os: string; device: string } {
 }
 
 /**
- * 生成简单的 IP 哈希（用于统计独立访客）
+ * 生成稳定的访客ID（用于统计独立访客）
+ * 基于设备指纹，同一设备始终生成相同的ID
+ * 不包含任何时间因素，确保同一设备多次访问不会被计为多个访客
  */
 function generateVisitorId(): string {
-  const ua = navigator.userAgent;
-  const screen = `${window.screen.width}x${window.screen.height}`;
-  const lang = navigator.language;
-  const data = `${ua}-${screen}-${lang}-${Date.now().toString().slice(0, -5)}`;
-  
-  // 简单的哈希
+  // 优先使用已持久化的访客ID
+  const storedId = localStorage.getItem('stable_visitor_id');
+  if (storedId) {
+    return storedId;
+  }
+
+  // 基于稳定的设备特征生成指纹
+  const components = [
+    navigator.userAgent,
+    navigator.language,
+    `${window.screen.width}x${window.screen.height}`,
+    String(screen.colorDepth),
+    String(new Date().getTimezoneOffset()),
+    String(navigator.hardwareConcurrency || 'unknown'),
+  ];
+
+  const fingerprint = components.join('::');
   let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    const char = data.charCodeAt(i);
+  for (let i = 0; i < fingerprint.length; i++) {
+    const char = fingerprint.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
     hash = hash & hash;
   }
-  return Math.abs(hash).toString(16);
+  const visitorId = Math.abs(hash).toString(16).padStart(8, '0');
+
+  // 持久化到 localStorage，确保同一浏览器始终使用相同ID
+  try {
+    localStorage.setItem('stable_visitor_id', visitorId);
+  } catch {
+    // localStorage 不可用时忽略
+  }
+
+  return visitorId;
 }
 
 // ============================================
@@ -377,6 +399,7 @@ export async function getSupabaseRecentVisits(limit: number = 50): Promise<Visit
 
 /**
  * 初始化 Supabase 统计
+ * 同一会话只记录一次访问
  */
 export function initSupabaseAnalytics(): void {
   if (!isSupabaseConfigured()) {
@@ -384,9 +407,17 @@ export function initSupabaseAnalytics(): void {
     return;
   }
 
+  // 检查当前会话是否已记录
+  const sessionKey = 'supabase_session_visited';
+  if (sessionStorage.getItem(sessionKey) === 'true') {
+    console.log('[Supabase Analytics] 当前会话已记录，跳过');
+    return;
+  }
+
   // 延迟记录访问，确保页面加载完成
   setTimeout(() => {
     recordSupabaseVisit('首页');
+    sessionStorage.setItem(sessionKey, 'true');
   }, 1000);
 
   console.log('[Supabase Analytics] 已初始化');

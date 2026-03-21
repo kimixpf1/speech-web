@@ -36,6 +36,7 @@ export interface VisitRecord {
   language: string;
   referrer: string;
   page: string;
+  ip_hash?: string;
 }
 
 export interface VisitStats {
@@ -138,29 +139,42 @@ export function setGAUserProperties(params: Record<string, any>): void {
 // ============================================
 
 /**
- * 生成设备指纹作为 ip_hash
+ * 生成稳定的设备指纹作为 ip_hash
+ * 同一设备/浏览器始终返回相同的ID，不包含时间因素
  */
 function generateDeviceFingerprint(): string {
+  // 优先使用已持久化的访客ID
+  const storedId = localStorage.getItem('stable_visitor_id');
+  if (storedId) {
+    return storedId;
+  }
+
   const components = [
     navigator.userAgent,
     navigator.language,
     screen.width + 'x' + screen.height,
     screen.colorDepth,
     new Date().getTimezoneOffset(),
-    !!window.sessionStorage,
-    !!window.localStorage,
     navigator.hardwareConcurrency || 'unknown',
   ];
   
   const fingerprint = components.join('::');
-  // 简单的哈希函数
   let hash = 0;
   for (let i = 0; i < fingerprint.length; i++) {
     const char = fingerprint.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
     hash = hash & hash;
   }
-  return Math.abs(hash).toString(16).substring(0, 16);
+  const visitorId = Math.abs(hash).toString(16).padStart(8, '0');
+
+  // 持久化
+  try {
+    localStorage.setItem('stable_visitor_id', visitorId);
+  } catch {
+    // ignore
+  }
+
+  return visitorId;
 }
 
 /**
@@ -237,6 +251,7 @@ async function getVisitsFromSupabase(): Promise<VisitRecord[]> {
         language: item.language || '',
         referrer: item.referrer || '直接访问',
         page: item.page || '首页',
+        ip_hash: item.ip_hash || '',
       }));
     } else {
       console.error('[Supabase] 获取访问记录失败:', response.status, await response.text());
@@ -421,7 +436,11 @@ function calculateStats(records: VisitRecord[]): VisitStats {
     todayVisits: records.filter(r => r.date === today).length,
     weekVisits: records.filter(r => r.timestamp > weekAgo).length,
     monthVisits: records.filter(r => r.timestamp > monthAgo).length,
-    uniqueVisitors: new Set(records.map(r => r.userAgent)).size,
+    uniqueVisitors: new Set(
+      records
+        .map(r => r.ip_hash || r.userAgent)
+        .filter(id => id && id !== '' && id !== 'null')
+    ).size,
     browserStats: {},
     osStats: {},
     deviceStats: {},

@@ -12,9 +12,7 @@ import { AdminDashboard } from '@/components/AdminDashboard';
 import { SuggestionBox } from '@/components/SuggestionBox';
 import { ZhengjiguanPage } from '@/components/ZhengjiguanPage';
 import { getArticles, setupRealtimeSubscription, type Speech } from '@/services/articleServiceEnhanced';
-import { speechesData } from '@/data/speeches';
 import { initAnalytics } from '@/services/analytics';
-import { initSupabaseAnalytics } from '@/services/supabaseAnalytics';
 import { isAdminLoggedInSync, isAdminLoggedIn } from '@/services/adminAuth';
 import './App.css';
 
@@ -30,7 +28,8 @@ function HomePage() {
   const [selectedYear, setSelectedYear] = useState(
     () => sessionStorage.getItem('selectedYear') || 'all'
   );
-  const [articles, setArticles] = useState<Speech[]>(speechesData);
+  const [articles, setArticles] = useState<Speech[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   // 滚动恢复：初始化时即检查，有保存位置则一开始就隐藏页面
   const targetScrollRef = useRef<number | null>(null);
   const [isScrollRestoring, setIsScrollRestoring] = useState(
@@ -97,14 +96,19 @@ function HomePage() {
   // 初始化访问统计并加载文章
   useEffect(() => {
     initAnalytics();
-    initSupabaseAnalytics();
+    // 注意：不再调用 initSupabaseAnalytics()，因为 initAnalytics() 已经会写入 Supabase
+    // 之前两个都调用导致每次访问被记录两次，独立访客数虚高
 
     // 从云端获取最新数据
     const loadArticles = async () => {
-      const fetchedArticles = await getArticles();
-      if (fetchedArticles.length > 0) {
+      try {
+        const fetchedArticles = await getArticles();
         setArticles(fetchedArticles);
         cloudDataLoadedRef.current = true;
+      } catch (e) {
+        console.error('加载文章失败:', e);
+      } finally {
+        setIsLoading(false);
       }
     };
     
@@ -195,23 +199,34 @@ function HomePage() {
 
   return (
     <div style={{ visibility: isScrollRestoring ? 'hidden' : 'visible' }}>
-      <Hero
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        stats={stats}
-      />
-      <FilterBar
-        selectedDomain={selectedDomain}
-        onDomainChange={setSelectedDomain}
-        selectedCategory={selectedCategory}
-        onCategoryChange={setSelectedCategory}
-        selectedYear={selectedYear}
-        onYearChange={setSelectedYear}
-        resultCount={filteredSpeeches.length}
-      />
-      <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6">
-        <ContentList speeches={filteredSpeeches} />
-      </main>
+      {isLoading ? (
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-red-200 border-t-red-600 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-500">加载中...</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <Hero
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            stats={stats}
+          />
+          <FilterBar
+            selectedDomain={selectedDomain}
+            onDomainChange={setSelectedDomain}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+            selectedYear={selectedYear}
+            onYearChange={setSelectedYear}
+            resultCount={filteredSpeeches.length}
+          />
+          <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6">
+            <ContentList speeches={filteredSpeeches} />
+          </main>
+        </>
+      )}
     </div>
   );
 }
