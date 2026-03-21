@@ -30,14 +30,12 @@ function HomePage() {
   const [selectedYear, setSelectedYear] = useState(
     () => sessionStorage.getItem('selectedYear') || 'all'
   );
-  // 直接用静态数据初始化，确保首次渲染就有52篇文章，避免闪烁
   const [articles, setArticles] = useState<Speech[]>(speechesData);
-  // 滚动恢复目标位置
+  // 滚动恢复：初始化时即检查，有保存位置则一开始就隐藏页面
   const targetScrollRef = useRef<number | null>(null);
-  // 首次渲染就决定是否隐藏（避免第一帧闪烁）
-  const needsRestore = localStorage.getItem('scrollPosition') !== null;
-  const [isScrollRestoring, setIsScrollRestoring] = useState(needsRestore);
-  // 标记云端数据是否已加载
+  const [isScrollRestoring, setIsScrollRestoring] = useState(
+    () => localStorage.getItem('scrollPosition') !== null
+  );
   const cloudDataLoadedRef = useRef(false);
 
   // 禁用浏览器自动滚动恢复
@@ -47,40 +45,41 @@ function HomePage() {
     }
   }, []);
 
-  // 初始化时读取保存的滚动位置（同步，在首次绘制前）
+  // 读取保存的滚动位置
   useLayoutEffect(() => {
     const savedPosition = localStorage.getItem('scrollPosition');
     if (savedPosition) {
-      const targetPosition = parseInt(savedPosition, 10);
+      targetScrollRef.current = parseInt(savedPosition, 10);
       localStorage.removeItem('scrollPosition');
-      targetScrollRef.current = targetPosition;
-      // 立即尝试滚动
-      window.scrollTo(0, targetPosition);
     }
   }, [location.key]);
 
-  // 当文章数据变化时（尤其是云端数据加载后），执行滚动恢复
+  // 核心：必须等云端数据加载完成后才恢复滚动位置并显示页面
+  // 因为静态数据(52篇)和云端数据(1119篇)页面内容完全不同，
+  // 基于静态数据的滚动位置没有意义
   useLayoutEffect(() => {
-    if (targetScrollRef.current === null) {
-      return;
-    }
+    if (targetScrollRef.current === null) return;
+    if (!cloudDataLoadedRef.current) return; // 必须等云端数据
 
     const targetPosition = targetScrollRef.current;
-    const pageHeight = document.documentElement.scrollHeight;
-
-    // 如果页面还不够高且云端数据未加载，先滚动到尽可能的位置，继续等待
-    if (targetPosition > pageHeight - window.innerHeight && !cloudDataLoadedRef.current) {
-      window.scrollTo(0, targetPosition);
-      return;
-    }
-
-    // 页面已足够高或云端数据已加载，执行最终滚动
-    // useLayoutEffect 在浏览器绘制前同步执行，所以此处设置滚动和显示状态是安全的
     window.scrollTo(0, targetPosition);
     targetScrollRef.current = null;
     setIsScrollRestoring(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [articles]);
+
+  // 安全超时：如果3秒内云端数据还没加载完，也要显示页面
+  useEffect(() => {
+    if (!isScrollRestoring) return;
+    const timer = setTimeout(() => {
+      if (targetScrollRef.current !== null) {
+        window.scrollTo(0, targetScrollRef.current);
+        targetScrollRef.current = null;
+      }
+      setIsScrollRestoring(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [isScrollRestoring]);
 
   // 持久化筛选状态到sessionStorage（返回时恢复，关闭标签页后重置为economy默认）
   useEffect(() => {
