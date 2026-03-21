@@ -1511,11 +1511,79 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   onChange={(e) => setEditingArticle({...editingArticle, date: e.target.value})}
                 />
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">类型</label>
+                  <select 
+                    className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                    value={editingArticle.category}
+                    onChange={(e) => {
+                      const category = e.target.value as 'speech' | 'article' | 'meeting' | 'inspection';
+                      const categoryNames: Record<string, string> = {
+                        speech: '重要讲话',
+                        article: '发表文章',
+                        meeting: '重要会议',
+                        inspection: '考察调研'
+                      };
+                      setEditingArticle({...editingArticle, category, categoryName: categoryNames[category]});
+                    }}
+                  >
+                    <option value="speech">重要讲话</option>
+                    <option value="article">发表文章</option>
+                    <option value="meeting">重要会议</option>
+                    <option value="inspection">考察调研</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">领域</label>
+                  <select 
+                    className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                    value={editingArticle.domain || 'economy'}
+                    onChange={(e) => {
+                      const domain = e.target.value as 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy';
+                      const domainNames: Record<string, string> = {
+                        economy: '经济',
+                        politics: '政治',
+                        culture: '文化',
+                        society: '社会',
+                        ecology: '生态',
+                        party: '党建',
+                        defense: '国防',
+                        diplomacy: '外交'
+                      };
+                      setEditingArticle({...editingArticle, domain, domainName: domainNames[domain]});
+                    }}
+                  >
+                    <option value="economy">经济</option>
+                    <option value="politics">政治</option>
+                    <option value="culture">文化</option>
+                    <option value="society">社会</option>
+                    <option value="ecology">生态</option>
+                    <option value="party">党建</option>
+                    <option value="defense">国防</option>
+                    <option value="diplomacy">外交</option>
+                  </select>
+                </div>
+              </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">来源</label>
                 <Input 
                   value={editingArticle.source} 
                   onChange={(e) => setEditingArticle({...editingArticle, source: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">原文链接</label>
+                <Input 
+                  value={editingArticle.url || ''} 
+                  onChange={(e) => setEditingArticle({...editingArticle, url: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">地点</label>
+                <Input 
+                  value={editingArticle.location || ''} 
+                  onChange={(e) => setEditingArticle({...editingArticle, location: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
