@@ -48,25 +48,6 @@ function HomePage() {
     }
   }, []);
 
-  // 当文章列表变化时尝试恢复滚动位置（确保内容已渲染）
-  useEffect(() => {
-    if (pendingScrollPosition.current !== null && !scrollRestored.current && articles.length > 0) {
-      const targetPosition = pendingScrollPosition.current;
-      scrollRestored.current = true;
-      pendingScrollPosition.current = null;
-      // 使用 requestAnimationFrame 确保DOM已更新
-      requestAnimationFrame(() => {
-        window.scrollTo(0, targetPosition);
-        // 双重保障：如果第一次没到位（内容动态加载中），再试一次
-        setTimeout(() => {
-          if (Math.abs(window.scrollY - targetPosition) > 100) {
-            window.scrollTo(0, targetPosition);
-          }
-        }, 200);
-      });
-    }
-  }, [articles]);
-
   // 持久化筛选状态到sessionStorage（返回时恢复，关闭标签页后重置为economy默认）
   useEffect(() => {
     sessionStorage.setItem('selectedDomain', selectedDomain);
@@ -177,6 +158,46 @@ function HomePage() {
 
     return result;
   }, [searchQuery, selectedDomain, selectedCategory, selectedYear, articles]);
+
+  // 当过滤后的文章列表变化时尝试恢复滚动位置（确保内容已渲染）
+  // 依赖 filteredSpeeches 而非 articles，因为实际渲染的是过滤后的列表
+  useEffect(() => {
+    if (pendingScrollPosition.current !== null && !scrollRestored.current && filteredSpeeches.length > 0) {
+      const targetPosition = pendingScrollPosition.current;
+      requestAnimationFrame(() => {
+        window.scrollTo(0, targetPosition);
+        setTimeout(() => {
+          if (Math.abs(window.scrollY - targetPosition) > 100) {
+            // 页面高度不够（云端数据尚未加载），再尝试一次
+            window.scrollTo(0, targetPosition);
+            setTimeout(() => {
+              if (Math.abs(window.scrollY - targetPosition) <= 100) {
+                scrollRestored.current = true;
+                pendingScrollPosition.current = null;
+              }
+              // else: 保留 pending 状态，下次 filteredSpeeches 变化时自动重试
+            }, 100);
+          } else {
+            scrollRestored.current = true;
+            pendingScrollPosition.current = null;
+          }
+        }, 200);
+      });
+    }
+  }, [filteredSpeeches]);
+
+  // 安全超时：5秒后强制清除 pending 状态，防止无限重试
+  useEffect(() => {
+    if (pendingScrollPosition.current !== null) {
+      const timer = setTimeout(() => {
+        if (!scrollRestored.current) {
+          scrollRestored.current = true;
+          pendingScrollPosition.current = null;
+        }
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   return (
     <>
