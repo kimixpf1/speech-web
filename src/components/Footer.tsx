@@ -34,12 +34,12 @@ export function Footer() {
                 <BookOpen className="w-5 h-5 text-white" />
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-bold truncate leading-tight">经济工作重要讲话学习平台</h3>
-                <p className="text-xs text-gray-400 truncate leading-tight">习近平总书记关于经济工作重要讲话精神</p>
+                <h3 className="text-sm font-bold truncate leading-tight">重要讲话学习平台</h3>
+                <p className="text-xs text-gray-400 truncate leading-tight">习近平总书记重要讲话精神</p>
               </div>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
-              汇集人民日报、新华社、求是杂志等权威媒体发布的关于经济工作的重要讲话、发表文章、重要会议和考察调研动态。
+              汇集人民日报、新华社、求是杂志等权威媒体发布的重要讲话、发表文章、重要会议和考察调研动态。
             </p>
           </div>
 
@@ -68,6 +68,12 @@ export function Footer() {
 
         {/* Bottom */}
         <div className="mt-8 pt-6 border-t border-gray-800">
+          {/* 法律声明 */}
+          <div className="mb-4 text-xs text-gray-500 leading-relaxed space-y-1">
+            <p className="font-medium text-gray-400">免责声明</p>
+            <p>本平台仅供内部学习交流使用，不作任何商业用途。所有文章内容版权归人民日报社、新华通讯社、求是杂志社等原始来源所有。</p>
+            <p>本平台内容来源于公开的官方媒体报道，仅做学习整理之用。如有侵权，请联系管理员删除。</p>
+          </div>
           <div className="flex flex-col md:flex-row items-center justify-between gap-3">
             <p className="text-gray-500 text-sm text-center md:text-left">
               {currentYear} 学习平台 · 仅供学习交流使用

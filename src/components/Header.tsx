@@ -63,10 +63,10 @@ export function Header({ currentView, onViewChange }: HeaderProps) {
             </div>
             <div className="flex flex-col">
               <span className="text-base lg:text-lg font-bold text-gray-900">
-                经济工作重要讲话
+                重要讲话学习平台
               </span>
               <span className="text-xs text-gray-500 hidden sm:inline">
-                习近平总书记关于经济工作重要讲话精神
+                习近平总书记重要讲话精神
               </span>
             </div>
           </div>

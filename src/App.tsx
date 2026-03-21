@@ -98,9 +98,9 @@ function HomePage() {
     };
   }, [articles]);
 
-  // Filter speeches
+  // Filter and sort speeches
   const filteredSpeeches = useMemo(() => {
-    return articles.filter((speech) => {
+    let result = articles.filter((speech) => {
       // Domain filter
       if (selectedDomain !== 'all' && speech.domain !== selectedDomain) {
         return false;
@@ -127,6 +127,18 @@ function HomePage() {
 
       return true;
     });
+
+    // 当显示"全部"领域时，经济领域文章置顶，其他按日期排序
+    if (selectedDomain === 'all') {
+      result.sort((a, b) => {
+        const aIsEcon = a.domain === 'economy' ? 0 : 1;
+        const bIsEcon = b.domain === 'economy' ? 0 : 1;
+        if (aIsEcon !== bIsEcon) return aIsEcon - bIsEcon;
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
+    }
+
+    return result;
   }, [searchQuery, selectedDomain, selectedCategory, selectedYear, articles]);
 
   return (
