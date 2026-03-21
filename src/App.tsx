@@ -29,7 +29,7 @@ function HomePage() {
     () => sessionStorage.getItem('selectedYear') || 'all'
   );
   const [articles, setArticles] = useState<Speech[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   // 滚动恢复：初始化时即检查，有保存位置则一开始就隐藏页面
   const targetScrollRef = useRef<number | null>(null);
   const [isScrollRestoring, setIsScrollRestoring] = useState(
@@ -53,21 +53,19 @@ function HomePage() {
     }
   }, [location.key]);
 
-  // 核心：必须等云端数据加载完成后才恢复滚动位置并显示页面
-  // 因为静态数据(52篇)和云端数据(1119篇)页面内容完全不同，
-  // 基于静态数据的滚动位置没有意义
+  // 滚动恢复：立即恢复位置，不等待云端数据
+  // 使用 useLayoutEffect 确保在渲染前执行
   useLayoutEffect(() => {
     if (targetScrollRef.current === null) return;
-    if (!cloudDataLoadedRef.current) return; // 必须等云端数据
 
+    // 立即滚动到目标位置
     const targetPosition = targetScrollRef.current;
     window.scrollTo(0, targetPosition);
     targetScrollRef.current = null;
     setIsScrollRestoring(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [articles]);
+  }, []);
 
-  // 安全超时：如果3秒内云端数据还没加载完，也要显示页面
+  // 安全超时：如果100ms内还没完成滚动恢复，也要显示页面
   useEffect(() => {
     if (!isScrollRestoring) return;
     const timer = setTimeout(() => {
@@ -76,7 +74,7 @@ function HomePage() {
         targetScrollRef.current = null;
       }
       setIsScrollRestoring(false);
-    }, 3000);
+    }, 100);
     return () => clearTimeout(timer);
   }, [isScrollRestoring]);
 
@@ -199,15 +197,13 @@ function HomePage() {
 
   return (
     <div style={{ visibility: isScrollRestoring ? 'hidden' : 'visible' }}>
-      {isLoading ? (
-        <div className="min-h-[60vh] flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-red-200 border-t-red-600 rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-500">加载中...</p>
-          </div>
-        </div>
-      ) : (
-        <>
+      <>
+          {/* 顶部加载进度条 */}
+          {isLoading && articles.length === 0 && (
+            <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-gray-200">
+              <div className="h-full bg-red-600 animate-pulse" style={{ width: '60%' }}></div>
+            </div>
+          )}
           <Hero
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
@@ -223,10 +219,13 @@ function HomePage() {
             resultCount={filteredSpeeches.length}
           />
           <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6">
-            <ContentList speeches={filteredSpeeches} />
+            {articles.length === 0 ? (
+              <div className="text-center py-20 text-gray-400">加载文章中...</div>
+            ) : (
+              <ContentList speeches={filteredSpeeches} />
+            )}
           </main>
         </>
-      )}
     </div>
   );
 }

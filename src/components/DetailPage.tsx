@@ -116,6 +116,7 @@ export function DetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [speech, setSpeech] = useState<SpeechDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   
@@ -133,6 +134,7 @@ export function DetailPage() {
   useEffect(() => {
     // 进入详情页时直接跳转到顶部（无动画）
     window.scrollTo({ top: 0, behavior: 'auto' });
+    setIsLoading(true);
     
     if (id) {
       // 异步加载详情数据的辅助函数
@@ -154,6 +156,7 @@ export function DetailPage() {
             fullText: staticDetail!.fullText,
             analysis: staticDetail!.analysis,
           } as SpeechDetail);
+          setIsLoading(false);
           return;
         }
 
@@ -177,6 +180,8 @@ export function DetailPage() {
           }
         } catch (err) {
           console.error('获取云端详情失败:', err);
+        } finally {
+          setIsLoading(false);
         }
       };
 
@@ -206,11 +211,15 @@ export function DetailPage() {
           }
           
           if (cloudSpeech) {
-            loadDetailAndSet(cloudSpeech);
+            await loadDetailAndSet(cloudSpeech);
+          } else {
+            setIsLoading(false);
           }
         };
         loadFromCloud();
       }
+    } else {
+      setIsLoading(false);
     }
   }, [id]);
 
@@ -600,6 +609,12 @@ export function DetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* 顶部加载进度条 */}
+      {isLoading && (
+        <div className="fixed top-0 left-0 right-0 z-[60] h-1 bg-gray-200">
+          <div className="h-full bg-red-600 animate-pulse" style={{ width: '60%' }}></div>
+        </div>
+      )}
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
         <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12">
