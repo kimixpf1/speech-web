@@ -11,7 +11,7 @@ import { AdminLogin } from '@/components/AdminLogin';
 import { AdminDashboard } from '@/components/AdminDashboard';
 import { SuggestionBox } from '@/components/SuggestionBox';
 import { ZhengjiguanPage } from '@/components/ZhengjiguanPage';
-import { getArticles, setupRealtimeSubscription, type Speech } from '@/services/articleServiceEnhanced';
+import { getArticles, getLocalArticlesSync, setupRealtimeSubscription, type Speech } from '@/services/articleServiceEnhanced';
 import { initAnalytics } from '@/services/analytics';
 import { isAdminLoggedInSync, isAdminLoggedIn } from '@/services/adminAuth';
 import './App.css';
@@ -28,8 +28,7 @@ function HomePage() {
   const [selectedYear, setSelectedYear] = useState(
     () => sessionStorage.getItem('selectedYear') || 'all'
   );
-  const [articles, setArticles] = useState<Speech[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [articles, setArticles] = useState<Speech[]>(() => getLocalArticlesSync());
   // 滚动恢复：有保存位置时需要等数据加载完
   const targetScrollRef = useRef<number | null>(null);
   const [isScrollRestoring, setIsScrollRestoring] = useState(
@@ -54,7 +53,7 @@ function HomePage() {
   // 等数据加载完成后再恢复滚动位置
   useLayoutEffect(() => {
     if (targetScrollRef.current === null) return;
-    if (isLoading || articles.length === 0) return;
+    if (articles.length === 0) return;
 
     // 数据已加载，恢复滚动位置
     const targetPosition = targetScrollRef.current;
@@ -62,7 +61,7 @@ function HomePage() {
     localStorage.removeItem('scrollPosition');
     targetScrollRef.current = null;
     setIsScrollRestoring(false);
-  }, [isLoading, articles]);
+  }, [articles]);
 
   // 安全超时：最多等5秒
   useEffect(() => {
@@ -102,11 +101,8 @@ function HomePage() {
       try {
         const fetchedArticles = await getArticles();
         setArticles(fetchedArticles);
-        cloudDataLoadedRef.current = true;
       } catch (e) {
         console.error('加载文章失败:', e);
-      } finally {
-        setIsLoading(false);
       }
     };
     
@@ -197,35 +193,27 @@ function HomePage() {
 
   return (
     <div style={{ visibility: isScrollRestoring ? 'hidden' : 'visible' }}>
-      <>
-          {/* 顶部加载进度条 */}
-          {isLoading && articles.length === 0 && (
-            <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-gray-200">
-              <div className="h-full bg-red-600 animate-pulse" style={{ width: '60%' }}></div>
-            </div>
-          )}
-          <Hero
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            stats={stats}
-          />
-          <FilterBar
-            selectedDomain={selectedDomain}
-            onDomainChange={setSelectedDomain}
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
-            selectedYear={selectedYear}
-            onYearChange={setSelectedYear}
-            resultCount={filteredSpeeches.length}
-          />
-          <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6">
-            {articles.length === 0 ? (
-              <div className="text-center py-20 text-gray-400">加载文章中...</div>
-            ) : (
-              <ContentList speeches={filteredSpeeches} />
-            )}
-          </main>
-        </>
+      <Hero
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        stats={stats}
+      />
+      <FilterBar
+        selectedDomain={selectedDomain}
+        onDomainChange={setSelectedDomain}
+        selectedCategory={selectedCategory}
+        onCategoryChange={setSelectedCategory}
+        selectedYear={selectedYear}
+        onYearChange={setSelectedYear}
+        resultCount={filteredSpeeches.length}
+      />
+      <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6">
+        {articles.length === 0 ? (
+          <div className="text-center py-20 text-gray-400">加载文章中...</div>
+        ) : (
+          <ContentList speeches={filteredSpeeches} />
+        )}
+      </main>
     </div>
   );
 }
