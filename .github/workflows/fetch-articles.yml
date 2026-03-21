@@ -7,12 +7,18 @@ on:
     - cron: '0 12 * * *'
   workflow_dispatch:  # 允许手动触发
 
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
 jobs:
   discover:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -26,7 +32,4 @@ jobs:
         run: playwright install chromium --with-deps
 
       - name: Discover articles
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: python .github/scripts/discover_articles.py

@@ -38,6 +38,80 @@ const domainConfig: Record<string, { color: string; bgColor: string; borderColor
   diplomacy: { color: 'text-cyan-600', bgColor: 'bg-cyan-50', borderColor: 'border-cyan-200', label: '外交' },
 };
 
+/**
+ * 清洗文章正文 - 去除从网页提取时混入的无关内容
+ * 适用于人民网、新华网等官方网站的文章
+ */
+function cleanFullText(text: string): string {
+  if (!text) return text;
+
+  // 按行分割
+  let lines = text.split('\n');
+
+  // 常见的无关行模式（导航栏、版权、分享按钮等）
+  const noisePatterns = [
+    /^(首页|要闻|时政|国际|社会|军事|财经|观点|评论|图片|视频|热点)\s*[|｜>/]/,
+    /^(人民网|新华网|央视网|光明网|中国网|中新网)\s*>>/,
+    /^(来源|编辑|责编|责任编辑|记者|发稿|稿件|审核|校对)[:：]/,
+    /^分享到[:：]?\s*(微信|微博|QQ|朋友圈)/,
+    /^(上一篇|下一篇|相关新闻|相关阅读|推荐阅读|延伸阅读|热门推荐)[:：]?/,
+    /^\s*(返回|回到顶部|版权所有|Copyright|©|All rights)/i,
+    /^(评论|留言|登录|注册|关注|订阅|扫码|二维码|APP下载)/,
+    /^\s*\[.*\]\s*$/,                  // [分享] [打印] 等按钮
+    /^(打印|收藏|关闭窗口|字号|大中小)/,
+    /^\s*(转发|点赞|在看|收藏)\s*\d*\s*$/,
+    /^(央广网|中国共产党新闻网|中国政府网|求是网)$/,
+    /^\d{4}年\d{1,2}月\d{1,2}日\d{1,2}:\d{2}\s*$/,  // 纯时间行
+    /^http[s]?:\/\//,                  // 纯URL行
+    /^(原标题|分享|纠错|举报)[:：]/,
+    /^\s*\(\s*\d+\s*\)\s*$/,           // 纯页码 (1) (2) 
+  ];
+
+  // 过滤无关行
+  lines = lines.filter(line => {
+    const trimmed = line.trim();
+    if (trimmed.length === 0) return true; // 保留空行
+    return !noisePatterns.some(pattern => pattern.test(trimmed));
+  });
+
+  // 去掉开头连续的短行（通常是导航碎片）
+  while (lines.length > 0) {
+    const trimmed = lines[0].trim();
+    // 空行跳过
+    if (trimmed.length === 0) {
+      lines.shift();
+      continue;
+    }
+    // 短于5个字符且不像正文开头的行去掉
+    if (trimmed.length < 5 && !/^[（【"']/.test(trimmed)) {
+      lines.shift();
+      continue;
+    }
+    break;
+  }
+
+  // 去掉末尾的无关内容
+  while (lines.length > 0) {
+    const trimmed = lines[lines.length - 1].trim();
+    if (trimmed.length === 0) {
+      lines.pop();
+      continue;
+    }
+    if (trimmed.length < 5) {
+      lines.pop();
+      continue;
+    }
+    break;
+  }
+
+  let result = lines.join('\n');
+
+  // 合并多余空行
+  result = result.replace(/\n{3,}/g, '\n\n');
+
+  return result.trim();
+}
+
 export function DetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -678,7 +752,7 @@ export function DetailPage() {
             <CardContent className="pt-0">
               <div className="prose prose-gray max-w-none">
                 <div className="bg-gray-50 rounded-lg p-8 text-gray-700 leading-loose whitespace-pre-line text-xl">
-                  {speech.fullText}
+                  {cleanFullText(speech.fullText)}
                 </div>
               </div>
               <p className="text-xs text-gray-400 mt-4 pt-3 border-t border-gray-200">原文内容通过原文链接提取</p>
