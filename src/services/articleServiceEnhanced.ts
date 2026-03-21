@@ -413,16 +413,15 @@ export function generateArticleId(year: number): string {
   return `${year}-${String(maxNum + 1).padStart(2, '0')}`;
 }
 
-// 同步文章
+// 同步文章（仅从云端拉取最新数据，不回写静态数据）
 export async function syncArticles(): Promise<Speech[]> {
-  await syncStaticDataToCloud();
   return getArticles();
 }
 
-// 初始化同步
+// 初始化同步（仅在云端完全为空时才初始化，不会因数量差异误触发）
 export async function initializeSync(): Promise<void> {
   const cloudArticles = await fetchFromCloud();
-  if (cloudArticles.length < speechesData.length) {
+  if (cloudArticles.length === 0) {
     await syncStaticDataToCloud();
   }
   const articles = await getArticles();
