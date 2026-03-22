@@ -435,6 +435,21 @@ export async function searchArticles(
   setLastSearchTime(Date.now());
 
   // 写入搜索日志
+  // status 定义：success=搜索成功完成，partial_fail=部分API失败，failed=全部API失败
+  const hasApiError = Object.values(searchDetails).some(
+    (detail: any) => detail?.status === 'failed'
+  );
+  const allApiFailed = Object.values(searchDetails).every(
+    (detail: any) => detail?.status === 'failed' || detail?.status === undefined
+  );
+  
+  let logStatus: 'success' | 'partial_fail' | 'failed' = 'success';
+  if (allApiFailed && SEARCH_QUERIES.length > 0) {
+    logStatus = 'failed';
+  } else if (hasApiError) {
+    logStatus = 'partial_fail';
+  }
+  
   const log: SearchLog = {
     executed_at: new Date().toISOString(),
     search_type: searchType,
@@ -442,7 +457,7 @@ export async function searchArticles(
     queries: SEARCH_QUERIES,
     crawl_count: allArticles.length,
     new_count: newArticles.length,
-    status: newArticles.length > 0 ? 'success' : (allArticles.length > 0 ? 'partial_fail' : 'failed'),
+    status: logStatus,
     details: searchDetails,
     duration_seconds: Math.round(duration),
   };
