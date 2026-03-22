@@ -1319,6 +1319,24 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
               {/* 区域2: 搜索执行记录 + 每日总结 */}
               <>
+                {/* 定时任务说明 */}
+                <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className="w-4 h-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-800">自动定时搜索</span>
+                      <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-300">
+                        每日 8:00 / 20:00
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-green-700 space-y-1">
+                      <p>• <strong>Kimi API</strong> 联网搜索习近平总书记最新讲话</p>
+                      <p>• <strong>百度搜索</strong> 人民网、新华网、求是网验证</p>
+                      <p>• 两个来源自动去重，新文章进入待审核</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 {/* 每日总结卡片 */}
                 <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
                   <CardHeader className="pb-2">
