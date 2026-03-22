@@ -149,6 +149,7 @@ async function searchWithKimi(query: string, apiKey: string): Promise<SearchedAr
   try {
     console.log('开始 Kimi 搜索:', query);
     
+    // Kimi 联网搜索使用 $web_search 内置工具
     const response = await fetch(KIMI_API_URL, {
       method: 'POST',
       headers: {
@@ -156,12 +157,17 @@ async function searchWithKimi(query: string, apiKey: string): Promise<SearchedAr
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'moonshot-v1-128k-latest',
+        model: 'moonshot-v1-auto',
         messages: [
           { role: 'system', content: SEARCH_SYSTEM_PROMPT },
           { role: 'user', content: query },
         ],
-        use_search: true,  // 启用联网搜索
+        tools: [{
+          type: 'builtin_function',
+          function: {
+            name: '$web_search',
+          },
+        }],
         temperature: 0.1,
       }),
     });
@@ -169,7 +175,7 @@ async function searchWithKimi(query: string, apiKey: string): Promise<SearchedAr
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Kimi API 响应错误:', response.status, errorText);
-      throw new Error(`API 错误: ${response.status} - ${errorText}`);
+      throw new Error(`Kimi API 错误: ${response.status}`);
     }
 
     const data = await response.json();
@@ -508,21 +514,28 @@ async function savePendingArticles(articles: SearchedArticle[]): Promise<void> {
 
 /**
  * 保存搜索日志到 Supabase
+ * 注意：表中只有 executed_at, crawl_count, search_count, new_count, status, details, duration_seconds 列
  */
 async function saveSearchLog(log: SearchLog): Promise<void> {
   console.log('保存搜索日志:', JSON.stringify(log));
+  
+  // 把额外信息放到 details 中，因为表中没有 search_type, api_used, queries 列
+  const detailsWithExtra = {
+    ...log.details,
+    search_type: log.search_type,
+    api_used: log.api_used,
+    queries: log.queries,
+  };
   
   const { data, error } = await supabase
     .from('search_logs')
     .insert({
       executed_at: log.executed_at,
-      search_type: log.search_type,
-      api_used: log.api_used,
-      queries: log.queries,
       crawl_count: log.crawl_count,
+      search_count: log.crawl_count,  // 复用 crawl_count
       new_count: log.new_count,
       status: log.status,
-      details: log.details,
+      details: detailsWithExtra,
       duration_seconds: log.duration_seconds,
     })
     .select();
