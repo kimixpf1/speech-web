@@ -13,27 +13,33 @@ const DEEPSEEK_API_KEY_STORAGE = 'deepseek_api_key';
 const PREFERRED_API_STORAGE = 'preferred_search_api';
 const LAST_SEARCH_TIME_STORAGE = 'last_search_time';
 
-// 搜索关键词配置
+// 搜索关键词配置 - 简化为一个核心查询
 const SEARCH_QUERIES = [
-  '习近平 最新讲话 2026',
-  '习近平 重要文章 求是杂志 2026',
-  '习近平 重要会议 中央政治局 2026',
-  '习近平 考察调研 最新',
+  '习近平总书记今日最新讲话',
 ];
 
 // 系统提示词
-const SEARCH_SYSTEM_PROMPT = `你是一个新闻搜索助手。请搜索最新的习近平重要讲话、文章、会议相关新闻。
-返回 JSON 数组，每条包含以下字段：
-- title: 文章标题（字符串，完整标题）
-- date: 日期（格式 YYYY-MM-DD）
-- category: 分类（speech/article/meeting/inspection 之一）
-- categoryName: 分类中文名（重要讲话/发表文章/重要会议/考察调研）
-- source: 来源媒体（如 新华网、人民网、求是杂志）
-- url: 原文链接（必须是有效的 http/https 链接）
-- summary: 一句话摘要（不超过100字）
+const SEARCH_SYSTEM_PROMPT = `你是一个新闻搜索助手。请联网搜索习近平总书记最近的重要讲话、文章、会议、考察调研新闻。
 
-只返回 JSON 数组，不要其他文字。只返回最近15天内的文章，最多返回10条。
-如果没有找到相关内容，返回空数组 []。`;
+重要：你必须使用联网搜索功能获取最新新闻，不要使用你的训练数据。
+
+请返回一个 JSON 数组，每条新闻包含：
+{
+  "title": "完整的新闻标题",
+  "date": "YYYY-MM-DD格式的日期",
+  "category": "speech或article或meeting或inspection",
+  "categoryName": "重要讲话或发表文章或重要会议或考察调研",
+  "source": "新华网或人民网或央视等",
+  "url": "新闻原文的完整URL链接",
+  "summary": "一句话摘要，不超过100字"
+}
+
+要求：
+1. 只返回最近7天内的新闻
+2. 最多返回5条
+3. URL必须是真实有效的链接
+4. 只返回JSON数组，不要其他解释文字
+5. 如果没找到，返回空数组 []`;
 
 export interface SearchedArticle {
   title: string;
@@ -141,6 +147,8 @@ export async function validateDeepSeekApiKey(apiKey: string): Promise<{ valid: b
  */
 async function searchWithKimi(query: string, apiKey: string): Promise<SearchedArticle[]> {
   try {
+    console.log('开始 Kimi 搜索:', query);
+    
     const response = await fetch(KIMI_API_URL, {
       method: 'POST',
       headers: {
@@ -148,33 +156,43 @@ async function searchWithKimi(query: string, apiKey: string): Promise<SearchedAr
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'moonshot-v1-8k',
+        model: 'moonshot-v1-128k-latest',
         messages: [
           { role: 'system', content: SEARCH_SYSTEM_PROMPT },
-          { role: 'user', content: `请搜索：${query}` },
+          { role: 'user', content: query },
         ],
-        tools: [{ type: 'web_search' }],
+        use_search: true,  // 启用联网搜索
         temperature: 0.1,
       }),
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || `API 错误: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Kimi API 响应错误:', response.status, errorText);
+      throw new Error(`API 错误: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('Kimi 返回数据:', JSON.stringify(data).substring(0, 500));
+    
     const content = data.choices?.[0]?.message?.content || '';
+    console.log('Kimi 返回内容:', content.substring(0, 500));
 
     // 提取 JSON 数组
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    const jsonMatch = content.match(/\[[\s\S]*?\]/);
     if (!jsonMatch) {
-      console.log('Kimi 返回内容无 JSON:', content.substring(0, 200));
+      console.log('Kimi 返回内容无 JSON 数组');
       return [];
     }
 
-    const articles: SearchedArticle[] = JSON.parse(jsonMatch[0]);
-    return articles.filter(a => a.title && a.url && a.url.startsWith('http'));
+    try {
+      const articles: SearchedArticle[] = JSON.parse(jsonMatch[0]);
+      console.log('解析到文章数量:', articles.length);
+      return articles.filter(a => a.title && a.url && a.url.startsWith('http'));
+    } catch (parseError) {
+      console.error('JSON 解析失败:', parseError);
+      return [];
+    }
   } catch (error) {
     console.error('Kimi 搜索失败:', error);
     throw error;
@@ -440,6 +458,8 @@ export async function searchArticles(
  * 保存待审核文章到 Supabase
  */
 async function savePendingArticles(articles: SearchedArticle[]): Promise<void> {
+  console.log('准备保存文章数量:', articles.length);
+  
   const rows = articles.map(article => {
     // 解析日期
     let year = new Date().getFullYear();
@@ -461,7 +481,7 @@ async function savePendingArticles(articles: SearchedArticle[]): Promise<void> {
       month,
       day,
       category: article.category || 'speech',
-      categoryName: article.categoryName || '重要讲话',
+      category_name: article.categoryName || '重要讲话',
       source: article.source || '官方媒体',
       url: article.url,
       summary: article.summary || article.title,
@@ -471,12 +491,18 @@ async function savePendingArticles(articles: SearchedArticle[]): Promise<void> {
     };
   });
 
-  const { error } = await supabase
+  console.log('保存文章数据:', JSON.stringify(rows[0]));
+
+  const { data, error } = await supabase
     .from('pending_articles')
-    .insert(rows);
+    .insert(rows)
+    .select();
 
   if (error) {
-    console.error('保存待审核文章失败:', error);
+    console.error('保存待审核文章失败:', error.message, error.details, error.hint);
+    throw new Error(`保存文章失败: ${error.message}`);
+  } else {
+    console.log('保存文章成功:', data?.length || 0, '条');
   }
 }
 
@@ -484,12 +510,27 @@ async function savePendingArticles(articles: SearchedArticle[]): Promise<void> {
  * 保存搜索日志到 Supabase
  */
 async function saveSearchLog(log: SearchLog): Promise<void> {
-  const { error } = await supabase
+  console.log('保存搜索日志:', JSON.stringify(log));
+  
+  const { data, error } = await supabase
     .from('search_logs')
-    .insert(log);
+    .insert({
+      executed_at: log.executed_at,
+      search_type: log.search_type,
+      api_used: log.api_used,
+      queries: log.queries,
+      crawl_count: log.crawl_count,
+      new_count: log.new_count,
+      status: log.status,
+      details: log.details,
+      duration_seconds: log.duration_seconds,
+    })
+    .select();
 
   if (error) {
-    console.error('保存搜索日志失败:', error);
+    console.error('保存搜索日志失败:', error.message, error.details, error.hint);
+  } else {
+    console.log('保存日志成功:', data);
   }
 }
 
