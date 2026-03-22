@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#dc2626"/>
+      <stop offset="100%" style="stop-color:#991b1b"/>
+    </linearGradient>
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#fbbf24"/>
+      <stop offset="50%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#fbbf24"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- 背景 -->
+  <rect width="1200" height="630" fill="url(#bgGradient)"/>
+  
+  <!-- 装饰线条 -->
+  <rect x="50" y="50" width="1100" height="530" fill="none" stroke="#fbbf24" stroke-width="3" rx="10"/>
+  
+  <!-- 顶部装饰线 -->
+  <rect x="100" y="100" width="1000" height="4" fill="url(#goldGradient)"/>
+  
+  <!-- 底部装饰线 -->
+  <rect x="100" y="526" width="1000" height="4" fill="url(#goldGradient)"/>
+  
+  <!-- 党徽简化图形 -->
+  <circle cx="600" cy="220" r="60" fill="#fbbf24"/>
+  <text x="600" y="245" font-family="serif" font-size="70" fill="#dc2626" text-anchor="middle" font-weight="bold">☆</text>
+  
+  <!-- 主标题 -->
+  <text x="600" y="340" font-family="serif" font-size="52" fill="#ffffff" text-anchor="middle" font-weight="bold">习近平总书记</text>
+  <text x="600" y="410" font-family="serif" font-size="48" fill="#fbbf24" text-anchor="middle" font-weight="bold">关于经济工作重要讲话精神</text>
+  <text x="600" y="470" font-family="serif" font-size="40" fill="#ffffff" text-anchor="middle">学习平台</text>
+  
+  <!-- 副标题 -->
+  <text x="600" y="550" font-family="sans-serif" font-size="24" fill="#fecaca" text-anchor="middle">汇集人民日报 · 新华社 · 求是杂志等权威媒体</text>
+</svg>

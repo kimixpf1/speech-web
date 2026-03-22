@@ -1,0 +1,35 @@
+name: Discover New Articles
+
+on:
+  schedule:
+    # 每天北京时间 8:00 (UTC 0:00) 和 20:00 (UTC 12:00)
+    - cron: '0 0 * * *'
+    - cron: '0 12 * * *'
+  workflow_dispatch:  # 允许手动触发
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: pip install -r .github/scripts/requirements.txt
+
+      - name: Install Playwright browser
+        run: playwright install chromium --with-deps
+
+      - name: Discover articles
+        run: python .github/scripts/discover_articles.py

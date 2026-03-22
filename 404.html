@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Redirecting...</title>
+  <script>
+    // SPA redirect for HashRouter with base path /speech-web/
+    var hash = window.location.hash;
+    if (hash) {
+      window.location.replace('/speech-web/' + hash);
+    } else {
+      window.location.replace('/speech-web/');
+    }
+  </script>
+</head>
+<body>
+  <p>Redirecting...</p>
+</body>
+</html>
