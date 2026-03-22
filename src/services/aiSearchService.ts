@@ -481,7 +481,7 @@ async function savePendingArticles(articles: SearchedArticle[]): Promise<void> {
       month,
       day,
       category: article.category || 'speech',
-      category_name: article.categoryName || '重要讲话',
+      categoryname: article.categoryName || '重要讲话',
       source: article.source || '官方媒体',
       url: article.url,
       summary: article.summary || article.title,
