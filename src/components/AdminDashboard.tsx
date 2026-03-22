@@ -106,6 +106,22 @@ import {
   saveArticleDetail,
   type ArticleDetailContent
 } from '@/services/articleDetailService';
+import {
+  searchArticles,
+  saveDeepSeekApiKey,
+  getDeepSeekApiKey,
+  clearDeepSeekApiKey,
+  validateDeepSeekApiKey,
+  setPreferredApi,
+  getPreferredApi,
+  shouldAutoSearch,
+  setLastSearchTime,
+  getLastSearchTime,
+  getTodaySearchStats,
+  getRecentSearchLogs,
+  type SearchResult,
+  type SearchLog as AISearchLog,
+} from '@/services/aiSearchService';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -178,7 +194,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [searchLogs, setSearchLogs] = useState<SearchLog[]>([]);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
 
-  // GitHub搜索功能状态
+  // GitHub搜索功能状态（保留但不再使用）
   const [githubToken, setGithubTokenState] = useState(getGitHubToken() || '');
   const [showTokenDialog, setShowTokenDialog] = useState(false);
   const [tokenInput, setTokenInput] = useState('');
@@ -192,6 +208,16 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [currentRunId, setCurrentRunId] = useState<number | null>(null);
   const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null);
   const [recentRuns, setRecentRuns] = useState<any[]>([]);
+
+  // AI 搜索状态（新增）
+  const [deepSeekApiKey, setDeepSeekApiKeyState] = useState(getDeepSeekApiKey() || '');
+  const [preferredApi, setPreferredApiState] = useState<'kimi' | 'deepseek'>(getPreferredApi());
+  const [showApiConfigDialog, setShowApiConfigDialog] = useState(false);
+  const [deepSeekKeyInput, setDeepSeekKeyInput] = useState('');
+  const [deepSeekKeyValidating, setDeepSeekKeyValidating] = useState(false);
+  const [aiSearchProgress, setAiSearchProgress] = useState('');
+  const [showAutoSearchPrompt, setShowAutoSearchPrompt] = useState(false);
+  const [todayStats, setTodayStats] = useState({ runCount: 0, totalFound: 0, totalNew: 0 });
 
   useEffect(() => {
     isAdminLoggedIn().then((isLoggedIn) => {
@@ -251,6 +277,15 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       // 加载搜索日志
       const logs = await getSearchLogs(5);
       setSearchLogs(logs);
+
+      // 加载今日统计
+      const stats = await getTodaySearchStats();
+      setTodayStats(stats);
+
+      // 检查是否需要自动搜索
+      if (shouldAutoSearch()) {
+        setShowAutoSearchPrompt(true);
+      }
     } catch (error) {
       console.error('Failed to load data:', error);
     }
@@ -680,6 +715,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       day: pending.day || new Date().getDate(),
       category: (pending.category as Speech['category']) || 'speech',
       categoryName: pending.categoryName || '重要讲话',
+      domain: (pending.domain as Speech['domain']) || 'politics',
+      domainName: pending.domainName || '政治',
       source: pending.source || '',
       summary: pending.summary || '',
       url: pending.url || '',
@@ -849,6 +886,84 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       setSearchStage('failed');
       setSearchMessage(result.message || '触发搜索任务失败');
     }
+  };
+
+  // ========== AI 搜索功能 ==========
+  
+  // AI 搜索文章
+  const handleAISearch = async (type: 'manual' | 'auto' = 'manual') => {
+    if (!kimiApiKey && !deepSeekApiKey) {
+      setShowApiConfigDialog(true);
+      return;
+    }
+
+    setSearching(true);
+    setSearchStage('running');
+    setSearchMessage('正在使用 AI 搜索最新文章...');
+    setShowAutoSearchPrompt(false);
+
+    try {
+      const result = await searchArticles(
+        kimiApiKey || null,
+        deepSeekApiKey || null,
+        type,
+        (progress) => {
+          setAiSearchProgress(progress);
+          setSearchMessage(progress);
+        }
+      );
+
+      if (result.success) {
+        setSearchStage('completed');
+        setSearchMessage(`搜索完成！找到 ${result.totalCount} 篇文章，新增 ${result.newCount} 篇待审核`);
+        
+        // 刷新数据
+        await loadData();
+      } else {
+        setSearchStage('failed');
+        setSearchMessage(result.error || '搜索失败');
+      }
+    } catch (error) {
+      setSearchStage('failed');
+      setSearchMessage(error instanceof Error ? error.message : '搜索出错');
+    } finally {
+      setSearching(false);
+      setAiSearchProgress('');
+    }
+  };
+
+  // 保存 DeepSeek API Key
+  const handleSaveDeepSeekKey = async () => {
+    if (!deepSeekKeyInput.trim()) return;
+    
+    setDeepSeekKeyValidating(true);
+    const result = await validateDeepSeekApiKey(deepSeekKeyInput.trim());
+    setDeepSeekKeyValidating(false);
+    
+    if (result.valid) {
+      saveDeepSeekApiKey(deepSeekKeyInput.trim());
+      setDeepSeekApiKeyState(deepSeekKeyInput.trim());
+      setDeepSeekKeyInput('');
+      setSuccessMessage('DeepSeek API Key 验证成功！');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } else {
+      setSuccessMessage(result.error || 'API Key 验证失败');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    }
+  };
+
+  // 清除 DeepSeek API Key
+  const handleClearDeepSeekKey = () => {
+    clearDeepSeekApiKey();
+    setDeepSeekApiKeyState('');
+    setSuccessMessage('已清除 DeepSeek API Key');
+    setTimeout(() => setSuccessMessage(''), 3000);
+  };
+
+  // 切换首选 API
+  const handleSwitchPreferredApi = (api: 'kimi' | 'deepseek') => {
+    setPreferredApi(api);
+    setPreferredApiState(api);
   };
 
   // 加载最近的workflow运行记录
@@ -1103,18 +1218,40 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
             {/* 近期新增文章 */}
             <TabsContent value="pending" className="space-y-6">
+              {/* 自动搜索提示 */}
+              {showAutoSearchPrompt && (kimiApiKey || deepSeekApiKey) && (
+                <Card className="border-blue-200 bg-blue-50">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Bell className="w-5 h-5 text-blue-600" />
+                        <span className="text-blue-800">距离上次搜索已超过 12 小时，是否立即搜索最新文章？</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => setShowAutoSearchPrompt(false)}>
+                          稍后
+                        </Button>
+                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => handleAISearch('auto')}>
+                          立即搜索
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* 区域1: 顶部操作栏 */}
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">近期新增文章</h2>
+                <h2 className="text-xl font-bold text-gray-900">AI 文章搜索</h2>
                 <div className="flex gap-2">
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={() => setShowTokenDialog(true)}
-                    title="配置GitHub Token"
+                    onClick={() => setShowApiConfigDialog(true)}
+                    title="配置 AI API Key"
                   >
                     <Settings className="w-4 h-4 mr-1" />
-                    配置
+                    API配置
                   </Button>
                   <Button 
                     variant="outline" 
@@ -1127,7 +1264,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <Button 
                     className="bg-purple-600 hover:bg-purple-700 text-white"
                     size="sm"
-                    onClick={handleTriggerSearch}
+                    onClick={() => handleAISearch('manual')}
                     disabled={searching}
                   >
                     {searching ? (
@@ -1138,7 +1275,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     ) : (
                       <>
                         <Sparkles className="w-4 h-4 mr-1" />
-                        手动触发搜索
+                        立即搜索
                       </>
                     )}
                   </Button>
@@ -1153,27 +1290,9 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       <Loader2 className="w-5 h-5 text-blue-600 animate-spin flex-shrink-0 mt-0.5" />
                       <div className="flex-1">
                         <p className="text-blue-800 font-medium mb-1">{searchMessage}</p>
-                        <div className="flex items-center gap-4 mt-2 text-sm">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${searchStage === 'triggering' ? 'bg-blue-600 animate-pulse' : 'bg-gray-300'}`}></span>
-                            <span className={searchStage === 'triggering' ? 'text-blue-700 font-medium' : 'text-gray-500'}>触发任务</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${searchStage === 'queued' ? 'bg-yellow-500 animate-pulse' : 'bg-gray-300'}`}></span>
-                            <span className={searchStage === 'queued' ? 'text-yellow-700 font-medium' : 'text-gray-500'}>排队等待</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${searchStage === 'running' ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></span>
-                            <span className={searchStage === 'running' ? 'text-green-700 font-medium' : 'text-gray-500'}>正在搜索</span>
-                          </div>
+                        <div className="flex items-center gap-2 text-sm text-blue-600">
+                          <span>使用 {preferredApi === 'kimi' ? 'Kimi' : 'DeepSeek'} API 搜索中...</span>
                         </div>
-                        {searchResult?.workflowUrl && (
-                          <a href={searchResult.workflowUrl} target="_blank" rel="noopener noreferrer"
-                            className="text-sm text-blue-600 hover:underline mt-2 inline-flex items-center gap-1">
-                            <ExternalLink className="w-3 h-3" />
-                            查看运行详情
-                          </a>
-                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -1209,41 +1328,29 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    {searchLogs.length === 0 ? (
+                    {todayStats.runCount === 0 ? (
                       <div className="text-center py-4 text-gray-500 text-sm">
-                        暂无运行记录，系统每天 8:00 和 20:00 自动执行搜索
+                        今日暂无搜索记录，点击"立即搜索"开始
                       </div>
                     ) : (
-                      <div className="grid grid-cols-4 gap-4 text-center">
+                      <div className="grid grid-cols-3 gap-4 text-center">
                         <div>
                           <div className="text-2xl font-bold text-blue-700">
-                            {searchLogs.filter(l => {
-                              const logDate = new Date(l.executed_at).toDateString();
-                              return logDate === new Date().toDateString();
-                            }).length}
+                            {todayStats.runCount}
                           </div>
                           <div className="text-xs text-blue-600">运行次数</div>
                         </div>
                         <div>
                           <div className="text-2xl font-bold text-green-700">
-                            {searchLogs.filter(l => new Date(l.executed_at).toDateString() === new Date().toDateString())
-                              .reduce((sum, l) => sum + (l.crawl_count || 0), 0)}
+                            {todayStats.totalFound}
                           </div>
-                          <div className="text-xs text-green-600">爬取条数</div>
+                          <div className="text-xs text-green-600">搜索到文章</div>
                         </div>
                         <div>
                           <div className="text-2xl font-bold text-purple-700">
-                            {searchLogs.filter(l => new Date(l.executed_at).toDateString() === new Date().toDateString())
-                              .reduce((sum, l) => sum + (l.search_count || 0), 0)}
+                            {todayStats.totalNew}
                           </div>
-                          <div className="text-xs text-purple-600">搜索条数</div>
-                        </div>
-                        <div>
-                          <div className="text-2xl font-bold text-red-700">
-                            {searchLogs.filter(l => new Date(l.executed_at).toDateString() === new Date().toDateString())
-                              .reduce((sum, l) => sum + (l.new_count || 0), 0)}
-                          </div>
-                          <div className="text-xs text-red-600">新增文章</div>
+                          <div className="text-xs text-purple-600">新增待审核</div>
                         </div>
                       </div>
                     )}
@@ -1331,42 +1438,49 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 )}
               </>
 
-              {/* GitHub Token 未配置提示 */}
-              {!githubToken && (
+              {/* API Key 未配置提示 */}
+              {!kimiApiKey && !deepSeekApiKey && (
                 <Card className="border-yellow-200 bg-yellow-50">
                   <CardContent className="p-4">
                     <p className="text-yellow-700 text-sm">
-                      未配置GitHub Token，点击"配置"按钮设置Token以使用手动触发搜索功能。系统每天 8:00 和 20:00 仍会自动执行。
+                      未配置 AI API Key，点击"API配置"按钮设置 Kimi 或 DeepSeek API Key 以使用 AI 搜索功能。
                     </p>
+                    <Button 
+                      size="sm" 
+                      className="mt-2"
+                      onClick={() => setShowApiConfigDialog(true)}
+                    >
+                      <Settings className="w-4 h-4 mr-1" />
+                      立即配置
+                    </Button>
                   </CardContent>
                 </Card>
               )}
 
-              {/* 区域3: AI搜索辅助面板 */}
+              {/* 区域3: API配置状态面板 */}
               <Card className="border-purple-200 bg-purple-50">
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Sparkles className="w-5 h-5 text-purple-600" />
-                    <span className="font-medium text-purple-800">AI搜索辅助（手动补充）</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-purple-600" />
+                      <span className="font-medium text-purple-800">AI API 状态</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${kimiApiKey ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                        <span className="text-sm text-gray-600">Kimi {kimiApiKey ? '已配置' : '未配置'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${deepSeekApiKey ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                        <span className="text-sm text-gray-600">DeepSeek {deepSeekApiKey ? '已配置' : '未配置'}</span>
+                      </div>
+                      {(kimiApiKey || deepSeekApiKey) && (
+                        <Badge variant="outline" className="text-xs">
+                          优先: {preferredApi === 'kimi' ? 'Kimi' : 'DeepSeek'}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-sm text-purple-700 mb-3">
-                    找到文章后 → 复制URL → 点击下方文章的"新增到系统"按钮，或进入"文章管理"标签页新增文章
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <a href="https://kimi.moonshot.cn/" target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white rounded-md text-sm hover:bg-purple-700">
-                      <ExternalLink className="w-4 h-4" />
-                      打开Kimi搜索
-                    </a>
-                    <a href="https://chat.deepseek.com/" target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700">
-                      <ExternalLink className="w-4 h-4" />
-                      打开DeepSeek
-                    </a>
-                  </div>
-                  <p className="text-xs text-purple-600 mt-3">
-                    推荐关键词：习近平总书记 {new Date().getFullYear()}年{new Date().getMonth() + 1}月 最新重要讲话 会议 文章 考察
-                  </p>
                 </CardContent>
               </Card>
 
@@ -1376,7 +1490,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <CardContent className="p-8 text-center">
                     <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500">暂无新发现的文章</p>
-                    <p className="text-gray-400 text-sm mt-1">系统每天 8:00 和 20:00 自动从官方网站抓取最新文章</p>
+                    <p className="text-gray-400 text-sm mt-1">点击"立即搜索"使用 AI 搜索最新文章</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -2075,6 +2189,115 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               ) : (
                 '保存并验证'
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI API 配置对话框 */}
+      <Dialog open={showApiConfigDialog} onOpenChange={setShowApiConfigDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>AI API 配置</DialogTitle>
+            <DialogDescription>
+              配置 Kimi 或 DeepSeek API Key 以使用 AI 搜索功能
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {/* Kimi API Key */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-2">
+                Kimi API Key
+                {kimiApiKey && <span className="text-xs text-green-600">已配置</span>}
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  type="password"
+                  placeholder="sk-xxxxxxxxxxxxxxxxxxxx"
+                  value={kimiKeyInput}
+                  onChange={(e) => setKimiKeyInput(e.target.value)}
+                  className="flex-1"
+                />
+                {kimiApiKey ? (
+                  <Button variant="outline" size="sm" onClick={handleClearKimiKey}>
+                    清除
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={handleSaveKimiKey}
+                    disabled={!kimiKeyInput.trim() || kimiKeyValidating}
+                  >
+                    {kimiKeyValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : '保存'}
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">
+                在 <a href="https://platform.moonshot.cn/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Kimi开放平台</a> 获取
+              </p>
+            </div>
+
+            {/* DeepSeek API Key */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-2">
+                DeepSeek API Key
+                {deepSeekApiKey && <span className="text-xs text-green-600">已配置</span>}
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  type="password"
+                  placeholder="sk-xxxxxxxxxxxxxxxxxxxx"
+                  value={deepSeekKeyInput}
+                  onChange={(e) => setDeepSeekKeyInput(e.target.value)}
+                  className="flex-1"
+                />
+                {deepSeekApiKey ? (
+                  <Button variant="outline" size="sm" onClick={handleClearDeepSeekKey}>
+                    清除
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={handleSaveDeepSeekKey}
+                    disabled={!deepSeekKeyInput.trim() || deepSeekKeyValidating}
+                  >
+                    {deepSeekKeyValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : '保存'}
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">
+                在 <a href="https://platform.deepseek.com/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">DeepSeek平台</a> 获取
+              </p>
+            </div>
+
+            {/* 优先使用 */}
+            {(kimiApiKey || deepSeekApiKey) && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">搜索时优先使用</label>
+                <div className="flex gap-2">
+                  <Button
+                    variant={preferredApi === 'kimi' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleSwitchPreferredApi('kimi')}
+                    disabled={!kimiApiKey}
+                  >
+                    Kimi
+                  </Button>
+                  <Button
+                    variant={preferredApi === 'deepseek' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleSwitchPreferredApi('deepseek')}
+                    disabled={!deepSeekApiKey}
+                  >
+                    DeepSeek
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowApiConfigDialog(false)}>
+              关闭
             </Button>
           </DialogFooter>
         </DialogContent>

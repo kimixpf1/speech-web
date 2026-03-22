@@ -1,0 +1,539 @@
+/**
+ * AI 搜索服务 - 使用 Kimi/DeepSeek API 联网搜索文章
+ */
+
+import { supabase } from '@/lib/supabase';
+
+// API 端点
+const KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions';
+const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
+
+// 本地存储键
+const DEEPSEEK_API_KEY_STORAGE = 'deepseek_api_key';
+const PREFERRED_API_STORAGE = 'preferred_search_api';
+const LAST_SEARCH_TIME_STORAGE = 'last_search_time';
+
+// 搜索关键词配置
+const SEARCH_QUERIES = [
+  '习近平 最新讲话 2026',
+  '习近平 重要文章 求是杂志 2026',
+  '习近平 重要会议 中央政治局 2026',
+  '习近平 考察调研 最新',
+];
+
+// 系统提示词
+const SEARCH_SYSTEM_PROMPT = `你是一个新闻搜索助手。请搜索最新的习近平重要讲话、文章、会议相关新闻。
+返回 JSON 数组，每条包含以下字段：
+- title: 文章标题（字符串，完整标题）
+- date: 日期（格式 YYYY-MM-DD）
+- category: 分类（speech/article/meeting/inspection 之一）
+- categoryName: 分类中文名（重要讲话/发表文章/重要会议/考察调研）
+- source: 来源媒体（如 新华网、人民网、求是杂志）
+- url: 原文链接（必须是有效的 http/https 链接）
+- summary: 一句话摘要（不超过100字）
+
+只返回 JSON 数组，不要其他文字。只返回最近15天内的文章，最多返回10条。
+如果没有找到相关内容，返回空数组 []。`;
+
+export interface SearchedArticle {
+  title: string;
+  date: string;
+  category: string;
+  categoryName: string;
+  source: string;
+  url: string;
+  summary: string;
+}
+
+export interface SearchLog {
+  id?: string;
+  executed_at: string;
+  search_type: 'manual' | 'auto';
+  api_used: 'kimi' | 'deepseek';
+  queries: string[];
+  crawl_count: number;
+  new_count: number;
+  status: 'success' | 'partial_fail' | 'failed';
+  details: Record<string, unknown>;
+  duration_seconds: number;
+}
+
+export interface SearchResult {
+  success: boolean;
+  articles: SearchedArticle[];
+  newCount: number;
+  totalCount: number;
+  duration: number;
+  error?: string;
+  apiUsed: 'kimi' | 'deepseek';
+}
+
+// ============ API Key 管理 ============
+
+export function saveDeepSeekApiKey(apiKey: string): void {
+  localStorage.setItem(DEEPSEEK_API_KEY_STORAGE, apiKey);
+}
+
+export function getDeepSeekApiKey(): string | null {
+  return localStorage.getItem(DEEPSEEK_API_KEY_STORAGE);
+}
+
+export function clearDeepSeekApiKey(): void {
+  localStorage.removeItem(DEEPSEEK_API_KEY_STORAGE);
+}
+
+export function setPreferredApi(api: 'kimi' | 'deepseek'): void {
+  localStorage.setItem(PREFERRED_API_STORAGE, api);
+}
+
+export function getPreferredApi(): 'kimi' | 'deepseek' {
+  return (localStorage.getItem(PREFERRED_API_STORAGE) as 'kimi' | 'deepseek') || 'kimi';
+}
+
+export function getLastSearchTime(): number | null {
+  const time = localStorage.getItem(LAST_SEARCH_TIME_STORAGE);
+  return time ? parseInt(time, 10) : null;
+}
+
+export function setLastSearchTime(time: number): void {
+  localStorage.setItem(LAST_SEARCH_TIME_STORAGE, time.toString());
+}
+
+export function shouldAutoSearch(): boolean {
+  const lastTime = getLastSearchTime();
+  if (!lastTime) return true;
+  // 超过 12 小时建议搜索
+  return Date.now() - lastTime > 12 * 60 * 60 * 1000;
+}
+
+// ============ API 验证 ============
+
+export async function validateDeepSeekApiKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const response = await fetch(DEEPSEEK_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [{ role: 'user', content: '你好' }],
+        max_tokens: 10,
+      }),
+    });
+
+    if (response.ok) {
+      return { valid: true };
+    } else {
+      const error = await response.json();
+      return { valid: false, error: error.error?.message || 'API Key 无效' };
+    }
+  } catch (error) {
+    return { valid: false, error: '网络错误，请重试' };
+  }
+}
+
+// ============ 搜索功能 ============
+
+/**
+ * 使用 Kimi API 联网搜索文章
+ */
+async function searchWithKimi(query: string, apiKey: string): Promise<SearchedArticle[]> {
+  try {
+    const response = await fetch(KIMI_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'moonshot-v1-8k',
+        messages: [
+          { role: 'system', content: SEARCH_SYSTEM_PROMPT },
+          { role: 'user', content: `请搜索：${query}` },
+        ],
+        tools: [{ type: 'web_search' }],
+        temperature: 0.1,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || `API 错误: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+
+    // 提取 JSON 数组
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      console.log('Kimi 返回内容无 JSON:', content.substring(0, 200));
+      return [];
+    }
+
+    const articles: SearchedArticle[] = JSON.parse(jsonMatch[0]);
+    return articles.filter(a => a.title && a.url && a.url.startsWith('http'));
+  } catch (error) {
+    console.error('Kimi 搜索失败:', error);
+    throw error;
+  }
+}
+
+/**
+ * 使用 DeepSeek API 联网搜索文章
+ */
+async function searchWithDeepSeek(query: string, apiKey: string): Promise<SearchedArticle[]> {
+  try {
+    const response = await fetch(DEEPSEEK_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { role: 'system', content: SEARCH_SYSTEM_PROMPT },
+          { role: 'user', content: `请搜索：${query}\n请使用联网搜索功能获取最新信息。` },
+        ],
+        temperature: 0.1,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || `API 错误: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      console.log('DeepSeek 返回内容无 JSON:', content.substring(0, 200));
+      return [];
+    }
+
+    const articles: SearchedArticle[] = JSON.parse(jsonMatch[0]);
+    return articles.filter(a => a.title && a.url && a.url.startsWith('http'));
+  } catch (error) {
+    console.error('DeepSeek 搜索失败:', error);
+    throw error;
+  }
+}
+
+/**
+ * 获取已存在的文章 URL 和标题（用于去重）
+ */
+async function getExistingArticles(): Promise<{ urls: Set<string>; titles: Set<string> }> {
+  const urls = new Set<string>();
+  const titles = new Set<string>();
+
+  // 从 pending_articles 获取
+  const { data: pendingData } = await supabase
+    .from('pending_articles')
+    .select('url, title')
+    .limit(1000);
+
+  if (pendingData) {
+    pendingData.forEach(row => {
+      if (row.url) urls.add(row.url);
+      if (row.title) titles.add(row.title);
+    });
+  }
+
+  // 从 articles 获取（如果表存在）
+  const { data: articlesData } = await supabase
+    .from('articles')
+    .select('url, title')
+    .limit(1000);
+
+  if (articlesData) {
+    articlesData.forEach(row => {
+      if (row.url) urls.add(row.url);
+      if (row.title) titles.add(row.title);
+    });
+  }
+
+  return { urls, titles };
+}
+
+/**
+ * 检查标题是否重复（模糊匹配）
+ */
+function isTitleDuplicate(title: string, existingTitles: Set<string>): boolean {
+  const cleanTitle = title.trim();
+  if (existingTitles.has(cleanTitle)) return true;
+
+  // 简化标题后比较
+  const simplify = (t: string) => t.replace(/[《》""「」『』【】\s]/g, '');
+  const simplified = simplify(cleanTitle);
+
+  for (const existing of existingTitles) {
+    const existingSimplified = simplify(existing);
+    if (simplified === existingSimplified) return true;
+    // 包含关系检查
+    if (simplified.length > 10 && existingSimplified.length > 10) {
+      if (simplified.includes(existingSimplified) || existingSimplified.includes(simplified)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * 执行完整的文章搜索流程
+ */
+export async function searchArticles(
+  kimiApiKey: string | null,
+  deepSeekApiKey: string | null,
+  searchType: 'manual' | 'auto' = 'manual',
+  onProgress?: (message: string) => void
+): Promise<SearchResult> {
+  const startTime = Date.now();
+  const preferredApi = getPreferredApi();
+  let apiUsed: 'kimi' | 'deepseek' = preferredApi;
+  let allArticles: SearchedArticle[] = [];
+  const searchDetails: Record<string, unknown> = {};
+
+  onProgress?.('正在获取已有文章列表...');
+
+  // 获取已有文章用于去重
+  const { urls: existingUrls, titles: existingTitles } = await getExistingArticles();
+  searchDetails['existing_count'] = existingUrls.size;
+
+  // 选择 API
+  const primaryKey = preferredApi === 'kimi' ? kimiApiKey : deepSeekApiKey;
+  const fallbackKey = preferredApi === 'kimi' ? deepSeekApiKey : kimiApiKey;
+  const fallbackApi = preferredApi === 'kimi' ? 'deepseek' : 'kimi';
+
+  if (!primaryKey && !fallbackKey) {
+    return {
+      success: false,
+      articles: [],
+      newCount: 0,
+      totalCount: 0,
+      duration: (Date.now() - startTime) / 1000,
+      error: '请先配置 Kimi 或 DeepSeek API Key',
+      apiUsed,
+    };
+  }
+
+  const activeKey = primaryKey || fallbackKey;
+  if (!primaryKey && fallbackKey) {
+    apiUsed = fallbackApi;
+  }
+
+  // 执行搜索
+  for (let i = 0; i < SEARCH_QUERIES.length; i++) {
+    const query = SEARCH_QUERIES[i];
+    onProgress?.(`正在搜索 (${i + 1}/${SEARCH_QUERIES.length}): ${query}`);
+
+    try {
+      let results: SearchedArticle[];
+      if (apiUsed === 'kimi') {
+        results = await searchWithKimi(query, activeKey!);
+      } else {
+        results = await searchWithDeepSeek(query, activeKey!);
+      }
+
+      searchDetails[`query_${i + 1}`] = {
+        query,
+        count: results.length,
+        status: 'success',
+      };
+
+      allArticles.push(...results);
+    } catch (error) {
+      searchDetails[`query_${i + 1}`] = {
+        query,
+        count: 0,
+        status: 'failed',
+        error: error instanceof Error ? error.message : '未知错误',
+      };
+
+      // 如果主 API 失败，尝试备用 API
+      if (fallbackKey && apiUsed !== fallbackApi) {
+        onProgress?.(`${apiUsed} 搜索失败，尝试 ${fallbackApi}...`);
+        try {
+          let results: SearchedArticle[];
+          if (fallbackApi === 'kimi') {
+            results = await searchWithKimi(query, fallbackKey);
+          } else {
+            results = await searchWithDeepSeek(query, fallbackKey);
+          }
+          allArticles.push(...results);
+          searchDetails[`query_${i + 1}_fallback`] = {
+            api: fallbackApi,
+            count: results.length,
+            status: 'success',
+          };
+        } catch {
+          // 备用也失败，继续下一个查询
+        }
+      }
+    }
+
+    // 添加延迟避免限流
+    if (i < SEARCH_QUERIES.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  }
+
+  onProgress?.('正在去重...');
+
+  // 去重
+  const seenUrls = new Set<string>();
+  const newArticles: SearchedArticle[] = [];
+
+  for (const article of allArticles) {
+    if (!article.url || !article.title) continue;
+    if (existingUrls.has(article.url)) continue;
+    if (seenUrls.has(article.url)) continue;
+    if (isTitleDuplicate(article.title, existingTitles)) continue;
+
+    seenUrls.add(article.url);
+    newArticles.push(article);
+  }
+
+  const duration = (Date.now() - startTime) / 1000;
+
+  // 写入待审核表
+  if (newArticles.length > 0) {
+    onProgress?.(`正在保存 ${newArticles.length} 篇新文章...`);
+    await savePendingArticles(newArticles);
+  }
+
+  // 更新最后搜索时间
+  setLastSearchTime(Date.now());
+
+  // 写入搜索日志
+  const log: SearchLog = {
+    executed_at: new Date().toISOString(),
+    search_type: searchType,
+    api_used: apiUsed,
+    queries: SEARCH_QUERIES,
+    crawl_count: allArticles.length,
+    new_count: newArticles.length,
+    status: newArticles.length > 0 ? 'success' : (allArticles.length > 0 ? 'partial_fail' : 'failed'),
+    details: searchDetails,
+    duration_seconds: Math.round(duration),
+  };
+  await saveSearchLog(log);
+
+  onProgress?.('搜索完成！');
+
+  return {
+    success: true,
+    articles: newArticles,
+    newCount: newArticles.length,
+    totalCount: allArticles.length,
+    duration,
+    apiUsed,
+  };
+}
+
+/**
+ * 保存待审核文章到 Supabase
+ */
+async function savePendingArticles(articles: SearchedArticle[]): Promise<void> {
+  const rows = articles.map(article => {
+    // 解析日期
+    let year = new Date().getFullYear();
+    let month = new Date().getMonth() + 1;
+    let day = new Date().getDate();
+
+    const dateMatch = article.date?.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (dateMatch) {
+      year = parseInt(dateMatch[1]);
+      month = parseInt(dateMatch[2]);
+      day = parseInt(dateMatch[3]);
+    }
+
+    return {
+      id: crypto.randomUUID(),
+      title: article.title,
+      date: article.date || `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+      year,
+      month,
+      day,
+      category: article.category || 'speech',
+      categoryName: article.categoryName || '重要讲话',
+      source: article.source || '官方媒体',
+      url: article.url,
+      summary: article.summary || article.title,
+      status: 'pending',
+      discovered_by: 'ai_search',
+      fetched_at: new Date().toISOString(),
+    };
+  });
+
+  const { error } = await supabase
+    .from('pending_articles')
+    .insert(rows);
+
+  if (error) {
+    console.error('保存待审核文章失败:', error);
+  }
+}
+
+/**
+ * 保存搜索日志到 Supabase
+ */
+async function saveSearchLog(log: SearchLog): Promise<void> {
+  const { error } = await supabase
+    .from('search_logs')
+    .insert(log);
+
+  if (error) {
+    console.error('保存搜索日志失败:', error);
+  }
+}
+
+/**
+ * 获取最近的搜索日志
+ */
+export async function getRecentSearchLogs(limit = 10): Promise<SearchLog[]> {
+  const { data, error } = await supabase
+    .from('search_logs')
+    .select('*')
+    .order('executed_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('获取搜索日志失败:', error);
+    return [];
+  }
+
+  return data || [];
+}
+
+/**
+ * 获取今日搜索统计
+ */
+export async function getTodaySearchStats(): Promise<{
+  runCount: number;
+  totalFound: number;
+  totalNew: number;
+}> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const { data, error } = await supabase
+    .from('search_logs')
+    .select('crawl_count, new_count')
+    .gte('executed_at', today.toISOString());
+
+  if (error || !data) {
+    return { runCount: 0, totalFound: 0, totalNew: 0 };
+  }
+
+  return {
+    runCount: data.length,
+    totalFound: data.reduce((sum, log) => sum + (log.crawl_count || 0), 0),
+    totalNew: data.reduce((sum, log) => sum + (log.new_count || 0), 0),
+  };
+}
