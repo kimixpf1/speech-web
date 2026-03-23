@@ -1,19 +1,20 @@
+# -*- coding: utf-8 -*-
 """
-AI 定时搜索脚本 - Kimi API + 百度搜索双重保障
-每天早晚8点自动运行，搜索习近平总书记最新讲话、文章、调研等
+AI scheduled search script - Kimi API + Baidu search
+Morning 8:00: search yesterday's articles (catch up)
+Evening 8:00: search today's articles
 """
 import os
 import re
 import json
 import uuid
 import time
-import traceback
 import requests
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Dict, List
 from urllib.parse import quote
 
-# ============ 配置 ============
+# Config
 SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
 SUPABASE_KEY = os.environ.get('SUPABASE_ANON_KEY', '')
 KIMI_API_KEY = os.environ.get('KIMI_API_KEY', '')
@@ -22,7 +23,6 @@ KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions'
 TABLE = 'pending_articles'
 LOG_TABLE = 'search_logs'
 
-SEARCH_QUERY = '习近平总书记今日最新讲话 文章 调研 会议'
 BAIDU_SITES = ['people.com.cn', 'xinhuanet.com', 'qstheory.cn']
 
 DOMAIN_KEYWORDS = {
@@ -48,6 +48,27 @@ DOMAIN_NAMES = {'economy': '经济', 'politics': '政治', 'culture': '文化', 
                 'ecology': '生态', 'party': '党建', 'defense': '国防', 'diplomacy': '外交'}
 
 
+def get_search_query():
+    """Generate search query based on time: morning searches yesterday, evening searches today"""
+    utc_now = datetime.utcnow()
+    beijing_hour = (utc_now.hour + 8) % 24
+    
+    if beijing_hour < 12:
+        # Morning (0-12): search yesterday
+        target_date = (utc_now + timedelta(hours=8) - timedelta(days=1)).strftime('%Y年%m月%d日')
+        date_keyword = '昨日'
+        search_date = 'yesterday'
+    else:
+        # Afternoon/Evening (12-24): search today
+        target_date = (utc_now + timedelta(hours=8)).strftime('%Y年%m月%d日')
+        date_keyword = '今日'
+        search_date = 'today'
+    
+    query = f'习近平总书记{date_keyword}最新讲话 文章 调研 会议 {target_date}'
+    print(f'[Time] Beijing {beijing_hour}:00, searching {date_keyword} ({target_date})')
+    return query, search_date, target_date
+
+
 def detect_domain(title: str) -> str:
     for domain, keywords in DOMAIN_KEYWORDS.items():
         if any(kw in title for kw in keywords):
@@ -62,23 +83,18 @@ def detect_category(title: str) -> str:
     return 'speech'
 
 
-# ============ Kimi API 联网搜索 ============
-KIMI_SYSTEM_PROMPT = """你是新闻搜索助手。请联网搜索习近平总书记最近的重要讲话、文章、会议、考察调研新闻。
-
-重要：必须使用联网搜索获取最新新闻，不要用训练数据。
-
-返回JSON数组，每条包含：
-{"title": "标题", "date": "YYYY-MM-DD", "source": "来源", "url": "链接", "summary": "摘要"}
-
-要求：只返回最近7天内的新闻，最多10条，只返回JSON数组。"""
-
-
-def search_with_kimi() -> List[Dict]:
+def search_with_kimi(query: str) -> List[Dict]:
     if not KIMI_API_KEY:
-        print('[Kimi] API Key 未配置')
+        print('[Kimi] API Key not configured')
         return []
     
-    print('[Kimi] 开始联网搜索...')
+    system_prompt = f"""你是新闻搜索助手。请联网搜索习近平总书记最近的重要讲话、文章、会议、考察调研新闻。
+重要：必须使用联网搜索获取最新新闻，不要用训练数据。
+返回JSON数组，每条包含：
+{{"title": "标题", "date": "YYYY-MM-DD", "category": "speech", "categoryName": "重要讲话", "source": "来源", "url": "链接", "summary": "摘要"}}
+要求：只返回最近7天内的新闻，最多10条，只返回JSON数组。"""
+
+    print(f'[Kimi] Searching: {query}')
     try:
         response = requests.post(
             KIMI_API_URL,
@@ -86,8 +102,8 @@ def search_with_kimi() -> List[Dict]:
             json={
                 'model': 'moonshot-v1-auto',
                 'messages': [
-                    {'role': 'system', 'content': KIMI_SYSTEM_PROMPT},
-                    {'role': 'user', 'content': SEARCH_QUERY},
+                    {'role': 'system', 'content': system_prompt},
+                    {'role': 'user', 'content': query},
                 ],
                 'tools': [{'type': 'builtin_function', 'function': {'name': '$web_search'}}],
                 'temperature': 0.1,
@@ -96,40 +112,39 @@ def search_with_kimi() -> List[Dict]:
         )
         
         if response.status_code != 200:
-            print(f'[Kimi] API 错误: {response.status_code}')
+            print(f'[Kimi] API error: {response.status_code}')
             return []
         
         content = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
-        print(f'[Kimi] 返回: {content[:200]}...')
+        print(f'[Kimi] Response: {content[:200]}...')
         
         match = re.search(r'\[[\s\S]*?\]', content)
         if not match:
             return []
         
         articles = json.loads(match.group())
-        print(f'[Kimi] 找到 {len(articles)} 篇')
+        print(f'[Kimi] Found {len(articles)} articles')
         return [a for a in articles if a.get('title') and a.get('url', '').startswith('http')]
     
     except Exception as e:
-        print(f'[Kimi] 搜索失败: {e}')
+        print(f'[Kimi] Search failed: {e}')
         return []
 
 
-# ============ 百度搜索 ============
-def search_with_baidu() -> List[Dict]:
-    print('[百度] 开始搜索...')
+def search_with_baidu(query: str) -> List[Dict]:
+    print('[Baidu] Starting search...')
     articles = []
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     
     try:
         from bs4 import BeautifulSoup
     except ImportError:
-        print('[百度] BeautifulSoup 未安装')
+        print('[Baidu] BeautifulSoup not installed')
         return []
     
     for site in BAIDU_SITES:
-        query = f'site:{site} 习近平 最新'
-        url = f'https://www.baidu.com/s?wd={quote(query)}&rn=10'
+        search_query = f'site:{site} 习近平 最新'
+        url = f'https://www.baidu.com/s?wd={quote(search_query)}&rn=10'
         
         try:
             resp = requests.get(url, headers=headers, timeout=15)
@@ -155,13 +170,12 @@ def search_with_baidu() -> List[Dict]:
                 })
             time.sleep(2)
         except Exception as e:
-            print(f'[百度] {site} 失败: {e}')
+            print(f'[Baidu] {site} failed: {e}')
     
-    print(f'[百度] 找到 {len(articles)} 篇')
+    print(f'[Baidu] Found {len(articles)} articles')
     return articles
 
 
-# ============ 合并去重 ============
 def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict]) -> List[Dict]:
     all_articles = []
     seen_titles = set()
@@ -205,7 +219,6 @@ def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict]) -> L
     return all_articles
 
 
-# ============ Supabase ============
 def get_existing_urls() -> set:
     if not SUPABASE_URL:
         return set()
@@ -258,19 +271,21 @@ def save_log(kimi_count, baidu_count, new_count, status, details):
         pass
 
 
-# ============ 主函数 ============
 def main():
-    print(f'=== AI 定时搜索 {datetime.now()} ===')
+    print(f'=== AI Scheduled Search {datetime.now()} ===')
     
-    kimi_articles = search_with_kimi()
-    baidu_articles = search_with_baidu()
+    # Get search query based on time
+    search_query, search_date, target_date = get_search_query()
+    
+    kimi_articles = search_with_kimi(search_query)
+    baidu_articles = search_with_baidu(search_query)
     
     merged = merge_and_dedupe(kimi_articles, baidu_articles)
-    print(f'[合并] 去重后 {len(merged)} 篇')
+    print(f'[Merge] After dedup: {len(merged)} articles')
     
     existing = get_existing_urls()
     new_articles = [a for a in merged if a['url'] not in existing]
-    print(f'[过滤] 新增 {len(new_articles)} 篇')
+    print(f'[Filter] New: {len(new_articles)} articles')
     
     saved = save_articles(new_articles)
     
@@ -281,9 +296,10 @@ def main():
         status = 'partial_fail'
     
     save_log(len(kimi_articles), len(baidu_articles), saved, status,
-             {'kimi': len(kimi_articles), 'baidu': len(baidu_articles)})
+             {'kimi': len(kimi_articles), 'baidu': len(baidu_articles), 
+              'search_date': search_date, 'target_date': target_date})
     
-    print(f'=== 完成: Kimi {len(kimi_articles)}, 百度 {len(baidu_articles)}, 新增 {saved} ===')
+    print(f'=== Done: Kimi {len(kimi_articles)}, Baidu {len(baidu_articles)}, New {saved} ===')
 
 
 if __name__ == '__main__':
