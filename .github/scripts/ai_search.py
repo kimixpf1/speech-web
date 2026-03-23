@@ -260,25 +260,36 @@ def save_articles(articles: List[Dict]) -> int:
 
 def save_log(kimi_count, baidu_count, new_count, status, details):
     if not SUPABASE_URL:
+        print('[Log] SUPABASE_URL not configured')
         return
     try:
-        requests.post(
+        log_data = {
+            'executed_at': datetime.now().isoformat(),
+            'crawl_count': kimi_count + baidu_count,
+            'search_count': kimi_count + baidu_count,
+            'new_count': new_count,
+            'status': status,
+            'details': {**details, 'search_type': 'auto', 'api_used': 'kimi+baidu'},
+            'duration_seconds': 0,
+        }
+        print(f'[Log] Saving to {LOG_TABLE}: {json.dumps(log_data, ensure_ascii=False)}')
+        
+        resp = requests.post(
             f'{SUPABASE_URL}/rest/v1/{LOG_TABLE}',
-            headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}',
-                     'Content-Type': 'application/json'},
-            json={
-                'executed_at': datetime.now().isoformat(),
-                'crawl_count': kimi_count + baidu_count,
-                'search_count': kimi_count + baidu_count,
-                'new_count': new_count,
-                'status': status,
-                'details': {**details, 'search_type': 'auto', 'api_used': 'kimi+baidu'},
-                'duration_seconds': 0,
+            headers={
+                'apikey': SUPABASE_KEY, 
+                'Authorization': f'Bearer {SUPABASE_KEY}',
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
             },
+            json=log_data, 
             timeout=10
         )
-    except:
-        pass
+        print(f'[Log] Response: {resp.status_code} - {resp.text[:200] if resp.text else "empty"}')
+        if resp.status_code not in (200, 201):
+            print(f'[Log] ERROR: Failed to save log')
+    except Exception as e:
+        print(f'[Log] Exception: {e}')
 
 
 def main():
