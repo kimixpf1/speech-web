@@ -18,6 +18,10 @@ const SEARCH_QUERIES = [
   '习近平总书记今日最新讲话',
 ];
 
+// 百度搜索配置 - 指定网站
+const BAIDU_SEARCH_SITES = ['people.com.cn', 'xinhuanet.com', 'qstheory.cn'];
+const BAIDU_SEARCH_QUERY = '习近平 最新讲话 site:people.com.cn OR site:xinhuanet.com OR site:qstheory.cn';
+
 // 系统提示词
 const SEARCH_SYSTEM_PROMPT = `你是一个新闻搜索助手。请联网搜索习近平总书记最近的重要讲话、文章、会议、考察调研新闻。
 
@@ -55,7 +59,7 @@ export interface SearchLog {
   id?: string;
   executed_at: string;
   search_type: 'manual' | 'auto';
-  api_used: 'kimi' | 'deepseek';
+  api_used: 'kimi' | 'deepseek' | 'kimi+baidu';
   queries: string[];
   crawl_count: number;
   new_count: number;
@@ -71,7 +75,7 @@ export interface SearchResult {
   totalCount: number;
   duration: number;
   error?: string;
-  apiUsed: 'kimi' | 'deepseek';
+  apiUsed: 'kimi' | 'deepseek' | 'kimi+baidu';
 }
 
 // ============ API Key 管理 ============
@@ -202,6 +206,67 @@ async function searchWithKimi(query: string, apiKey: string): Promise<SearchedAr
   } catch (error) {
     console.error('Kimi 搜索失败:', error);
     throw error;
+  }
+}
+
+/**
+ * 使用 Kimi API 搜索指定网站（模拟百度搜索）
+ * 由于浏览器 CORS 限制，无法直接调用百度，通过 Kimi 联网搜索指定网站
+ */
+async function searchBaiduViaKimi(apiKey: string): Promise<SearchedArticle[]> {
+  const BAIDU_SYSTEM_PROMPT = `你是一个新闻搜索助手。请联网搜索以下网站上习近平总书记最近的重要讲话、文章、会议、调研新闻：
+- 人民网 (people.com.cn)
+- 新华网 (xinhuanet.com, news.cn)
+- 求是网 (qstheory.cn)
+
+重要：你必须使用联网搜索功能获取最新新闻，搜索这些特定网站的内容。
+
+请返回一个 JSON 数组，每条新闻包含：
+{"title": "标题", "date": "YYYY-MM-DD", "category": "speech", "categoryName": "重要讲话", "source": "来源网站", "url": "完整URL", "summary": "摘要"}
+
+要求：只返回最近7天内的新闻，最多5条，只返回JSON数组。`;
+
+  try {
+    console.log('开始百度搜索（via Kimi）...');
+    
+    const response = await fetch(KIMI_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'moonshot-v1-auto',
+        messages: [
+          { role: 'system', content: BAIDU_SYSTEM_PROMPT },
+          { role: 'user', content: BAIDU_SEARCH_QUERY },
+        ],
+        tools: [{
+          type: 'builtin_function',
+          function: { name: '$web_search' },
+        }],
+        temperature: 0.1,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('百度搜索 API 错误:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    console.log('百度搜索返回:', content.substring(0, 300));
+
+    const jsonMatch = content.match(/\[[\s\S]*?\]/);
+    if (!jsonMatch) return [];
+
+    const articles: SearchedArticle[] = JSON.parse(jsonMatch[0]);
+    console.log('百度搜索找到:', articles.length, '篇');
+    return articles.filter(a => a.title && a.url && a.url.startsWith('http'));
+  } catch (error) {
+    console.error('百度搜索失败:', error);
+    return [];
   }
 }
 
@@ -407,6 +472,27 @@ export async function searchArticles(
     }
   }
 
+  // 步骤2: 百度搜索（通过 Kimi 搜索指定网站）
+  if (kimiApiKey) {
+    onProgress?.('正在进行百度搜索（人民网/新华网/求是网）...');
+    try {
+      await new Promise(resolve => setTimeout(resolve, 2000)); // 避免限流
+      const baiduResults = await searchBaiduViaKimi(kimiApiKey);
+      searchDetails['baidu_search'] = {
+        count: baiduResults.length,
+        status: 'success',
+        sites: BAIDU_SEARCH_SITES,
+      };
+      allArticles.push(...baiduResults);
+    } catch (error) {
+      searchDetails['baidu_search'] = {
+        count: 0,
+        status: 'failed',
+        error: error instanceof Error ? error.message : '百度搜索失败',
+      };
+    }
+  }
+
   onProgress?.('正在去重...');
 
   // 去重
@@ -450,10 +536,14 @@ export async function searchArticles(
     logStatus = 'partial_fail';
   }
   
+  // 判断是否使用了百度搜索
+  const usedBaidu = searchDetails['baidu_search'] && (searchDetails['baidu_search'] as any).status === 'success';
+  const finalApiUsed: 'kimi' | 'deepseek' | 'kimi+baidu' = usedBaidu && apiUsed === 'kimi' ? 'kimi+baidu' : apiUsed;
+  
   const log: SearchLog = {
     executed_at: new Date().toISOString(),
     search_type: searchType,
-    api_used: apiUsed,
+    api_used: finalApiUsed,
     queries: SEARCH_QUERIES,
     crawl_count: allArticles.length,
     new_count: newArticles.length,
@@ -471,7 +561,7 @@ export async function searchArticles(
     newCount: newArticles.length,
     totalCount: allArticles.length,
     duration,
-    apiUsed,
+    apiUsed: finalApiUsed,
   };
 }
 
