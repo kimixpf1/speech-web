@@ -19,9 +19,23 @@ SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
 SUPABASE_KEY = os.environ.get('SUPABASE_ANON_KEY', '')
 KIMI_API_KEY = os.environ.get('KIMI_API_KEY', '')
 
+# 调试输出环境变量状态
+print(f'[Config] SUPABASE_URL: {"已配置" if SUPABASE_URL else "未配置"}')
+print(f'[Config] SUPABASE_ANON_KEY: {"已配置" if SUPABASE_KEY else "未配置"}')
+print(f'[Config] KIMI_API_KEY: {"已配置" if KIMI_API_KEY else "未配置"}')
+
 KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions'
 TABLE = 'pending_articles'
 LOG_TABLE = 'search_logs'
+
+# 官方来源域名白名单
+OFFICIAL_DOMAINS = [
+    'people.com.cn', 'www.people.com.cn',  # 人民网
+    'xinhuanet.com', 'www.xinhuanet.com', 'news.cn', 'www.news.cn',  # 新华网
+    'qstheory.cn', 'www.qstheory.cn',  # 求是网
+    'cctv.com', 'www.cctv.com', 'cntv.cn',  # 央视网
+    'gov.cn', 'www.gov.cn',  # 中国政府网
+]
 
 BAIDU_SITES = ['people.com.cn', 'xinhuanet.com', 'qstheory.cn']
 
@@ -81,6 +95,62 @@ def detect_category(title: str) -> str:
         if any(kw in title for kw in keywords):
             return category
     return 'speech'
+
+
+def validate_article(article: Dict) -> Dict:
+    """验证文章有效性：URL可访问、日期正确、来源官方"""
+    result = {'valid': True, 'reasons': []}
+    
+    url = article.get('url', '')
+    title = article.get('title', '')
+    article_date = article.get('date', '')
+    
+    # 1. 检查URL格式
+    if not url or not url.startswith('http'):
+        result['valid'] = False
+        result['reasons'].append('URL格式无效')
+        return result
+    
+    # 2. 检查来源是否官方
+    from urllib.parse import urlparse
+    domain = urlparse(url).netloc.lower()
+    is_official = any(off_domain in domain for off_domain in OFFICIAL_DOMAINS)
+    if not is_official:
+        result['valid'] = False
+        result['reasons'].append(f'非官方来源: {domain}')
+        return result
+    
+    # 3. 检查日期是否最近3天
+    try:
+        if article_date:
+            art_date = datetime.strptime(article_date, '%Y-%m-%d')
+            today = datetime.utcnow() + timedelta(hours=8)
+            days_diff = (today - art_date).days
+            if days_diff > 3 or days_diff < -1:
+                result['valid'] = False
+                result['reasons'].append(f'日期过旧: {article_date}（距今{days_diff}天）')
+                return result
+    except:
+        pass
+    
+    # 4. 检查URL是否可访问（HEAD请求）
+    try:
+        resp = requests.head(url, timeout=10, allow_redirects=True, 
+                           headers={'User-Agent': 'Mozilla/5.0'})
+        if resp.status_code == 404:
+            result['valid'] = False
+            result['reasons'].append('URL返回404')
+            return result
+        if resp.status_code >= 400:
+            result['valid'] = False
+            result['reasons'].append(f'URL返回错误: {resp.status_code}')
+            return result
+    except Exception as e:
+        result['valid'] = False
+        result['reasons'].append(f'URL无法访问: {str(e)[:50]}')
+        return result
+    
+    return result
 
 
 def search_with_kimi(query: str) -> List[Dict]:
@@ -190,6 +260,7 @@ def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict]) -> L
     all_articles = []
     seen_titles = set()
     seen_urls = set()
+    rejected = []
     
     def simplify(t): return re.sub(r'[《》""「」『』【】\s]', '', t)
     
@@ -200,6 +271,13 @@ def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict]) -> L
         
         simple = simplify(title)
         if simple in seen_titles:
+            return
+        
+        # 验证文章有效性
+        validation = validate_article(article)
+        if not validation['valid']:
+            rejected.append({'title': title, 'url': url, 'reasons': validation['reasons']})
+            print(f'[Validate] 拒绝: {title[:30]}... - {validation["reasons"]}')
             return
         
         seen_urls.add(url)
