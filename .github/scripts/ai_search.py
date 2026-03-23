@@ -88,11 +88,21 @@ def search_with_kimi(query: str) -> List[Dict]:
         print('[Kimi] API Key not configured')
         return []
     
-    system_prompt = f"""你是新闻搜索助手。请联网搜索习近平总书记最近的重要讲话、文章、会议、考察调研新闻。
-重要：必须使用联网搜索获取最新新闻，不要用训练数据。
+    # 获取今天日期
+    today = (datetime.utcnow() + timedelta(hours=8)).strftime('%Y年%m月%d日')
+    today_date = (datetime.utcnow() + timedelta(hours=8)).strftime('%Y-%m-%d')
+    
+    system_prompt = f"""你是新闻搜索助手。今天是{today}。
+
+重要提示：
+1. 必须使用联网搜索($web_search)获取最新新闻
+2. 绝对不要使用训练数据中的旧新闻
+3. 只返回{today_date}之后发布的新闻，更早的新闻直接丢弃
+
+请联网搜索习近平总书记最近的重要讲话、文章、会议、考察调研新闻。
 返回JSON数组，每条包含：
 {{"title": "标题", "date": "YYYY-MM-DD", "category": "speech", "categoryName": "重要讲话", "source": "来源", "url": "链接", "summary": "摘要"}}
-要求：只返回最近7天内的新闻，最多10条，只返回JSON数组。"""
+要求：只返回最近3天内的新闻，最多10条，只返回JSON数组。如果没找到最新新闻，返回空数组[]。"""
 
     print(f'[Kimi] Searching: {query}')
     try:

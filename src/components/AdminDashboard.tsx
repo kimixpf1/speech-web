@@ -1438,6 +1438,39 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                 </div>
                               </div>
                             )}
+                            {/* Kimi+百度搜索详情 */}
+                            {(log.details?.kimi !== undefined || log.details?.baidu !== undefined) && (
+                              <div className="mt-2 pt-2 border-t border-gray-200">
+                                <div className="text-xs text-gray-500 mb-1">搜索来源：</div>
+                                <div className="flex flex-wrap gap-1">
+                                  {log.details?.kimi !== undefined && (
+                                    <span className={`text-xs px-2 py-0.5 rounded ${log.details.kimi > 0 ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+                                      Kimi: {log.details.kimi}条
+                                    </span>
+                                  )}
+                                  {log.details?.baidu !== undefined && (
+                                    <span className={`text-xs px-2 py-0.5 rounded ${log.details.baidu > 0 ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                      百度: {log.details.baidu}条
+                                    </span>
+                                  )}
+                                  {log.details?.search_date && (
+                                    <span className="text-xs px-2 py-0.5 rounded bg-purple-50 text-purple-700">
+                                      {log.details.search_date === 'yesterday' ? '搜昨日' : '搜今日'}
+                                    </span>
+                                  )}
+                                  {log.details?.api_used && (
+                                    <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">
+                                      {log.details.api_used}
+                                    </span>
+                                  )}
+                                  {log.details?.search_type && (
+                                    <span className={`text-xs px-2 py-0.5 rounded ${log.details.search_type === 'auto' ? 'bg-orange-50 text-orange-700' : 'bg-cyan-50 text-cyan-700'}`}>
+                                      {log.details.search_type === 'auto' ? '定时任务' : '手动搜索'}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                             {log.details?.search_results && (
                               <div className="mt-2 pt-2 border-t border-gray-200">
                                 <div className="text-xs text-gray-500 mb-1">搜索详情：</div>
