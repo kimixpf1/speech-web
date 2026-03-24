@@ -12,9 +12,9 @@ DROP POLICY IF EXISTS "Allow admin read access to search_logs" ON search_logs;
 DROP POLICY IF EXISTS "search_logs_select" ON search_logs;
 DROP POLICY IF EXISTS "search_logs_insert" ON search_logs;
 
--- 允许已认证用户读取日志
+-- 允许所有人读取日志（包括匿名用户，用于前端显示）
 CREATE POLICY "search_logs_select" ON search_logs 
-FOR SELECT USING (auth.role() = 'authenticated');
+FOR SELECT USING (true);
 
 -- 允许已认证用户和匿名用户插入日志
 CREATE POLICY "search_logs_insert" ON search_logs 
