@@ -1,18 +1,16 @@
 /**
  * 自动搜索调度器 - 嵌入式定时搜索服务
- * 不依赖 GitHub Actions，在用户访问网站时自动触发搜索
+ * 早8点搜索昨日内容，晚8点搜索今日内容
  */
 
-import { searchArticles, getRecentSearchLogs, getLastSearchTime, setLastSearchTime, SearchedArticle } from './aiSearchService';
-import { supabase } from '@/lib/supabase';
-
-// 配置
-const AUTO_SEARCH_INTERVAL_HOURS = 12; // 每12小时自动搜索一次
-const MIN_CHECK_INTERVAL_MS = 60 * 1000; // 最小检查间隔1分钟
+import { searchArticles, setLastSearchTime, SearchedArticle } from './aiSearchService';
 
 // 存储键
 const AUTO_SEARCH_CONFIG_KEY = 'auto_search_config';
-const LAST_CHECK_TIME_KEY = 'last_auto_search_check';
+const LAST_SEARCH_SLOT_KEY = 'last_search_slot'; // 记录上次搜索时段
+
+// 时段定义
+type SearchSlot = 'morning' | 'evening' | null;
 
 // 状态
 let isSearching = false;
@@ -20,7 +18,6 @@ let lastCheckTime = 0;
 
 export interface AutoSearchConfig {
   enabled: boolean;
-  intervalHours: number;
   kimiApiKey?: string;
   deepSeekApiKey?: string;
 }
@@ -28,14 +25,61 @@ export interface AutoSearchConfig {
 export interface AutoSearchStatus {
   enabled: boolean;
   isSearching: boolean;
-  lastSearchTime: number | null;
-  nextSearchTime: number | null;
-  lastResult?: {
-    success: boolean;
-    newCount: number;
-    totalCount: number;
-    error?: string;
-  };
+  currentSlot: SearchSlot;
+  lastSearchSlot: SearchSlot;
+  nextSearchTime: string;
+}
+
+/**
+ * 获取当前北京时间时段
+ */
+function getCurrentSlot(): SearchSlot {
+  const now = new Date();
+  const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+  const hour = beijingTime.getHours();
+  
+  // 早间时段: 7:00 - 10:00 (覆盖8点前后)
+  if (hour >= 7 && hour < 10) {
+    return 'morning';
+  }
+  // 晚间时段: 19:00 - 22:00 (覆盖20点前后)
+  if (hour >= 19 && hour < 22) {
+    return 'evening';
+  }
+  return null;
+}
+
+/**
+ * 获取上次搜索时段
+ */
+function getLastSearchSlot(): SearchSlot {
+  return (localStorage.getItem(LAST_SEARCH_SLOT_KEY) as SearchSlot) || null;
+}
+
+/**
+ * 设置上次搜索时段
+ */
+function setLastSearchSlot(slot: SearchSlot): void {
+  if (slot) {
+    localStorage.setItem(LAST_SEARCH_SLOT_KEY, slot);
+  }
+}
+
+/**
+ * 获取下次搜索时间描述
+ */
+function getNextSearchTimeDesc(): string {
+  const now = new Date();
+  const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+  const hour = beijingTime.getHours();
+  
+  if (hour < 7) {
+    return `今天早8点 (约${7 - hour}小时后)`;
+  } else if (hour < 19) {
+    return `今天晚8点 (约${19 - hour}小时后)`;
+  } else {
+    return `明天早8点 (约${31 - hour}小时后)`;
+  }
 }
 
 export function getAutoSearchConfig(): AutoSearchConfig {
@@ -44,10 +88,10 @@ export function getAutoSearchConfig(): AutoSearchConfig {
     try {
       return JSON.parse(stored);
     } catch {
-      return { enabled: false, intervalHours: AUTO_SEARCH_INTERVAL_HOURS };
+      return { enabled: true };
     }
   }
-  return { enabled: true, intervalHours: AUTO_SEARCH_INTERVAL_HOURS };
+  return { enabled: true };
 }
 
 export function saveAutoSearchConfig(config: Partial<AutoSearchConfig>): void {
@@ -56,27 +100,43 @@ export function saveAutoSearchConfig(config: Partial<AutoSearchConfig>): void {
   localStorage.setItem(AUTO_SEARCH_CONFIG_KEY, JSON.stringify(updated));
 }
 
+/**
+ * 判断是否应该执行自动搜索
+ * 规则：当前在搜索时段 且 上次搜索不是同一时段
+ */
 export function shouldRunAutoSearch(): boolean {
   const config = getAutoSearchConfig();
   if (!config.enabled) {
     return false;
   }
 
+  // 避免频繁检查
   const now = Date.now();
-  if (now - lastCheckTime < MIN_CHECK_INTERVAL_MS) {
+  if (now - lastCheckTime < 60 * 1000) {
     return false;
   }
   lastCheckTime = now;
 
-  const lastSearchTime = getLastSearchTime();
-  if (!lastSearchTime) {
-    return true;
+  const currentSlot = getCurrentSlot();
+  if (!currentSlot) {
+    // 不在搜索时段
+    return false;
   }
 
-  const intervalMs = (config.intervalHours || AUTO_SEARCH_INTERVAL_HOURS) * 60 * 60 * 1000;
-  return now - lastSearchTime >= intervalMs;
+  const lastSlot = getLastSearchSlot();
+  if (lastSlot === currentSlot) {
+    // 本时段已搜索过
+    console.log(`[自动搜索] ${currentSlot === 'morning' ? '早间' : '晚间'}时段已搜索过`);
+    return false;
+  }
+
+  console.log(`[自动搜索] 进入${currentSlot === 'morning' ? '早间' : '晚间'}搜索时段，准备执行`);
+  return true;
 }
 
+/**
+ * 执行自动搜索
+ */
 export async function runAutoSearch(): Promise<{
   success: boolean;
   articles: SearchedArticle[];
@@ -84,6 +144,7 @@ export async function runAutoSearch(): Promise<{
   error?: string;
 }> {
   if (isSearching) {
+    console.log('[自动搜索] 搜索进行中，跳过');
     return { success: false, articles: [], newCount: 0, error: '搜索进行中' };
   }
 
@@ -98,11 +159,17 @@ export async function runAutoSearch(): Promise<{
   }
 
   if (!config.kimiApiKey && !config.deepSeekApiKey) {
+    console.log('[自动搜索] 未配置 API Key');
     return { success: false, articles: [], newCount: 0, error: '未配置 API Key' };
   }
 
   isSearching = true;
-  console.log('[自动搜索] 开始执行...');
+  const currentSlot = getCurrentSlot();
+  const slotName = currentSlot === 'morning' ? '早间' : '晚间';
+  
+  console.log(`[自动搜索] ========== ${slotName}搜索开始 ==========`);
+  console.log(`[自动搜索] 时间: ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}`);
+  console.log(`[自动搜索] 目标: ${currentSlot === 'morning' ? '昨日' : '今日'}内容`);
 
   try {
     const result = await searchArticles(
@@ -112,8 +179,12 @@ export async function runAutoSearch(): Promise<{
       (message) => console.log(`[自动搜索] ${message}`)
     );
 
+    // 更新搜索时间
     setLastSearchTime(Date.now());
-    console.log(`[自动搜索] 完成！新增 ${result.newCount} 篇`);
+    setLastSearchSlot(currentSlot);
+    
+    console.log(`[自动搜索] ${slotName}搜索完成！找到 ${result.totalCount} 篇，新增 ${result.newCount} 篇`);
+    console.log(`[自动搜索] ========== ${slotName}搜索结束 ==========`);
 
     return {
       success: result.success,
@@ -122,6 +193,7 @@ export async function runAutoSearch(): Promise<{
       error: result.error,
     };
   } catch (error) {
+    console.error(`[自动搜索] ${slotName}搜索失败:`, error);
     return {
       success: false,
       articles: [],
@@ -135,36 +207,44 @@ export async function runAutoSearch(): Promise<{
 
 export function getAutoSearchStatus(): AutoSearchStatus {
   const config = getAutoSearchConfig();
-  const lastSearchTime = getLastSearchTime();
+  const currentSlot = getCurrentSlot();
+  const lastSlot = getLastSearchSlot();
   
-  let nextSearchTime: number | null = null;
-  if (config.enabled && lastSearchTime) {
-    const intervalMs = (config.intervalHours || AUTO_SEARCH_INTERVAL_HOURS) * 60 * 60 * 1000;
-    nextSearchTime = lastSearchTime + intervalMs;
-  }
-
   return {
     enabled: config.enabled,
     isSearching,
-    lastSearchTime,
-    nextSearchTime,
+    currentSlot,
+    lastSearchSlot: lastSlot,
+    nextSearchTime: getNextSearchTimeDesc(),
   };
 }
 
+/**
+ * 初始化自动搜索调度器
+ * 每5分钟检查一次是否需要搜索
+ */
 export function initAutoSearchScheduler(): void {
-  console.log('[自动搜索] 初始化调度器');
+  const now = new Date();
+  const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
   
-  if (shouldRunAutoSearch()) {
-    setTimeout(() => {
-      runAutoSearch().catch(e => console.error('[自动搜索] 执行失败:', e));
-    }, 5000);
-  }
+  console.log('[自动搜索] 调度器初始化');
+  console.log(`[自动搜索] 北京时间: ${beijingTime.toLocaleString('zh-CN')}`);
+  console.log(`[自动搜索] 当前时段: ${getCurrentSlot() || '非搜索时段'}`);
+  console.log(`[自动搜索] 搜索计划: 早8点(搜昨日) / 晚8点(搜今日)`);
 
+  // 延迟5秒后首次检查
+  setTimeout(() => {
+    if (shouldRunAutoSearch()) {
+      runAutoSearch().catch(e => console.error('[自动搜索] 执行失败:', e));
+    }
+  }, 5000);
+
+  // 每5分钟检查一次
   setInterval(() => {
     if (shouldRunAutoSearch()) {
       runAutoSearch().catch(e => console.error('[自动搜索] 定时执行失败:', e));
     }
-  }, 10 * 60 * 1000);
+  }, 5 * 60 * 1000);
 }
 
 export async function triggerManualAutoSearch(): Promise<{
@@ -173,5 +253,6 @@ export async function triggerManualAutoSearch(): Promise<{
   newCount: number;
   error?: string;
 }> {
+  console.log('[自动搜索] 手动触发');
   return runAutoSearch();
 }
