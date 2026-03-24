@@ -39,6 +39,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AutoSearchStatus } from '@/components/AutoSearchStatus';
 import { logoutAdmin, isAdminLoggedIn, isAdminLoggedInSync } from '@/services/adminAuth';
 import { 
   getSuggestions, 
@@ -137,11 +138,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [articles, setArticles] = useState<Speech[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // 编辑文章对话框
+  // 编辑文章对话�?
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Speech | null>(null);
   
-  // 新增文章对话框
+  // 新增文章对话�?
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [newArticle, setNewArticle] = useState<Partial<Speech>>({
     category: 'speech',
@@ -154,39 +155,39 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     day: new Date().getDate(),
   });
 
-  // URL自动提取状态
+  // URL自动提取状�?
   const [fetchUrl, setFetchUrl] = useState('');
   const [fetchingArticle, setFetchingArticle] = useState(false);
   const [fetchError, setFetchError] = useState('');
   const [fetchedContent, setFetchedContent] = useState('');
   const [fetchedAnalysis, setFetchedAnalysis] = useState('');
 
-  // Kimi API Key 状态
+  // Kimi API Key 状�?
   const [kimiApiKey, setKimiApiKey] = useState(getKimiApiKey() || '');
   const [showKimiKeyDialog, setShowKimiKeyDialog] = useState(false);
   const [kimiKeyInput, setKimiKeyInput] = useState('');
   const [kimiKeyValidating, setKimiKeyValidating] = useState(false);
 
-  // 手动粘贴内容状态
+  // 手动粘贴内容状�?
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualContent, setManualContent] = useState('');
   const [manualUrl, setManualUrl] = useState('');
   const [processingManual, setProcessingManual] = useState(false);
 
-  // 删除确认对话框
+  // 删除确认对话�?
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingArticle, setDeletingArticle] = useState<Speech | null>(null);
   
   // 操作成功提示
   const [successMessage, setSuccessMessage] = useState('');
   
-  // 建议多选状态
+  // 建议多选状�?
   const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(new Set());
   
-  // 访客记录多选状态
+  // 访客记录多选状�?
   const [selectedVisits, setSelectedVisits] = useState<Set<string>>(new Set());
 
-  // 待审核文章
+  // 待审核文�?
   const [pendingArticles, setPendingArticles] = useState<PendingArticle[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
 
@@ -202,14 +203,14 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [searching, setSearching] = useState(false);
   const [searchResult, setSearchResult] = useState<TriggerResult | null>(null);
   
-  // 搜索过程状态
+  // 搜索过程状�?
   const [searchStage, setSearchStage] = useState<'idle' | 'triggering' | 'queued' | 'running' | 'completed' | 'failed'>('idle');
   const [searchMessage, setSearchMessage] = useState('');
   const [currentRunId, setCurrentRunId] = useState<number | null>(null);
   const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null);
   const [recentRuns, setRecentRuns] = useState<any[]>([]);
 
-  // AI 搜索状态（新增）
+  // AI 搜索状态（新增�?
   const [deepSeekApiKey, setDeepSeekApiKeyState] = useState(getDeepSeekApiKey() || '');
   const [preferredApi, setPreferredApiState] = useState<'kimi' | 'deepseek'>(getPreferredApi());
   const [showApiConfigDialog, setShowApiConfigDialog] = useState(false);
@@ -228,15 +229,15 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       loadData();
     });
 
-    // 设置建议实时监听器
+    // 设置建议实时监听�?
     const cleanup = setupSuggestionListener((updatedSuggestions) => {
       setSuggestions(updatedSuggestions);
       setUnreadCount(updatedSuggestions.filter(s => s.status === 'unread').length);
     });
 
-    // 每30秒刷新一次数据
+    // �?0秒刷新一次数�?
     const interval = setInterval(async () => {
-      // 从云端刷新文章列表
+      // 从云端刷新文章列�?
       const articles = await getArticles();
       setArticles(articles);
 
@@ -255,7 +256,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   const loadData = async () => {
     try {
-      // 从 Supabase 获取访问统计
+      // �?Supabase 获取访问统计
       if (isSupabaseConfigured()) {
         const stats = await getSupabaseStats();
         const records = await getSupabaseRecentVisits(100);
@@ -265,7 +266,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       setSuggestions(await getSuggestions());
       setUnreadCount(await getUnreadCount());
 
-      // 从云端获取文章
+      // 从云端获取文�?
       const articles = await getArticles();
       console.log('Loaded articles from cloud:', articles.length);
       setArticles(articles);
@@ -282,7 +283,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       const stats = await getTodaySearchStats();
       setTodayStats(stats);
 
-      // 检查是否需要自动搜索
+      // 检查是否需要自动搜�?
       if (shouldAutoSearch()) {
         setShowAutoSearchPrompt(true);
       }
@@ -315,7 +316,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   };
 
   const handleDeleteSuggestion = async (id: string) => {
-    if (id && confirm('确定要删除这条建议吗？')) {
+    if (id && confirm('确定要删除这条建议吗�?)) {
       await deleteSuggestion(id);
       await loadData();
       setSuccessMessage('删除成功');
@@ -324,7 +325,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   };
 
   const handleClearSuggestions = async () => {
-    if (confirm('确定要清空所有建议吗？此操作不可恢复！')) {
+    if (confirm('确定要清空所有建议吗？此操作不可恢复�?)) {
       await clearAllSuggestions();
       setSelectedSuggestions(new Set());
       await loadData();
@@ -333,7 +334,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     }
   };
 
-  // 多选相关函数
+  // 多选相关函�?
   const toggleSelectSuggestion = (id: string) => {
     const newSelected = new Set(selectedSuggestions);
     if (newSelected.has(id)) {
@@ -361,7 +362,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     await markMultipleAsRead(ids);
     setSelectedSuggestions(new Set());
     await loadData();
-    setSuccessMessage(`已标记 ${ids.length} 条建议为已读`);
+    setSuccessMessage(`已标�?${ids.length} 条建议为已读`);
     setTimeout(() => setSuccessMessage(''), 3000);
   };
 
@@ -370,17 +371,17 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       alert('请先选择要删除的建议');
       return;
     }
-    if (confirm(`确定要删除选中的 ${selectedSuggestions.size} 条建议吗？`)) {
+    if (confirm(`确定要删除选中�?${selectedSuggestions.size} 条建议吗？`)) {
       const ids = Array.from(selectedSuggestions);
       await deleteMultipleSuggestions(ids);
       setSelectedSuggestions(new Set());
       await loadData();
-      setSuccessMessage(`已删除 ${ids.length} 条建议`);
+      setSuccessMessage(`已删�?${ids.length} 条建议`);
       setTimeout(() => setSuccessMessage(''), 3000);
     }
   };
 
-  // 访客记录多选处理
+  // 访客记录多选处�?
   const toggleSelectVisit = (timestamp: string) => {
     const newSelected = new Set(selectedVisits);
     if (newSelected.has(timestamp)) {
@@ -404,19 +405,19 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       alert('请先选择要删除的访客记录');
       return;
     }
-    if (confirm(`确定要删除选中的 ${selectedVisits.size} 条访问记录吗？`)) {
+    if (confirm(`确定要删除选中�?${selectedVisits.size} 条访问记录吗？`)) {
       const timestamps = Array.from(selectedVisits);
       await clearVisitRecords(timestamps);
       setSelectedVisits(new Set());
       await loadData();
-      setSuccessMessage(`已删除 ${timestamps.length} 条访问记录`);
+      setSuccessMessage(`已删�?${timestamps.length} 条访问记录`);
       setTimeout(() => setSuccessMessage(''), 3000);
     }
   };
   
   const handleClearAllVisits = async () => {
-    if (confirm('确定要清空所有访问记录吗？此操作不可恢复！')) {
-      const success = await clearVisitRecords([]); // 空数组表示删除所有
+    if (confirm('确定要清空所有访问记录吗？此操作不可恢复�?)) {
+      const success = await clearVisitRecords([]); // 空数组表示删除所�?
       if (success) {
         // 清空 localStorage 缓存
         localStorage.removeItem('site_visit_records');
@@ -444,7 +445,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         });
         setVisitRecords(records);
         
-        setSuccessMessage('已清空所有访问记录');
+        setSuccessMessage('已清空所有访问记�?);
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
         alert('清空记录失败，请重试');
@@ -470,11 +471,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         setSuccessMessage('保存成功');
         setTimeout(() => setSuccessMessage(''), 3000);
       } else {
-        alert('保存失败：' + (result.error || '请重试'));
+        alert('保存失败�? + (result.error || '请重�?));
       }
     } catch (error) {
       console.error('Save article error:', error);
-      alert('保存失败：' + (error instanceof Error ? error.message : '未知错误'));
+      alert('保存失败�? + (error instanceof Error ? error.message : '未知错误'));
     }
   };
 
@@ -500,11 +501,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       }
     } catch (error) {
       console.error('Delete article error:', error);
-      alert('删除失败：' + (error instanceof Error ? error.message : '未知错误'));
+      alert('删除失败�? + (error instanceof Error ? error.message : '未知错误'));
     }
   };
 
-  // 从URL自动提取文章内容（使用Kimi AI）
+  // 从URL自动提取文章内容（使用Kimi AI�?
   const handleFetchFromUrl = async () => {
     if (!fetchUrl.trim()) {
       setFetchError('请输入文章URL');
@@ -568,7 +569,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       saveKimiApiKey(kimiKeyInput.trim());
       setKimiApiKey(kimiKeyInput.trim());
       setShowKimiKeyDialog(false);
-      setSuccessMessage('Kimi API Key 配置成功！');
+      setSuccessMessage('Kimi API Key 配置成功�?);
       setTimeout(() => setSuccessMessage(''), 3000);
     } else {
       setFetchError(result.error || 'API Key验证失败');
@@ -583,10 +584,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     setTimeout(() => setSuccessMessage(''), 3000);
   };
 
-  // 处理手动粘贴的内容
+  // 处理手动粘贴的内�?
   const handleProcessManualContent = async () => {
     if (!manualContent.trim()) {
-      alert('请粘贴网页内容');
+      alert('请粘贴网页内�?);
       return;
     }
 
@@ -618,11 +619,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       setManualContent('');
       setManualUrl('');
 
-      setSuccessMessage(`内容提取成功！标题: ${article.title}`);
+      setSuccessMessage(`内容提取成功！标�? ${article.title}`);
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (error) {
       console.error('Process manual content error:', error);
-      alert('提取失败：' + (error instanceof Error ? error.message : '未知错误'));
+      alert('提取失败�? + (error instanceof Error ? error.message : '未知错误'));
     } finally {
       setProcessingManual(false);
     }
@@ -630,7 +631,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   const handleAddArticle = async () => {
     if (!newArticle.title || !newArticle.date || !newArticle.source || !newArticle.summary) {
-      alert('请填写完整信息');
+      alert('请填写完整信�?);
       return;
     }
 
@@ -668,7 +669,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
             id: articleId,
             abstract: newArticle.summary,
             fullText: fetchedContent,
-            analysis: fetchedAnalysis || '解读分析正在整理中...'
+            analysis: fetchedAnalysis || '解读分析正在整理�?..'
           };
           await saveArticleDetail(detail);
         }
@@ -693,15 +694,15 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         if (result.error) {
           setSuccessMessage(`添加成功（警告：${result.error}）`);
         } else {
-          setSuccessMessage('添加成功！');
+          setSuccessMessage('添加成功�?);
         }
         setTimeout(() => setSuccessMessage(''), 5000);
       } else {
-        alert('添加失败：' + (result.error || '未知错误'));
+        alert('添加失败�? + (result.error || '未知错误'));
       }
     } catch (error) {
       console.error('Add article error:', error);
-      alert('添加失败：' + (error instanceof Error ? error.message : '未知错误'));
+      alert('添加失败�? + (error instanceof Error ? error.message : '未知错误'));
     }
   };
 
@@ -734,7 +735,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const handleRejectPending = async (id: string) => {
     await rejectArticle(id);
     await loadData();
-    setSuccessMessage('已忽略');
+    setSuccessMessage('已忽�?);
     setTimeout(() => setSuccessMessage(''), 3000);
   };
 
@@ -785,7 +786,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       saveGitHubToken(tokenInput.trim());
       setGithubTokenState(tokenInput.trim());
       setShowTokenDialog(false);
-      setSuccessMessage(`Token验证成功，用户: ${result.username}`);
+      setSuccessMessage(`Token验证成功，用�? ${result.username}`);
       setTimeout(() => setSuccessMessage(''), 3000);
     } else {
       setSuccessMessage(result.error || 'Token验证失败');
@@ -800,7 +801,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     setTimeout(() => setSuccessMessage(''), 3000);
   };
 
-  // 轮询检查workflow状态
+  // 轮询检查workflow状�?
   const checkWorkflowStatus = async (runId: number) => {
     const { run } = await getWorkflowRunStatus(runId);
     
@@ -808,7 +809,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     
     if (run.status === 'queued' || run.status === 'waiting' || run.status === 'pending') {
       setSearchStage('queued');
-      setSearchMessage('搜索任务排队中，请稍候...');
+      setSearchMessage('搜索任务排队中，请稍�?..');
     } else if (run.status === 'in_progress' || run.status === 'requested') {
       setSearchStage('running');
       setSearchMessage('正在搜索最新文章，请耐心等待...');
@@ -824,19 +825,19 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       
       if (run.conclusion === 'success') {
         setSearchStage('completed');
-        setSearchMessage('搜索完成！正在加载结果...');
+        setSearchMessage('搜索完成！正在加载结�?..');
         
         // 刷新文章列表
         setTimeout(async () => {
           await loadData();
-          setSearchMessage('搜索完成！已刷新文章列表，请查看近期新增文章。');
+          setSearchMessage('搜索完成！已刷新文章列表，请查看近期新增文章�?);
         }, 2000);
       } else if (run.conclusion === 'failure') {
         setSearchStage('failed');
-        setSearchMessage('搜索任务执行失败，请查看GitHub Actions日志了解详情。');
+        setSearchMessage('搜索任务执行失败，请查看GitHub Actions日志了解详情�?);
       } else if (run.conclusion === 'cancelled') {
         setSearchStage('failed');
-        setSearchMessage('搜索任务已被取消。');
+        setSearchMessage('搜索任务已被取消�?);
       } else {
         setSearchStage('completed');
         setSearchMessage(`搜索任务已完成（状态：${run.conclusion}）`);
@@ -851,13 +852,13 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       return;
     }
     
-    // 重置状态
+    // 重置状�?
     setSearching(true);
     setSearchResult(null);
     setSearchStage('triggering');
     setSearchMessage('正在触发搜索任务...');
     
-    // 清理之前的轮询
+    // 清理之前的轮�?
     if (pollInterval) {
       clearInterval(pollInterval);
       setPollInterval(null);
@@ -871,7 +872,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       setSearchStage('queued');
       setSearchMessage('搜索任务已触发，正在排队等待执行...');
       
-      // 开始轮询检查状态（每3秒检查一次）
+      // 开始轮询检查状态（�?秒检查一次）
       const interval = setInterval(() => {
         if (result.runId) {
           checkWorkflowStatus(result.runId);
@@ -879,7 +880,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       }, 3000);
       setPollInterval(interval);
       
-      // 立即检查一次
+      // 立即检查一�?
       checkWorkflowStatus(result.runId);
     } else {
       setSearching(false);
@@ -899,7 +900,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
     setSearching(true);
     setSearchStage('running');
-    setSearchMessage('正在使用 AI 搜索最新文章...');
+    setSearchMessage('正在使用 AI 搜索最新文�?..');
     setShowAutoSearchPrompt(false);
 
     try {
@@ -915,7 +916,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
       if (result.success) {
         setSearchStage('completed');
-        setSearchMessage(`搜索完成！找到 ${result.totalCount} 篇文章，新增 ${result.newCount} 篇待审核`);
+        setSearchMessage(`搜索完成！找�?${result.totalCount} 篇文章，新增 ${result.newCount} 篇待审核`);
         
         // 刷新数据
         await loadData();
@@ -944,7 +945,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       saveDeepSeekApiKey(deepSeekKeyInput.trim());
       setDeepSeekApiKeyState(deepSeekKeyInput.trim());
       setDeepSeekKeyInput('');
-      setSuccessMessage('DeepSeek API Key 验证成功！');
+      setSuccessMessage('DeepSeek API Key 验证成功�?);
       setTimeout(() => setSuccessMessage(''), 3000);
     } else {
       setSuccessMessage(result.error || 'API Key 验证失败');
@@ -956,11 +957,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const handleClearDeepSeekKey = () => {
     clearDeepSeekApiKey();
     setDeepSeekApiKeyState('');
-    setSuccessMessage('已清除 DeepSeek API Key');
+    setSuccessMessage('已清�?DeepSeek API Key');
     setTimeout(() => setSuccessMessage(''), 3000);
   };
 
-  // 切换首选 API
+  // 切换首�?API
   const handleSwitchPreferredApi = (api: 'kimi' | 'deepseek') => {
     setPreferredApi(api);
     setPreferredApiState(api);
@@ -972,7 +973,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     setRecentRuns(runs);
   };
 
-  // 组件挂载时加载最近运行记录
+  // 组件挂载时加载最近运行记�?
   useEffect(() => {
     if (githubToken) {
       loadRecentRuns();
@@ -1014,7 +1015,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-red-700 rounded-lg flex items-center justify-center">
                 <BarChart3 className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900">管理员后台</h1>
+              <h1 className="text-xl font-bold text-gray-900">管理员后�?/h1>
             </div>
             <div className="flex items-center gap-3">
               {/* 状态指示器 */}
@@ -1039,7 +1040,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               </div>
               <Button variant="ghost" onClick={handleLogout} className="text-gray-600 hover:text-red-600">
                 <LogOut className="w-4 h-4 mr-2" />
-                退出登录
+                退出登�?
               </Button>
             </div>
           </div>
@@ -1159,7 +1160,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>最近访问记录</CardTitle>
+                  <CardTitle>最近访问记�?/CardTitle>
                 </CardHeader>
                 <CardContent>
                   {visitRecords.length > 0 ? (
@@ -1181,7 +1182,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             </th>
                             <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">时间</th>
                             <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">设备</th>
-                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">浏览器</th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">浏览�?/th>
                             <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">系统</th>
                           </tr>
                         </thead>
@@ -1225,7 +1226,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Bell className="w-5 h-5 text-blue-600" />
-                        <span className="text-blue-800">距离上次搜索已超过 12 小时，是否立即搜索最新文章？</span>
+                        <span className="text-blue-800">距离上次搜索已超�?12 小时，是否立即搜索最新文章？</span>
                       </div>
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline" onClick={() => setShowAutoSearchPrompt(false)}>
@@ -1240,7 +1241,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 </Card>
               )}
 
-              {/* 区域1: 顶部操作栏 */}
+              {/* 区域1: 顶部操作�?*/}
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900">AI 文章搜索</h2>
                 <div className="flex gap-2">
@@ -1270,7 +1271,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     {searching ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                        搜索中...
+                        搜索�?..
                       </>
                     ) : (
                       <>
@@ -1291,7 +1292,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       <div className="flex-1">
                         <p className="text-blue-800 font-medium mb-1">{searchMessage}</p>
                         <div className="flex items-center gap-2 text-sm text-blue-600">
-                          <span>使用 {preferredApi === 'kimi' ? 'Kimi' : 'DeepSeek'} API 搜索中...</span>
+                          <span>使用 {preferredApi === 'kimi' ? 'Kimi' : 'DeepSeek'} API 搜索�?..</span>
                         </div>
                       </div>
                     </div>
@@ -1330,9 +1331,9 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       </Badge>
                     </div>
                     <div className="text-xs text-green-700 space-y-1">
-                      <p>• <strong>Kimi API</strong> 联网搜索习近平总书记最新讲话</p>
-                      <p>• <strong>百度搜索</strong> 人民网、新华网、求是网验证</p>
-                      <p>• 两个来源自动去重，新文章进入待审核</p>
+                      <p>�?<strong>Kimi API</strong> 联网搜索习近平总书记最新讲�?/p>
+                      <p>�?<strong>百度搜索</strong> 人民网、新华网、求是网验证</p>
+                      <p>�?两个来源自动去重，新文章进入待审�?/p>
                     </div>
                   </CardContent>
                 </Card>
@@ -1348,7 +1349,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <CardContent className="pt-0">
                     {todayStats.runCount === 0 ? (
                       <div className="text-center py-4 text-gray-500 text-sm">
-                        今日暂无搜索记录，点击"立即搜索"开始
+                        今日暂无搜索记录，点�?立即搜索"开�?
                       </div>
                     ) : (
                       <div className="grid grid-cols-3 gap-4 text-center">
@@ -1362,13 +1363,13 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           <div className="text-2xl font-bold text-green-700">
                             {todayStats.totalFound}
                           </div>
-                          <div className="text-xs text-green-600">搜索到文章</div>
+                          <div className="text-xs text-green-600">搜索到文�?/div>
                         </div>
                         <div>
                           <div className="text-2xl font-bold text-purple-700">
                             {todayStats.totalNew}
                           </div>
-                          <div className="text-xs text-purple-600">新增待审核</div>
+                          <div className="text-xs text-purple-600">新增待审�?/div>
                         </div>
                       </div>
                     )}
@@ -1381,7 +1382,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm text-gray-600 flex items-center gap-2">
                         <Clock className="w-4 h-4" />
-                        自动搜索执行记录（最近5次）
+                        自动搜索执行记录（最�?次）
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-0">
@@ -1407,32 +1408,32 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                   {log.status === 'success' ? '成功' : log.status === 'partial_fail' ? '部分失败' : '失败'}
                                 </span>
                               </div>
-                              <span className="text-xs text-gray-500">{log.duration_seconds}秒</span>
+                              <span className="text-xs text-gray-500">{log.duration_seconds}�?/span>
                             </div>
                             <div className="grid grid-cols-3 gap-2 text-xs">
                               <div className="bg-white rounded p-2 text-center">
                                 <div className="text-gray-500">爬取</div>
-                                <div className="font-bold text-gray-700">{log.crawl_count}条</div>
+                                <div className="font-bold text-gray-700">{log.crawl_count}�?/div>
                               </div>
                               <div className="bg-white rounded p-2 text-center">
                                 <div className="text-gray-500">搜索</div>
-                                <div className="font-bold text-gray-700">{log.search_count}条</div>
+                                <div className="font-bold text-gray-700">{log.search_count}�?/div>
                               </div>
                               <div className="bg-white rounded p-2 text-center">
                                 <div className="text-gray-500">新增</div>
-                                <div className="font-bold text-green-600">{log.new_count}条</div>
+                                <div className="font-bold text-green-600">{log.new_count}�?/div>
                               </div>
                             </div>
                             {/* 详细日志 */}
                             {log.details?.crawler_results && (
                               <div className="mt-2 pt-2 border-t border-gray-200">
-                                <div className="text-xs text-gray-500 mb-1">爬虫详情：</div>
+                                <div className="text-xs text-gray-500 mb-1">爬虫详情�?/div>
                                 <div className="flex flex-wrap gap-1">
                                   {Object.entries(log.details.crawler_results).map(([key, val]: [string, any]) => (
                                     <span key={key} className={`text-xs px-2 py-0.5 rounded ${
                                       val.status === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
                                     }`}>
-                                      {val.name || key}: {val.count}条
+                                      {val.name || key}: {val.count}�?
                                     </span>
                                   ))}
                                 </div>
@@ -1441,21 +1442,21 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             {/* Kimi+百度搜索详情 */}
                             {(log.details?.kimi !== undefined || log.details?.baidu !== undefined) && (
                               <div className="mt-2 pt-2 border-t border-gray-200">
-                                <div className="text-xs text-gray-500 mb-1">搜索来源：</div>
+                                <div className="text-xs text-gray-500 mb-1">搜索来源�?/div>
                                 <div className="flex flex-wrap gap-1">
                                   {log.details?.kimi !== undefined && (
                                     <span className={`text-xs px-2 py-0.5 rounded ${log.details.kimi > 0 ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
-                                      Kimi: {log.details.kimi}条
+                                      Kimi: {log.details.kimi}�?
                                     </span>
                                   )}
                                   {log.details?.baidu !== undefined && (
                                     <span className={`text-xs px-2 py-0.5 rounded ${log.details.baidu > 0 ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                      百度: {log.details.baidu}条
+                                      百度: {log.details.baidu}�?
                                     </span>
                                   )}
                                   {log.details?.search_date && (
                                     <span className="text-xs px-2 py-0.5 rounded bg-purple-50 text-purple-700">
-                                      {log.details.search_date === 'yesterday' ? '搜昨日' : '搜今日'}
+                                      {log.details.search_date === 'yesterday' ? '搜昨�? : '搜今�?}
                                     </span>
                                   )}
                                   {log.details?.api_used && (
@@ -1473,11 +1474,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             )}
                             {log.details?.search_results && (
                               <div className="mt-2 pt-2 border-t border-gray-200">
-                                <div className="text-xs text-gray-500 mb-1">搜索详情：</div>
+                                <div className="text-xs text-gray-500 mb-1">搜索详情�?/div>
                                 <div className="text-xs text-gray-600">
                                   {log.details.search_results.overall_status === 'skipped' ? '跳过（Playwright未安装）' :
                                    log.details.search_results.overall_status === 'failed' ? `失败: ${log.details.search_results.error || '未知错误'}` :
-                                   `状态: ${log.details.search_results.overall_status || '完成'}`}
+                                   `状�? ${log.details.search_results.overall_status || '完成'}`}
                                 </div>
                               </div>
                             )}
@@ -1489,12 +1490,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 )}
               </>
 
-              {/* API Key 未配置提示 */}
+              {/* API Key 未配置提�?*/}
               {!kimiApiKey && !deepSeekApiKey && (
                 <Card className="border-yellow-200 bg-yellow-50">
                   <CardContent className="p-4">
                     <p className="text-yellow-700 text-sm">
-                      未配置 AI API Key，点击"API配置"按钮设置 Kimi 或 DeepSeek API Key 以使用 AI 搜索功能。
+                      未配�?AI API Key，点�?API配置"按钮设置 Kimi �?DeepSeek API Key 以使�?AI 搜索功能�?
                     </p>
                     <Button 
                       size="sm" 
@@ -1508,22 +1509,22 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 </Card>
               )}
 
-              {/* 区域3: API配置状态面板 */}
+              {/* 区域3: API配置状态面�?*/}
               <Card className="border-purple-200 bg-purple-50">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Sparkles className="w-5 h-5 text-purple-600" />
-                      <span className="font-medium text-purple-800">AI API 状态</span>
+                      <span className="font-medium text-purple-800">AI API 状�?/span>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
                         <span className={`w-2 h-2 rounded-full ${kimiApiKey ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-                        <span className="text-sm text-gray-600">Kimi {kimiApiKey ? '已配置' : '未配置'}</span>
+                        <span className="text-sm text-gray-600">Kimi {kimiApiKey ? '已配�? : '未配�?}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`w-2 h-2 rounded-full ${deepSeekApiKey ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-                        <span className="text-sm text-gray-600">DeepSeek {deepSeekApiKey ? '已配置' : '未配置'}</span>
+                        <span className="text-sm text-gray-600">DeepSeek {deepSeekApiKey ? '已配�? : '未配�?}</span>
                       </div>
                       {(kimiApiKey || deepSeekApiKey) && (
                         <Badge variant="outline" className="text-xs">
@@ -1541,12 +1542,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <CardContent className="p-8 text-center">
                     <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500">暂无新发现的文章</p>
-                    <p className="text-gray-400 text-sm mt-1">点击"立即搜索"使用 AI 搜索最新文章</p>
+                    <p className="text-gray-400 text-sm mt-1">点击"立即搜索"使用 AI 搜索最新文�?/p>
                   </CardContent>
                 </Card>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-sm text-gray-500">共 {pendingArticles.length} 篇待处理</p>
+                  <p className="text-sm text-gray-500">�?{pendingArticles.length} 篇待处理</p>
                   {pendingArticles.map((article) => (
                     <Card key={article.id} className="border-l-4 border-l-purple-400 hover:shadow-md transition-shadow">
                       <CardContent className="p-4">
@@ -1590,7 +1591,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                 onClick={() => handleCopyUrl(article.url!)}
                               >
                                 <Copy className="w-3 h-3 mr-1" />
-                                {copiedUrl === article.url ? '已复制' : '复制URL'}
+                                {copiedUrl === article.url ? '已复�? : '复制URL'}
                               </Button>
                             )}
                             <Button
@@ -1599,7 +1600,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                               onClick={() => handleQuickAdd(article)}
                             >
                               <ArrowRight className="w-3 h-3 mr-1" />
-                              新增到系统
+                              新增到系�?
                             </Button>
                             <Button
                               size="sm"
@@ -1710,7 +1711,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <div className="space-y-4">
                 {suggestions.length > 0 ? (
                   <>
-                    {/* 全选按钮 */}
+                    {/* 全选按�?*/}
                     <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
                       <button 
                         onClick={toggleSelectAll}
@@ -1721,7 +1722,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         ) : (
                           <Square className="w-5 h-5" />
                         )}
-                        全选 ({selectedSuggestions.size}/{suggestions.length})
+                        全�?({selectedSuggestions.size}/{suggestions.length})
                       </button>
                     </div>
                     
@@ -1730,7 +1731,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between">
                             <div className="flex items-start gap-3 flex-1">
-                              {/* 选择框 */}
+                              {/* 选择�?*/}
                               <button 
                                 onClick={() => toggleSelectSuggestion(suggestion.id)}
                                 className="mt-1 flex-shrink-0"
@@ -1759,7 +1760,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             
                             <div className="flex gap-1 ml-2 flex-shrink-0">
                               {suggestion.status === 'unread' && (
-                                <Button variant="ghost" size="sm" onClick={() => handleMarkSuggestionRead(suggestion.id)} title="标记为已读">
+                                <Button variant="ghost" size="sm" onClick={() => handleMarkSuggestionRead(suggestion.id)} title="标记为已�?>
                                   <Check className="w-4 h-4 text-green-600" />
                                 </Button>
                               )}
@@ -1786,7 +1787,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         </div>
       </main>
 
-      {/* 编辑文章对话框 */}
+      {/* 编辑文章对话�?*/}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1844,7 +1845,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         politics: '政治',
                         culture: '文化',
                         society: '社会',
-                        ecology: '生态',
+                        ecology: '生�?,
                         party: '党建',
                         defense: '国防',
                         diplomacy: '外交'
@@ -1856,7 +1857,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <option value="politics">政治</option>
                     <option value="culture">文化</option>
                     <option value="society">社会</option>
-                    <option value="ecology">生态</option>
+                    <option value="ecology">生�?/option>
                     <option value="party">党建</option>
                     <option value="defense">国防</option>
                     <option value="diplomacy">外交</option>
@@ -1901,12 +1902,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         </DialogContent>
       </Dialog>
 
-      {/* 删除确认对话框 */}
+      {/* 删除确认对话�?*/}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>确认删除</DialogTitle>
-            <DialogDescription>确定要删除这篇文章吗？此操作不可恢复。</DialogDescription>
+            <DialogDescription>确定要删除这篇文章吗？此操作不可恢复�?/DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>取消</Button>
@@ -1915,11 +1916,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         </DialogContent>
       </Dialog>
 
-      {/* 新增文章对话框 */}
+      {/* 新增文章对话�?*/}
       <Dialog open={addDialogOpen} onOpenChange={(open) => {
         setAddDialogOpen(open);
         if (!open) {
-          // 关闭时重置URL提取状态
+          // 关闭时重置URL提取状�?
           setFetchUrl('');
           setFetchError('');
           setFetchedContent('');
@@ -1932,7 +1933,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>新增文章</DialogTitle>
-            <DialogDescription>添加新文章，或输入原文链接自动提取</DialogDescription>
+            <DialogDescription>添加新文章，或输入原文链接自动提�?/DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {/* URL自动提取区域 */}
@@ -1971,7 +1972,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     {fetchingArticle ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                        提取中
+                        提取�?
                       </>
                     ) : (
                       '提取'
@@ -1984,11 +1985,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 {fetchedContent && (
                   <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
                     <p className="text-sm text-green-700 font-medium mb-1">
-                      提取成功！已获取：
+                      提取成功！已获取�?
                     </p>
                     <ul className="text-sm text-green-600 space-y-1">
-                      <li>• 全文内容（{fetchedContent.length}字）</li>
-                      {fetchedAnalysis && <li>• 解读分析（{fetchedAnalysis.length}字）</li>}
+                      <li>�?全文内容（{fetchedContent.length}字）</li>
+                      {fetchedAnalysis && <li>�?解读分析（{fetchedAnalysis.length}字）</li>}
                     </ul>
                   </div>
                 )}
@@ -2000,7 +2001,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     onClick={() => setShowManualInput(!showManualInput)}
                     className="text-blue-600 p-0"
                   >
-                    {showManualInput ? '隐藏手动输入' : '自动提取失败？点击手动粘贴内容'}
+                    {showManualInput ? '隐藏手动输入' : '自动提取失败？点击手动粘贴内�?}
                   </Button>
                 </div>
               </CardContent>
@@ -2034,7 +2035,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       {processingManual ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                          处理中...
+                          处理�?..
                         </>
                       ) : (
                         'AI提取'
@@ -2050,14 +2051,14 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-500">或手动填写</span>
+                <span className="bg-white px-2 text-gray-500">或手动填�?/span>
               </div>
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium">标题 <span className="text-red-500">*</span></label>
               <Input 
-                placeholder="请输入文章标题"
+                placeholder="请输入文章标�?
                 value={newArticle.title || ''} 
                 onChange={(e) => setNewArticle({...newArticle, title: e.target.value})}
               />
@@ -2107,7 +2108,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       politics: '政治',
                       culture: '文化',
                       society: '社会',
-                      ecology: '生态',
+                      ecology: '生�?,
                       party: '党建',
                       defense: '国防',
                       diplomacy: '外交'
@@ -2119,14 +2120,14 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <option value="politics">政治</option>
                   <option value="culture">文化</option>
                   <option value="society">社会</option>
-                  <option value="ecology">生态</option>
+                  <option value="ecology">生�?/option>
                   <option value="party">党建</option>
                   <option value="defense">国防</option>
                   <option value="diplomacy">外交</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">政绩观专题</label>
+                <label className="text-sm font-medium">政绩观专�?/label>
                 <div className="flex items-center gap-4 h-10">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input 
@@ -2144,8 +2145,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       onChange={(e) => setNewArticle({...newArticle, zhengjiguanLevel: e.target.value as 'central' | 'jiangsu' | 'suzhou'})}
                     >
                       <option value="central">中央</option>
-                      <option value="jiangsu">江苏省</option>
-                      <option value="suzhou">苏州市</option>
+                      <option value="jiangsu">江苏�?/option>
+                      <option value="suzhou">苏州�?/option>
                     </select>
                   )}
                 </div>
@@ -2162,13 +2163,13 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
             <div className="space-y-2">
               <label className="text-sm font-medium">原文链接</label>
               <Input 
-                placeholder="请输入原文链接"
+                placeholder="请输入原文链�?
                 value={newArticle.url || ''} 
                 onChange={(e) => setNewArticle({...newArticle, url: e.target.value})}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">地点（考察调研类请填写）</label>
+              <label className="text-sm font-medium">地点（考察调研类请填写�?/label>
               <Input 
                 placeholder="如：北京、上海等"
                 value={newArticle.location || ''} 
@@ -2178,7 +2179,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
             <div className="space-y-2">
               <label className="text-sm font-medium">摘要 <span className="text-red-500">*</span></label>
               <Textarea 
-                placeholder="请输入文章摘要"
+                placeholder="请输入文章摘�?
                 value={newArticle.summary || ''} 
                 onChange={(e) => setNewArticle({...newArticle, summary: e.target.value})}
                 rows={4}
@@ -2192,13 +2193,13 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         </DialogContent>
       </Dialog>
 
-      {/* GitHub Token 配置对话框 */}
+      {/* GitHub Token 配置对话�?*/}
       <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>配置 GitHub Token</DialogTitle>
             <DialogDescription>
-              输入您的 GitHub Personal Access Token 以使用 AI 搜索功能
+              输入您的 GitHub Personal Access Token 以使�?AI 搜索功能
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -2211,7 +2212,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 onChange={(e) => setTokenInput(e.target.value)}
               />
               <p className="text-xs text-gray-500">
-                Token需要有 repo 权限。在 GitHub Settings → Developer settings → Personal access tokens 中创建
+                Token需要有 repo 权限。在 GitHub Settings �?Developer settings �?Personal access tokens 中创�?
               </p>
             </div>
             {githubToken && (
@@ -2235,23 +2236,23 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               {tokenValidating ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                  验证中...
+                  验证�?..
                 </>
               ) : (
-                '保存并验证'
+                '保存并验�?
               )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* AI API 配置对话框 */}
+      {/* AI API 配置对话�?*/}
       <Dialog open={showApiConfigDialog} onOpenChange={setShowApiConfigDialog}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>AI API 配置</DialogTitle>
             <DialogDescription>
-              配置 Kimi 或 DeepSeek API Key 以使用 AI 搜索功能
+              配置 Kimi �?DeepSeek API Key 以使�?AI 搜索功能
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
@@ -2259,7 +2260,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center gap-2">
                 Kimi API Key
-                {kimiApiKey && <span className="text-xs text-green-600">已配置</span>}
+                {kimiApiKey && <span className="text-xs text-green-600">已配�?/span>}
               </label>
               <div className="flex gap-2">
                 <Input
@@ -2284,7 +2285,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 )}
               </div>
               <p className="text-xs text-gray-500">
-                在 <a href="https://platform.moonshot.cn/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Kimi开放平台</a> 获取
+                �?<a href="https://platform.moonshot.cn/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Kimi开放平�?/a> 获取
               </p>
             </div>
 
@@ -2292,7 +2293,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center gap-2">
                 DeepSeek API Key
-                {deepSeekApiKey && <span className="text-xs text-green-600">已配置</span>}
+                {deepSeekApiKey && <span className="text-xs text-green-600">已配�?/span>}
               </label>
               <div className="flex gap-2">
                 <Input
@@ -2317,14 +2318,14 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 )}
               </div>
               <p className="text-xs text-gray-500">
-                在 <a href="https://platform.deepseek.com/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">DeepSeek平台</a> 获取
+                �?<a href="https://platform.deepseek.com/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">DeepSeek平台</a> 获取
               </p>
             </div>
 
             {/* 优先使用 */}
             {(kimiApiKey || deepSeekApiKey) && (
               <div className="space-y-2">
-                <label className="text-sm font-medium">搜索时优先使用</label>
+                <label className="text-sm font-medium">搜索时优先使�?/label>
                 <div className="flex gap-2">
                   <Button
                     variant={preferredApi === 'kimi' ? 'default' : 'outline'}
@@ -2354,13 +2355,13 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Kimi API Key 配置对话框 */}
+      {/* Kimi API Key 配置对话�?*/}
       <Dialog open={showKimiKeyDialog} onOpenChange={setShowKimiKeyDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>配置 Kimi API Key</DialogTitle>
             <DialogDescription>
-              输入您的 Kimi API Key 以精准提取文章内容
+              输入您的 Kimi API Key 以精准提取文章内�?
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -2373,12 +2374,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 onChange={(e) => setKimiKeyInput(e.target.value)}
               />
               <p className="text-xs text-gray-500">
-                在 Kimi开放平台 (platform.moonshot.cn) 获取 API Key
+                �?Kimi开放平�?(platform.moonshot.cn) 获取 API Key
               </p>
             </div>
             {kimiApiKey && (
               <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                <span className="text-sm text-green-700">已配置 Kimi API Key</span>
+                <span className="text-sm text-green-700">已配�?Kimi API Key</span>
                 <Button variant="outline" size="sm" onClick={handleClearKimiKey}>
                   清除
                 </Button>
@@ -2397,10 +2398,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               {kimiKeyValidating ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                  验证中...
+                  验证�?..
                 </>
               ) : (
-                '保存并验证'
+                '保存并验�?
               )}
             </Button>
           </DialogFooter>
@@ -2415,4 +2416,5 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       )}
     </div>
   );
+}
 }
