@@ -802,10 +802,10 @@ export const speechesData: Speech[] = [
   {
     id: '2026-13',
     title: '蓝图已经绘就 奋进正当其时',
-    date: '2026-03-05',
+    date: '2026-03-13',
     year: 2026,
     month: 3,
-    day: 5,
+    day: 13,
     category: 'meeting',
     categoryName: '重要会议',
     domain: 'politics',
@@ -844,7 +844,24 @@ export const speechesData: Speech[] = [
     source: '新华社',
     location: '北京',
     summary: '这是习近平总书记参加江苏代表团审议时的重要讲话记录。总书记强调规划与执行需结合，指出农村既要富裕也要抓精神文明，发展必须依靠实体经济和科技自立自强，要求坚持独立自主，推动经济质效提升。',
-    url: 'https://news.sina.cn/gn/2026-03-07/detail-inhqcuct1841393.d.html?vt=4'
+    url: 'https://paper.people.com.cn/rmrb/pc/content/202603/07/content_30143879.html'
+  },
+
+  {
+    id: '2026-16',
+    title: '牢牢把握雄安新区功能定位 努力建设新时代创新高地和推动高质量发展样板',
+    date: '2026-03-23',
+    year: 2026,
+    month: 3,
+    day: 23,
+    category: 'inspection',
+    categoryName: '考察调研',
+    domain: 'economy',
+    domainName: '经济',
+    source: '新华社',
+    location: '河北雄安新区',
+    summary: '习近平总书记在河北雄安新区考察并主持召开深入推进雄安新区高质量建设和发展座谈会。他强调，要牢牢把握雄安新区作为北京非首都功能疏解集中承载地的首要功能定位，保持战略定力和历史耐心，以改革创新为引领增强内生发展动力，以要素资源合理集聚为重点激发新区活力，努力建设新时代创新高地和推动高质量发展样板。',
+    url: 'https://www.news.cn/politics/leaders/20260323/a4933f91ce7c4e0faf5de3a13a576d55/c.html'
   },
 
   // ===== 从人民网迁移的新文章（政治领域）=====
