@@ -17,6 +17,8 @@ export interface ExtractedArticle {
   location?: string;
   category?: 'speech' | 'article' | 'meeting' | 'inspection';
   categoryName?: string;
+  domain?: 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy';
+  domainName?: string;
 }
 
 /**
@@ -262,6 +264,8 @@ ${truncatedContent}
   "location": "地点（如果是考察调研类文章）",
   "category": "分类，必须是以下之一：speech（重要讲话）、article（发表文章）、meeting（重要会议）、inspection（考察调研）",
   "categoryName": "分类中文名",
+  "domain": "领域，必须是以下之一：diplomacy（外交）、defense（国防）、party（党建）、ecology（生态）、culture（文化）、society（社会）、economy（经济）、politics（政治）",
+  "domainName": "领域中文名",
   "summary": "文章摘要，200-300字，概述主要内容",
   "fullText": "纯净的正文内容（见下方详细要求）",
   "analysis": "解读分析，300-500字，分析文章的核心要点、重要意义和背景"
@@ -294,7 +298,17 @@ ${truncatedContent}
 3. 标题含"讲话/发表重要讲话/致辞" → speech
 4. 标题含"《求是》/发表文章" → article
 5. 标题含"考察/调研/视察" → inspection
-6. 标题含"会议/座谈会/全会" → meeting`;
+6. 标题含"会议/座谈会/全会" → meeting
+
+领域判断（按优先级）：
+1. 标题含"外交/出访/峰会/总统/总理/国事访问/会见外国" → diplomacy（外交）
+2. 标题含"军队/国防/军事/军委/强军" → defense（国防）
+3. 标题含"党建/从严治党/纪检/巡视/党校" → party（党建）
+4. 标题含"生态/环境/绿色/碳达峰/碳中和" → ecology（生态）
+5. 标题含"文化/文明/文艺/体育" → culture（文化）
+6. 标题含"民生/扶贫/乡村振兴/医疗/就业/养老" → society（社会）
+7. 标题含"经济/金融/高质量发展/产业/企业/科技" → economy（经济）
+8. 其他默认 → politics（政治）`;
 
 
   try {
@@ -398,6 +412,8 @@ ${truncatedContent}
   "location": "地点（如果是考察调研类文章）",
   "category": "分类，必须是以下之一：speech（重要讲话）、article（发表文章）、meeting（重要会议）、inspection（考察调研）",
   "categoryName": "分类中文名",
+  "domain": "领域，必须是以下之一：diplomacy（外交）、defense（国防）、party（党建）、ecology（生态）、culture（文化）、society（社会）、economy（经济）、politics（政治）",
+  "domainName": "领域中文名",
   "summary": "文章摘要，200-300字，概述主要内容",
   "fullText": "纯净的正文内容（见下方详细要求）",
   "analysis": "解读分析，300-500字，分析文章的核心要点、重要意义和背景"
@@ -430,7 +446,17 @@ ${truncatedContent}
 3. 标题含"讲话/发表重要讲话/致辞" → speech
 4. 标题含"《求是》/发表文章" → article
 5. 标题含"考察/调研/视察" → inspection
-6. 标题含"会议/座谈会/全会" → meeting`;
+6. 标题含"会议/座谈会/全会" → meeting
+
+领域判断（按优先级）：
+1. 标题含"外交/出访/峰会/总统/总理/国事访问/会见外国" → diplomacy（外交）
+2. 标题含"军队/国防/军事/军委/强军" → defense（国防）
+3. 标题含"党建/从严治党/纪检/巡视/党校" → party（党建）
+4. 标题含"生态/环境/绿色/碳达峰/碳中和" → ecology（生态）
+5. 标题含"文化/文明/文艺/体育" → culture（文化）
+6. 标题含"民生/扶贫/乡村振兴/医疗/就业/养老" → society（社会）
+7. 标题含"经济/金融/高质量发展/产业/企业/科技" → economy（经济）
+8. 其他默认 → politics（政治）`;
 
   try {
     const response = await fetch(KIMI_API_URL, {

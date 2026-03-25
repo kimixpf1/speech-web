@@ -600,6 +600,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         url: article.url,
         category: article.category || 'speech',
         categoryName: article.categoryName || '重要讲话',
+        domain: article.domain || 'politics',
+        domainName: article.domainName || '政治',
         location: article.location,
       });
 
