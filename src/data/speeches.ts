@@ -85,7 +85,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '北京亦庄、东城区',
     summary: '马年春节即将到来之际，习近平总书记在北京考察并看望慰问基层干部群众，向全国各族人民致以美好的新春祝福。考察了位于北京亦庄的国家信创园和东城区隆福寺街区新春市集，强调建设社会主义现代化强国，关键在科技自立自强。',
-    url: 'http://politics.people.com.cn/n1/2026/0213/c461001-40665453.html'
+    url: 'https://politics.people.com.cn/n1/2026/0213/c461001-40665453.html'
   },
   {
     id: '2026-05',
@@ -100,7 +100,7 @@ export const speechesData: Speech[] = [
     domainName: '政治',
     source: '人民网',
     summary: '新年前夕，国家主席习近平通过中央广播电视总台和互联网，发表了二〇二六年新年贺词。2025年是"十四五"收官之年，5年来我国经济实力、科技实力、国防实力、综合国力跃上新台阶。2026年是"十五五"开局之年，要锚定目标任务，坚定信心、乘势而上，扎实推动高质量发展。',
-    url: 'http://politics.people.com.cn/n1/2025/1231/c1024-40637032.html'
+    url: 'https://politics.people.com.cn/n1/2025/1231/c1024-40637032.html'
   },
   {
     id: '2026-06',
@@ -162,7 +162,7 @@ export const speechesData: Speech[] = [
     domainName: '外交',
     source: '人民网',
     summary: '习近平主席向非洲联盟轮值主席、安哥拉总统洛伦索和非洲联盟委员会主席优素福致贺电，宣布中方将于2026年5月1日起对53个非洲建交国全面实施零关税举措。这是中国扩大高水平对外开放的新举措，必将为非洲发展、中非共逐现代化之梦提供新机遇。',
-    url: 'http://politics.people.com.cn/n1/2026/0215/c1024-40666339.html'
+    url: 'https://politics.people.com.cn/n1/2026/0215/c1024-40666339.html'
   },
   {
     id: '2026-10',
@@ -194,7 +194,7 @@ export const speechesData: Speech[] = [
     source: '新华社',
     location: '北京',
     summary: '中共中央政治局2月27日召开会议，讨论国务院拟提请第十四届全国人民代表大会第四次会议审查的中华人民共和国国民经济和社会发展第十五个五年规划纲要草案稿和审议的《政府工作报告》稿。中共中央总书记习近平主持会议。会议指出，"十四五"时期我国发展历程极不寻常、极不平凡，"十四五"规划主要目标任务胜利完成。会议强调，推动"十五五"时期经济社会发展，必须全面贯彻习近平新时代中国特色社会主义思想，深入贯彻党的二十大和二十届历次全会精神，认真落实四中全会部署。',
-    url: 'http://politics.people.com.cn/n1/2026/0227/c1024-40671456.html'
+    url: 'https://politics.people.com.cn/n1/2026/0227/c1024-40671456.html'
   },
   {
     id: '2026-12',
@@ -210,7 +210,7 @@ export const speechesData: Speech[] = [
     source: '人民日报',
     location: '北京',
     summary: '习近平在参加江苏代表团审议时强调，完成"十五五"经济社会发展目标任务，需要应对更加复杂的环境、解决更多深层次矛盾。江苏等经济大省处在改革开放前沿，要在研究新情况、解决新问题上下功夫、出经验。发展新质生产力对于推动高质量发展、增强经济竞争力至关重要，江苏这方面基础较好，要努力走在前列。',
-    url: 'http://js.people.com.cn/n2/2026/0306/c358232-41516244.html'
+    url: 'https://js.people.com.cn/n2/2026/0306/c358232-41516244.html'
   },
 
   // 2025年内容
@@ -228,7 +228,7 @@ export const speechesData: Speech[] = [
     source: '学习强国',
     location: '北京',
     summary: '习近平总书记主持召开民营企业座谈会，强调扎扎实实落实促进民营经济发展的政策措施，是当前促进民营经济发展的工作重点。凡是党中央定了的就要坚决执行，不能打折扣。',
-    url: 'http://cpc.people.com.cn/n1/2025/0217/c64094-40420035.html'
+    url: 'https://cpc.people.com.cn/n1/2025/0217/c64094-40420035.html'
   },
   {
     id: '2025-02',
@@ -260,7 +260,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '北京',
     summary: '2025年全国两会期间，习近平总书记参加代表团审议并发表一系列重要讲话，为"十五五"规划编制和经济社会发展指明方向。',
-    url: 'http://lianghui.people.com.cn/2025/n1/2025/0305/c460142-40431822.html'
+    url: 'https://lianghui.people.com.cn/2025/n1/2025/0305/c460142-40431822.html'
   },
   {
     id: '2025-04',
@@ -306,7 +306,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '贵州黔东南州',
     summary: '习近平总书记来到贵州省黔东南州黎平县肇兴侗寨考察，同村民们围坐在火塘边谈民生、话振兴。强调"第一书记制度还是要坚持""就是要保留自己的特色，抓好人无我有的东西"。',
-    url: 'http://cpc.people.com.cn/n1/2025/0319/c64094-40441715.html'
+    url: 'https://cpc.people.com.cn/n1/2025/0319/c64094-40441715.html'
   },
   {
     id: '2025-07',
@@ -322,7 +322,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '云南',
     summary: '习近平总书记在云南考察，强调要坚持以高质量发展统揽全局，以进一步全面深化改革开放为动力，积极推进高水平对外开放，使各类开放平台成为经济发展的增长点。',
-    url: 'http://cpc.people.com.cn/n1/2025/0321/c64094-40443431.html'
+    url: 'https://cpc.people.com.cn/n1/2025/0321/c64094-40443431.html'
   },
   {
     id: '2025-08',
@@ -338,7 +338,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '上海',
     summary: '习近平总书记在上海考察，强调上海承担着建设国际科技创新中心的历史使命，要抢抓机遇，以服务国家战略为牵引，不断增强科技创新策源功能和高端产业引领功能，加快建成具有全球影响力的科技创新高地。',
-    url: 'http://politics.people.com.cn/n1/2025/0430/c1024-40471089.html'
+    url: 'https://politics.people.com.cn/n1/2025/0430/c1024-40471089.html'
   },
   {
     id: '2025-09',
@@ -354,7 +354,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '河南',
     summary: '习近平总书记在河南考察时指出，面对复杂的外部环境，要坚定信心，坚定不移办好自己的事，以高质量发展的确定性应对各种不确定性。',
-    url: 'http://cpc.people.com.cn/n1/2025/0521/c64094-40487818.html'
+    url: 'https://cpc.people.com.cn/n1/2025/0521/c64094-40487818.html'
   },
   {
     id: '2025-10',
@@ -370,7 +370,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '辽宁葫芦岛、沈阳',
     summary: '习近平总书记冒着严寒来到辽宁，看望慰问基层干部群众。强调东北全面振兴，归根到底靠改革开放。',
-    url: 'http://politics.people.com.cn/n1/2025/0124/c1024-40408758.html'
+    url: 'https://politics.people.com.cn/n1/2025/0124/c1024-40408758.html'
   },
   {
     id: '2025-11',
@@ -386,7 +386,7 @@ export const speechesData: Speech[] = [
     source: '新华网',
     location: '吉林长春',
     summary: '习近平总书记在吉林省长春市听取吉林省委和省政府工作汇报，强调深入落实推动新时代东北全面振兴战略部署，在中国式现代化建设中展现更大作为。',
-    url: 'http://politics.people.com.cn/n1/2025/0208/c1024-40414989.html'
+    url: 'https://politics.people.com.cn/n1/2025/0208/c1024-40414989.html'
   },
   {
     id: '2025-12',
@@ -402,7 +402,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '山西',
     summary: '习近平总书记在山西考察，指出建设国家资源型经济转型综合配套改革试验区是党中央交给山西的一项战略任务，要进一步统一思想，保持定力，坚定有序推进转型发展。',
-    url: 'http://politics.people.com.cn/n1/2025/0708/c1024-40517342.html'
+    url: 'https://politics.people.com.cn/n1/2025/0708/c1024-40517342.html'
   },
   {
     id: '2025-13',
@@ -417,7 +417,7 @@ export const speechesData: Speech[] = [
     domainName: '政治',
     source: '人民网',
     summary: '习近平总书记对"十五五"规划编制工作作出重要指示，强调坚持科学决策、民主决策、依法决策，把顶层设计和问计于民统一起来，高质量完成规划编制工作。',
-    url: 'http://politics.people.com.cn/n1/2025/0520/c1024-40483226.html'
+    url: 'https://politics.people.com.cn/n1/2025/0520/c1024-40483226.html'
   },
   {
     id: '2025-14',

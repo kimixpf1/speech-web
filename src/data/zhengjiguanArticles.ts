@@ -17,7 +17,7 @@ export const zhengjiguanArticles: Speech[] = [
     zhengjiguanLevel: 'central',
     source: '人民日报',
     summary: '经党中央同意，在全党开展树立和践行正确政绩观学习教育。学习教育以县处级以上领导班子和领导干部为重点，覆盖全体党员干部。',
-    url: 'http://dangjian.people.com.cn/n1/2026/0224/c117092-40668926.html'
+    url: 'https://dangjian.people.com.cn/n1/2026/0224/c117092-40668926.html'
   },
   {
     id: 'ZJG-C02',
@@ -30,7 +30,7 @@ export const zhengjiguanArticles: Speech[] = [
     zhengjiguanLevel: 'central',
     source: '人民日报',
     summary: '习近平总书记多次阐释"说"和"做"、"知"和"行"的辩证关系，树立"业绩都是干出来的"鲜明导向；新时代以来，广大党员干部树立和践行正确政绩观，鼓足干事创业的精气神。',
-    url: 'http://politics.people.com.cn/n1/2026/0318/c1001-40683793.html'
+    url: 'https://politics.people.com.cn/n1/2026/0318/c1001-40683793.html'
   },
   {
     id: 'ZJG-C03',
@@ -56,7 +56,7 @@ export const zhengjiguanArticles: Speech[] = [
     zhengjiguanLevel: 'central',
     source: '人民日报',
     summary: '习近平总书记在参加江苏代表团审议时强调："要认真组织开展树立和践行正确政绩观学习教育，引导广大党员干部树立和践行正确政绩观。"',
-    url: 'http://politics.people.com.cn/n1/2026/0310/c1001-40679123.html'
+    url: 'https://politics.people.com.cn/n1/2026/0310/c1001-40679123.html'
   },
 
   {
@@ -70,7 +70,7 @@ export const zhengjiguanArticles: Speech[] = [
     zhengjiguanLevel: 'central',
     source: '新华社',
     summary: '中共中央办公厅印发通知，经党中央同意在全党开展树立和践行正确政绩观学习教育。自觉为人民出政绩、以实干出政绩。',
-    url: 'http://politics.people.com.cn/n1/2026/0226/c461001-40670389.html'
+    url: 'https://politics.people.com.cn/n1/2026/0226/c461001-40670389.html'
   },
   {
     id: 'ZJG-C07',
@@ -83,7 +83,7 @@ export const zhengjiguanArticles: Speech[] = [
     zhengjiguanLevel: 'central',
     source: '人民日报',
     summary: '在全党开展树立和践行正确政绩观学习教育，是贯彻落实党的二十届四中全会战略部署、确保基本实现社会主义现代化取得决定性进展的必然要求。',
-    url: 'http://politics.people.com.cn/n1/2026/0228/c461001-40671680.html'
+    url: 'https://politics.people.com.cn/n1/2026/0228/c461001-40671680.html'
   },
   {
     id: 'ZJG-C08',
@@ -122,7 +122,7 @@ export const zhengjiguanArticles: Speech[] = [
     zhengjiguanLevel: 'central',
     source: '人民日报',
     summary: '政绩观问题是一个根本性问题，关乎立党为公、执政为民。习近平总书记深刻分析两种不同政绩观的内在本质。',
-    url: 'http://politics.people.com.cn/n1/2026/0317/c1001-40683080.html'
+    url: 'https://politics.people.com.cn/n1/2026/0317/c1001-40683080.html'
   },
   {
     id: 'ZJG-C13',
@@ -135,7 +135,7 @@ export const zhengjiguanArticles: Speech[] = [
     zhengjiguanLevel: 'central',
     source: '人民网',
     summary: '要提高站位学，更加坚决有力贯彻落实党中央决策部署和习近平总书记重要指示要求，增强树立和践行正确政绩观的自觉性。',
-    url: 'http://politics.people.com.cn/n1/2026/0318/c1001-40683776.html'
+    url: 'https://politics.people.com.cn/n1/2026/0318/c1001-40683776.html'
   },
   {
     id: 'ZJG-C14',
@@ -148,7 +148,7 @@ export const zhengjiguanArticles: Speech[] = [
     zhengjiguanLevel: 'central',
     source: '人民网',
     summary: '政绩观与发展观密切相连。有什么样的政绩观，就会有什么样的发展观，反之亦然。',
-    url: 'http://politics.people.com.cn/n1/2026/0319/c461001-40685172.html'
+    url: 'https://politics.people.com.cn/n1/2026/0319/c461001-40685172.html'
   },
 
   // ===== 江苏省层面 =====
@@ -176,7 +176,7 @@ export const zhengjiguanArticles: Speech[] = [
     zhengjiguanLevel: 'jiangsu',
     source: '人民日报',
     summary: '要树立和践行正确政绩观，坚持从实际出发、按规律办事，自觉为人民出政绩、以实干出政绩。',
-    url: 'http://paper.people.com.cn/rmrb/pc/content/202603/12/content_30144854.html'
+    url: 'https://paper.people.com.cn/rmrb/pc/content/202603/12/content_30144854.html'
   },
   {
     id: 'ZJG-J03',
@@ -243,7 +243,7 @@ export const zhengjiguanArticles: Speech[] = [
     zhengjiguanLevel: 'suzhou',
     source: '苏州日报',
     summary: '习近平总书记在参加江苏代表团审议时强调要认真组织开展树立和践行正确政绩观学习教育。苏州干部群众表示将牢记嘱托推动高质量发展。',
-    url: 'http://www.suzhou.gov.cn/szsrmzf/szyw/202603/5439e69e66d04fe6980f95741aab3cca.shtml'
+    url: 'https://www.suzhou.gov.cn/szsrmzf/szyw/202603/5439e69e66d04fe6980f95741aab3cca.shtml'
   },
 ];
 
