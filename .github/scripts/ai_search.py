@@ -16,12 +16,13 @@ from urllib.parse import quote
 
 # Config
 SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
-SUPABASE_KEY = os.environ.get('SUPABASE_ANON_KEY', '')
+# 优先使用service_role_key，回退到anon_key
+SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY') or os.environ.get('SUPABASE_ANON_KEY', '')
 KIMI_API_KEY = os.environ.get('KIMI_API_KEY', '')
 
 # 调试输出环境变量状态
 print(f'[Config] SUPABASE_URL: {"已配置" if SUPABASE_URL else "未配置"}')
-print(f'[Config] SUPABASE_ANON_KEY: {"已配置" if SUPABASE_KEY else "未配置"}')
+print(f'[Config] SUPABASE_KEY: {"已配置" if SUPABASE_KEY else "未配置"} (service_role={"是" if os.environ.get("SUPABASE_SERVICE_ROLE_KEY") else "否"})')
 print(f'[Config] KIMI_API_KEY: {"已配置" if KIMI_API_KEY else "未配置"}')
 
 KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions'
