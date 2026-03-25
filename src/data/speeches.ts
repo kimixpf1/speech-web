@@ -433,7 +433,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '北京',
     summary: '中央经济工作会议在北京举行，习近平总书记出席会议并发表重要讲话，总结2025年经济工作，分析当前经济形势，部署2026年经济工作。',
-    url: 'http://politics.people.com.cn/n1/2025/1211/c1024-40622544.html'
+    url: 'https://politics.people.com.cn/n1/2025/1211/c1024-40622544.html'
   },
   {
     id: '2025-15',
@@ -511,7 +511,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '北京',
     summary: '中央经济工作会议在北京举行，习近平总书记出席会议并发表重要讲话，总结2024年经济工作，分析当前经济形势，部署2025年经济工作。',
-    url: 'http://politics.people.com.cn/n1/2024/1213/c1024-40381049.html'
+    url: 'https://politics.people.com.cn/n1/2024/1213/c1024-40381049.html'
   },
   // 2024年新增内容（与经济工作直接相关）
   {
@@ -528,7 +528,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '北京',
     summary: '习近平总书记出席第四次"一带一路"建设工作座谈会并发表重要讲话，强调坚定战略自信，勇于担当作为，全面推动共建"一带一路"高质量发展。',
-    url: 'http://politics.people.com.cn/n1/2024/1203/c1024-40374829.html'
+    url: 'https://politics.people.com.cn/n1/2024/1203/c1024-40374829.html'
   },
   {
     id: '2024-13',
@@ -543,7 +543,7 @@ export const speechesData: Speech[] = [
     domainName: '经济',
     source: '人民网',
     summary: '习近平总书记对供销合作社工作作出重要指示，强调当好党和政府密切联系农民群众的桥梁纽带，奋力谱写供销合作事业高质量发展新篇章。',
-    url: 'http://politics.people.com.cn/n1/2024/1129/c1024-40371589.html'
+    url: 'https://politics.people.com.cn/n1/2024/1129/c1024-40371589.html'
   },
   {
     id: '2024-14',
@@ -559,7 +559,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '秘鲁利马',
     summary: '习近平总书记在亚太经合组织第三十一次领导人非正式会议上发表重要讲话，强调构建开放融通的亚太合作格局，培育绿色创新的亚太增长动能。',
-    url: 'http://politics.people.com.cn/n1/2024/1117/c1024-40361789.html'
+    url: 'https://politics.people.com.cn/n1/2024/1117/c1024-40361789.html'
   },
   {
     id: '2024-15',
@@ -575,7 +575,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '巴西里约热内卢',
     summary: '习近平总书记在二十国集团领导人第十九次峰会上发表重要讲话，强调建设一个共同发展的公正世界，让贫困成为过去，让美好愿景成为现实。',
-    url: 'http://politics.people.com.cn/n1/2024/1119/c1024-40363389.html'
+    url: 'https://politics.people.com.cn/n1/2024/1119/c1024-40363389.html'
   },
   {
     id: '2024-16',
@@ -591,7 +591,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '俄罗斯喀山',
     summary: '习近平总书记在金砖国家领导人第十六次会晤上发表重要讲话，强调登高望远，穿云破雾，推动"大金砖合作"高质量发展。',
-    url: 'http://politics.people.com.cn/n1/2024/1024/c1024-40347289.html'
+    url: 'https://politics.people.com.cn/n1/2024/1024/c1024-40347289.html'
   },
   {
     id: '2024-20',
@@ -607,7 +607,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '北京',
     summary: '习近平总书记在党的二十届三中全会第二次全体会议上发表重要讲话，强调深入学习贯彻党的二十届三中全会精神，凝心聚力推动改革行稳致远。',
-    url: 'http://politics.people.com.cn/n1/2024/0719/c1024-40291289.html'
+    url: 'https://politics.people.com.cn/n1/2024/0719/c1024-40291289.html'
   },
   {
     id: '2024-21',
@@ -623,7 +623,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '青海西宁',
     summary: '习近平总书记在青海考察，强调持续推进青藏高原生态保护和高质量发展，奋力谱写中国式现代化青海篇章。',
-    url: 'http://politics.people.com.cn/n1/2024/0619/c1024-40271289.html'
+    url: 'https://politics.people.com.cn/n1/2024/0619/c1024-40271289.html'
   },
   {
     id: '2024-22',
@@ -639,7 +639,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '宁夏银川',
     summary: '习近平总书记在宁夏考察，强调建设黄河流域生态保护和高质量发展先行区，在中国式现代化建设中谱写好宁夏篇章。',
-    url: 'http://politics.people.com.cn/n1/2024/0620/c1024-40281289.html'
+    url: 'https://politics.people.com.cn/n1/2024/0620/c1024-40281289.html'
   },
   {
     id: '2024-23',
@@ -655,7 +655,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '北京',
     summary: '习近平总书记主持召开中央财经委员会第四次会议，研究大规模设备更新和消费品以旧换新问题，研究有效降低全社会物流成本问题。',
-    url: 'http://politics.people.com.cn/n1/2024/0224/c1024-40191289.html'
+    url: 'https://politics.people.com.cn/n1/2024/0224/c1024-40191289.html'
   },
   {
     id: '2024-02',
@@ -671,7 +671,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '福建漳州、厦门',
     summary: '习近平总书记来到漳州、厦门等地，深入乡村、红色教育基地、文物保护单位、自由贸易试验区等考察调研。强调福建要深入贯彻党的二十大和二十届三中全会精神，扭住建设机制活、产业优、百姓富、生态美的新福建目标不放松。',
-    url: 'http://politics.people.com.cn/n1/2024/1016/c1024-40340748.html'
+    url: 'https://politics.people.com.cn/n1/2024/1016/c1024-40340748.html'
   },
   {
     id: '2024-03',
@@ -687,7 +687,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '安徽合肥',
     summary: '习近平总书记考察合肥滨湖科学城，强调"士别三日，当刮目相看"的飞跃里，是对"你们这里各种要素条件集成优化的必然趋势"的肯定，着眼教育科技人才体制机制一体改革中的关键问题。',
-    url: 'http://politics.people.com.cn/n1/2024/1018/c1024-40342325.html'
+    url: 'https://politics.people.com.cn/n1/2024/1018/c1024-40342325.html'
   },
   {
     id: '2024-04',
@@ -718,7 +718,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '湖北武汉',
     summary: '习近平总书记考察武汉产业创新发展研究院，看创新链产业链资金链人才链同频共振，着眼的是教育科技人才体制机制一体改革中的关键问题。',
-    url: 'http://politics.people.com.cn/n1/2024/1106/c1024-40355974.html'
+    url: 'https://politics.people.com.cn/n1/2024/1106/c1024-40355974.html'
   },
   {
     id: '2024-07',
@@ -749,7 +749,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '山东日照、济南',
     summary: '习近平总书记在山东考察期间，主持召开企业和专家座谈会，强调紧扣推进中国式现代化主题，进一步全面深化改革。',
-    url: 'http://politics.people.com.cn/n1/2024/0524/c1024-40243026.html'
+    url: 'https://politics.people.com.cn/n1/2024/0524/c1024-40243026.html'
   },
   {
     id: '2024-09',
@@ -765,7 +765,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '重庆',
     summary: '习近平总书记在重庆考察，来到重庆国际物流枢纽园区，强调物流是实体经济的"筋络"，建设西部陆海新通道对于推动形成"陆海内外联动、东西双向互济"的对外开放格局具有重要意义。',
-    url: 'http://politics.people.com.cn/n1/2024/0424/c1024-40223170.html'
+    url: 'https://politics.people.com.cn/n1/2024/0424/c1024-40223170.html'
   },
   {
     id: '2024-10',
@@ -781,7 +781,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '湖南长沙、常德',
     summary: '习近平总书记在湖南考察，走进常德市鼎城区谢家铺镇港中坪村，了解当地为基层减负、提升基层治理效能等情况，强调要把保障国家粮食安全摆在突出位置。',
-    url: 'http://politics.people.com.cn/n1/2024/0321/c1024-40200556.html'
+    url: 'https://politics.people.com.cn/n1/2024/0321/c1024-40200556.html'
   },
   {
     id: '2024-11',
@@ -797,7 +797,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '天津',
     summary: '习近平总书记春节前夕到天津看望慰问基层干部群众，第一站来到西青区辛口镇第六埠村，看望受灾农民，强调乡亲们依靠自己的双手重建美好家园，创造幸福生活。',
-    url: 'http://politics.people.com.cn/n1/2024/0204/c1024-40172926.html'
+    url: 'https://politics.people.com.cn/n1/2024/0204/c1024-40172926.html'
   },
   {
     id: '2026-13',
@@ -813,7 +813,7 @@ export const speechesData: Speech[] = [
     source: '新华社',
     location: '北京',
     summary: '这是习近平总书记2026年两会期间同代表委员共商国是的重要纪实。文章强调要结合好规划和执行力，坚定制度自信；坚持把工作重心放在练好内功、做强自身上，强化科技自立自强；准确把握新形势下人民群众对美好生活新期待，推进健康中国与共同富裕。',
-    url: 'http://paper.people.com.cn/rmrb/pc/content/202603/13/content_30145066.html'
+    url: 'https://paper.people.com.cn/rmrb/pc/content/202603/13/content_30145066.html'
   },
   {
     id: '2026-14',
@@ -878,7 +878,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '北京',
     summary: '习近平总书记出席庆祝中国人民政治协商会议成立75周年大会并发表重要讲话，强调人民政协是中国共产党把马克思列宁主义统一战线理论同中国具体实际相结合的伟大成果。',
-    url: 'http://cpc.people.com.cn/n1/2024/0920/c64094-40324729.html'
+    url: 'https://cpc.people.com.cn/n1/2024/0920/c64094-40324729.html'
   },
   // ===== 从人民网迁移的新文章（文化领域）=====
   {
@@ -911,7 +911,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '北京',
     summary: '习近平总书记出席全国教育大会并发表重要讲话，强调建成教育强国是近代以来中华民族梦寐以求的美好愿望。',
-    url: 'http://politics.people.com.cn/n1/2024/0910/c1024-40317317.html'
+    url: 'https://politics.people.com.cn/n1/2024/0910/c1024-40317317.html'
   },
   // ===== 从人民网迁移的新文章（生态领域）=====
   {
@@ -944,7 +944,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '北京',
     summary: '习近平总书记出席二十届中央纪委三次全会并发表重要讲话，强调深入推进党的自我革命。',
-    url: 'http://cpc.people.com.cn/n1/2024/0108/c64094-40154870.html'
+    url: 'https://cpc.people.com.cn/n1/2024/0108/c64094-40154870.html'
   },
   // ===== 从人民网迁移的新文章（国防领域）=====
   {
@@ -961,7 +961,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '陕西延安',
     summary: '习近平总书记出席中央军委政治工作会议并发表重要讲话，强调要坚持党对军队绝对领导，贯彻落实新时代政治建军方略。',
-    url: 'http://politics.people.com.cn/n1/2024/0619/c1024-40260089.html'
+    url: 'https://politics.people.com.cn/n1/2024/0619/c1024-40260089.html'
   },
   // ===== 从人民网迁移的新文章（外交领域）=====
   {
@@ -978,7 +978,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '北京',
     summary: '习近平主席出席和平共处五项原则发表70周年纪念大会并发表重要讲话，强调弘扬和平共处五项原则，携手构建人类命运共同体。',
-    url: 'http://politics.people.com.cn/n1/2024/0628/c1024-40266475.html'
+    url: 'https://politics.people.com.cn/n1/2024/0628/c1024-40266475.html'
   },
   {
     id: '2024-F02',
@@ -994,7 +994,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '北京',
     summary: '习近平主席出席中非合作论坛北京峰会开幕式并发表主旨讲话，题为《携手推进现代化，共筑命运共同体》。',
-    url: 'http://politics.people.com.cn/n1/2024/0905/c1024-40313787.html'
+    url: 'https://politics.people.com.cn/n1/2024/0905/c1024-40313787.html'
   }
 ];
 
