@@ -1,6 +1,7 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Calendar, MapPin, ExternalLink, Share2, Mic, FileText, Users, MapPin as MapPinIcon, BookOpen, FileText as FileTextIcon, TrendingUp, Copy, Check, MessageCircle, Volume2, Download, Play, Pause } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, ExternalLink, Share2, Mic, FileText, Users, MapPin as MapPinIcon, BookOpen, FileText as FileTextIcon, TrendingUp, Copy, Check, MessageCircle, Volume2, Download, Play, Pause, RefreshCw, Sparkles, AlertCircle } from 'lucide-react';
+import { generateSummaryAndAnalysis, isApiKeyConfigured, type GeneratedContent } from '@/services/aiSummaryService';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -132,6 +133,16 @@ export function DetailPage() {
   const currentAudioIndexRef = useRef(0);
   const isAudioPlayingRef = useRef(false);
 
+  // iframe状态
+  const [iframeLoading, setIframeLoading] = useState(true);
+  const [iframeError, setIframeError] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // AI生成状态
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState('');
+  const [hasGeneratedContent, setHasGeneratedContent] = useState(false);
+
   useEffect(() => {
     // 进入详情页时直接跳转到顶部（无动画）
     window.scrollTo({ top: 0, behavior: 'auto' });
@@ -223,6 +234,61 @@ export function DetailPage() {
       setIsLoading(false);
     }
   }, [id]);
+
+  // iframe加载处理
+  const handleIframeLoad = useCallback(() => {
+    setIframeLoading(false);
+    // 检测是否被跨域阻止
+    try {
+      if (iframeRef.current?.contentWindow) {
+        // 尝试访问iframe内容，如果跨域会抛出错误
+        const doc = iframeRef.current.contentDocument || iframeRef.current.contentWindow.document;
+        if (doc) {
+          setIframeError(false);
+        }
+      }
+    } catch (e) {
+      console.log('iframe跨域限制，无法访问内容');
+      setIframeError(true);
+    }
+  }, []);
+
+  // AI生成摘要和解读
+  const handleGenerateContent = useCallback(async () => {
+    if (!speech || !id) return;
+    
+    if (!isApiKeyConfigured()) {
+      setGenerateError('请先在管理员后台配置 Kimi API Key');
+      return;
+    }
+
+    setIsGenerating(true);
+    setGenerateError('');
+
+    try {
+      const result = await generateSummaryAndAnalysis(
+        id,
+        speech.url || '',
+        speech.title,
+        speech.abstract,
+        hasGeneratedContent // 如果已生成过，强制重新生成
+      );
+
+      // 更新speech状态
+      setSpeech(prev => prev ? {
+        ...prev,
+        abstract: result.summary,
+        analysis: result.analysis,
+      } : null);
+
+      setHasGeneratedContent(true);
+    } catch (e) {
+      console.error('生成失败:', e);
+      setGenerateError(e instanceof Error ? e.message : '生成失败，请重试');
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [speech, id, hasGeneratedContent]);
 
   const handleShare = () => {
     setShareDialogOpen(true);
@@ -770,15 +836,37 @@ export function DetailPage() {
           {/* 摘要 */}
           <Card className="mb-10 border-yellow-200 bg-gradient-to-br from-yellow-50 to-amber-50">
             <CardHeader className="pb-5">
-              <CardTitle className="flex items-center gap-3 text-2xl text-gray-900">
-                <FileTextIcon className="w-8 h-8 text-yellow-600" />
-                摘要
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-3 text-2xl text-gray-900">
+                  <FileTextIcon className="w-8 h-8 text-yellow-600" />
+                  摘要
+                </CardTitle>
+                <Button
+                  onClick={handleGenerateContent}
+                  disabled={isGenerating}
+                  variant="outline"
+                  size="sm"
+                  className="text-yellow-700 border-yellow-300 hover:bg-yellow-100"
+                >
+                  {isGenerating ? (
+                    <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4 mr-1" />
+                  )}
+                  {hasGeneratedContent ? '重新生成' : 'AI生成'}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="pt-0">
               <p className="text-gray-700 leading-relaxed whitespace-pre-line text-xl">
                 {speech.abstract}
               </p>
+              {generateError && (
+                <div className="flex items-center gap-2 text-red-600 text-sm mt-3 bg-red-50 p-2 rounded">
+                  <AlertCircle className="w-4 h-4" />
+                  {generateError}
+                </div>
+              )}
               <p className="text-xs text-gray-400 mt-4 pt-3 border-t border-yellow-200">摘要由AI生成，仅供参考</p>
             </CardContent>
           </Card>
@@ -792,12 +880,65 @@ export function DetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="prose prose-gray max-w-none">
-                <div className="bg-gray-50 rounded-lg p-8 text-gray-700 leading-loose whitespace-pre-line text-xl">
-                  {cleanFullText(speech.fullText)}
+              {speech.url && speech.url !== 'http://www.news.cn/' && speech.url !== 'https://www.qstheory.cn/' ? (
+                <div className="relative">
+                  {/* iframe容器 */}
+                  <div className="bg-gray-50 rounded-lg overflow-hidden" style={{ height: '500px' }}>
+                    {iframeLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
+                        <div className="text-center">
+                          <RefreshCw className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-2" />
+                          <p className="text-gray-500">正在加载原文...</p>
+                        </div>
+                      </div>
+                    )}
+                    {iframeError ? (
+                      <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+                        <AlertCircle className="w-12 h-12 text-amber-500 mb-4" />
+                        <p className="text-gray-600 mb-4">该网站不支持嵌入显示</p>
+                        <a
+                          href={speech.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                        >
+                          <ExternalLink className="w-5 h-5" />
+                          新窗口打开原文
+                        </a>
+                      </div>
+                    ) : (
+                      <iframe
+                        ref={iframeRef}
+                        src={speech.url}
+                        className="w-full h-full border-0"
+                        onLoad={handleIframeLoad}
+                        title="原文内容"
+                        sandbox="allow-same-origin allow-scripts allow-popups"
+                      />
+                    )}
+                  </div>
+                  {/* 新窗口打开按钮 */}
+                  {!iframeError && (
+                    <div className="mt-3 text-center">
+                      <a
+                        href={speech.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 text-sm"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        新窗口打开原文
+                      </a>
+                    </div>
+                  )}
                 </div>
-              </div>
-              <p className="text-xs text-gray-400 mt-4 pt-3 border-t border-gray-200">原文内容通过原文链接提取</p>
+              ) : (
+                <div className="bg-gray-50 rounded-lg p-8 text-center text-gray-500">
+                  <BookOpen className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p>暂无原文链接</p>
+                </div>
+              )}
+              <p className="text-xs text-gray-400 mt-4 pt-3 border-t border-gray-200">原文内容来自官方网站</p>
             </CardContent>
           </Card>
 
