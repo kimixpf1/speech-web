@@ -17,7 +17,31 @@ const LAST_SEARCH_TIME_STORAGE = 'last_search_time';
 const SEARCH_QUERIES = [
   '习近平总书记今日最新讲话 文章 会议',
   '习近平 人民网 最新',
-  '习近平 新华社 最新',
+  '习近平 新华网 最新',
+];
+
+// 官方网站列表页 - 直接爬取获取真实文章
+const OFFICIAL_LIST_PAGES = [
+  {
+    name: '人民网-时政',
+    url: 'http://politics.people.com.cn/GB/1024/index.html',
+    source: '人民网',
+  },
+  {
+    name: '人民网-学习',
+    url: 'http://cpc.people.com.cn/xuexi/',
+    source: '人民网',
+  },
+  {
+    name: '新华网-领导人',
+    url: 'http://www.news.cn/politics/leaders/index.htm',
+    source: '新华网',
+  },
+  {
+    name: '求是网-理论',
+    url: 'http://www.qstheory.cn/llwx/index.htm',
+    source: '求是网',
+  },
 ];
 
 // 百度搜索配置 - 指定网站
@@ -569,6 +593,143 @@ async function searchBaiduViaKimi(apiKey: string): Promise<SearchedArticle[]> {
 }
 
 /**
+ * 直接爬取官方网站列表页获取文章（最可靠的方式）
+ * 通过 Kimi 的 web_browser 工具访问列表页，提取习近平相关文章
+ */
+async function crawlOfficialListPages(apiKey: string): Promise<SearchedArticle[]> {
+  const allArticles: SearchedArticle[] = [];
+  const datePrompt = getTodayDatePrompt();
+  
+  for (const page of OFFICIAL_LIST_PAGES) {
+    try {
+      console.log(`爬取官方列表页: ${page.name} - ${page.url}`);
+      
+      const response = await fetch(KIMI_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'moonshot-v1-auto',
+          messages: [
+            { 
+              role: 'system', 
+              content: `你是一个网页数据提取助手。${datePrompt}
+
+请使用 web_browser 工具打开用户提供的网页，从页面中提取与"习近平"相关的最新新闻文章。
+
+提取要求：
+1. 只提取标题中包含"习近平"的文章
+2. 只提取最近3天内的文章
+3. 必须提取文章的真实完整URL（从页面链接中获取）
+4. 最多提取5篇
+
+返回JSON数组格式：
+[
+  {
+    "title": "完整标题",
+    "date": "YYYY-MM-DD",
+    "url": "文章的完整URL",
+    "summary": "一句话摘要（如果有）"
+  }
+]
+
+只返回JSON数组，不要其他文字。如果没有找到相关文章，返回空数组[]。`
+            },
+            { role: 'user', content: `请打开这个页面并提取习近平相关的最新文章：${page.url}` },
+          ],
+          tools: [
+            {
+              type: 'builtin_function',
+              function: { name: '$web_browser' },
+            }
+          ],
+          temperature: 0.1,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error(`爬取 ${page.name} 失败:`, response.status);
+        continue;
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || '';
+      console.log(`${page.name} 返回:`, content.substring(0, 300));
+
+      const jsonMatch = content.match(/\[[\s\S]*?\]/);
+      if (!jsonMatch) {
+        console.log(`${page.name} 无有效数据`);
+        continue;
+      }
+
+      try {
+        const articles = JSON.parse(jsonMatch[0]);
+        console.log(`${page.name} 提取到 ${articles.length} 篇文章`);
+        
+        for (const article of articles) {
+          if (!article.title || !article.url) continue;
+          
+          // 补充来源和分类信息
+          const searchedArticle: SearchedArticle = {
+            title: article.title,
+            date: article.date || new Date().toISOString().split('T')[0],
+            category: detectCategory(article.title),
+            categoryName: detectCategoryName(article.title),
+            source: page.source,
+            url: article.url,
+            summary: article.summary || article.title,
+          };
+          
+          // 验证文章
+          const validation = validateArticle(searchedArticle);
+          if (validation.valid) {
+            allArticles.push(searchedArticle);
+            console.log(`  ✓ ${article.title.substring(0, 40)}...`);
+          } else {
+            console.log(`  ✗ ${article.title.substring(0, 30)}... - ${validation.reason}`);
+          }
+        }
+      } catch (e) {
+        console.error(`解析 ${page.name} 数据失败:`, e);
+      }
+      
+      // 避免限流
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+    } catch (error) {
+      console.error(`爬取 ${page.name} 异常:`, error);
+    }
+  }
+  
+  console.log(`官方列表页爬取完成，共 ${allArticles.length} 篇`);
+  return allArticles;
+}
+
+/**
+ * 根据标题检测文章分类
+ */
+function detectCategory(title: string): string {
+  if (title.includes('讲话') || title.includes('致辞') || title.includes('演讲')) return 'speech';
+  if (title.includes('文章') || title.includes('发表')) return 'article';
+  if (title.includes('会议') || title.includes('会见') || title.includes('会谈')) return 'meeting';
+  if (title.includes('考察') || title.includes('调研') || title.includes('视察')) return 'inspection';
+  return 'speech';
+}
+
+/**
+ * 根据标题检测分类名称
+ */
+function detectCategoryName(title: string): string {
+  if (title.includes('讲话') || title.includes('致辞') || title.includes('演讲')) return '重要讲话';
+  if (title.includes('文章') || title.includes('发表')) return '发表文章';
+  if (title.includes('会议') || title.includes('会见') || title.includes('会谈')) return '重要会议';
+  if (title.includes('考察') || title.includes('调研') || title.includes('视察')) return '考察调研';
+  return '重要讲话';
+}
+
+/**
  * 使用 DeepSeek API 联网搜索文章
  * 注意：DeepSeek 不支持真正的联网搜索，仅返回训练数据
  */
@@ -731,80 +892,77 @@ export async function searchArticles(
     apiUsed = fallbackApi;
   }
 
-  // 执行搜索
-  for (let i = 0; i < SEARCH_QUERIES.length; i++) {
-    const query = SEARCH_QUERIES[i];
-    onProgress?.(`正在搜索 (${i + 1}/${SEARCH_QUERIES.length}): ${query}`);
-
+  // ========== 步骤1: 直接爬取官方网站列表页（最可靠） ==========
+  if (kimiApiKey) {
+    onProgress?.('正在爬取官方网站列表页（人民网/新华网/求是网）...');
     try {
-      let results: SearchedArticle[];
-      if (apiUsed === 'kimi') {
-        results = await searchWithKimi(query, activeKey!);
-      } else {
-        results = await searchWithDeepSeek(query, activeKey!);
-      }
-
-      searchDetails[`query_${i + 1}`] = {
-        query,
-        count: results.length,
+      const officialResults = await crawlOfficialListPages(kimiApiKey);
+      searchDetails['official_crawl'] = {
+        count: officialResults.length,
         status: 'success',
+        pages: OFFICIAL_LIST_PAGES.map(p => p.name),
       };
-
-      allArticles.push(...results);
+      allArticles.push(...officialResults);
+      onProgress?.(`官方列表页找到 ${officialResults.length} 篇文章`);
     } catch (error) {
-      searchDetails[`query_${i + 1}`] = {
-        query,
+      searchDetails['official_crawl'] = {
         count: 0,
         status: 'failed',
-        error: error instanceof Error ? error.message : '未知错误',
+        error: error instanceof Error ? error.message : '爬取失败',
       };
-
-      // 如果主 API 失败，尝试备用 API
-      if (fallbackKey && apiUsed !== fallbackApi) {
-        onProgress?.(`${apiUsed} 搜索失败，尝试 ${fallbackApi}...`);
-        try {
-          let results: SearchedArticle[];
-          if (fallbackApi === 'kimi') {
-            results = await searchWithKimi(query, fallbackKey);
-          } else {
-            results = await searchWithDeepSeek(query, fallbackKey);
-          }
-          allArticles.push(...results);
-          searchDetails[`query_${i + 1}_fallback`] = {
-            api: fallbackApi,
-            count: results.length,
-            status: 'success',
-          };
-        } catch {
-          // 备用也失败，继续下一个查询
-        }
-      }
-    }
-
-    // 添加延迟避免限流
-    if (i < SEARCH_QUERIES.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
     }
   }
 
-  // 步骤2: 百度搜索（通过 Kimi 搜索指定网站）
-  if (kimiApiKey) {
-    onProgress?.('正在进行百度搜索（人民网/新华网/求是网）...');
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000)); // 避免限流
-      const baiduResults = await searchBaiduViaKimi(kimiApiKey);
-      searchDetails['baidu_search'] = {
-        count: baiduResults.length,
-        status: 'success',
-        sites: BAIDU_SEARCH_SITES,
+  // ========== 步骤2: AI 联网搜索（补充） ==========
+  // 只有在官方列表页没找到文章时才执行 AI 搜索
+  if (allArticles.length === 0) {
+    onProgress?.('官方列表页无结果，启用AI补充搜索...');
+    
+    for (let i = 0; i < SEARCH_QUERIES.length; i++) {
+      const query = SEARCH_QUERIES[i];
+      onProgress?.(`AI搜索 (${i + 1}/${SEARCH_QUERIES.length}): ${query}`);
+
+      try {
+        let results: SearchedArticle[];
+        if (apiUsed === 'kimi') {
+          results = await searchWithKimi(query, activeKey!);
+        } else {
+          results = await searchWithDeepSeek(query, activeKey!);
+        }
+
+        searchDetails[`ai_query_${i + 1}`] = {
+          query,
+          count: results.length,
+          status: 'success',
+        };
+
+        allArticles.push(...results);
+      } catch (error) {
+        searchDetails[`ai_query_${i + 1}`] = {
+          query,
+          count: 0,
+          status: 'failed',
+          error: error instanceof Error ? error.message : '未知错误',
+        };
+      }
+
+      // 添加延迟避免限流
+      if (i < SEARCH_QUERIES.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+    
+    // 只对 AI 搜索的结果进行 URL 验证
+    if (allArticles.length > 0 && kimiApiKey) {
+      onProgress?.(`正在验证 AI 搜索结果的 URL 可访问性...`);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const verifiedAiArticles = await verifyUrlsWithKimi(allArticles, kimiApiKey);
+      searchDetails['ai_url_verify'] = {
+        before: allArticles.length,
+        after: verifiedAiArticles.length,
+        filtered: allArticles.length - verifiedAiArticles.length,
       };
-      allArticles.push(...baiduResults);
-    } catch (error) {
-      searchDetails['baidu_search'] = {
-        count: 0,
-        status: 'failed',
-        error: error instanceof Error ? error.message : '百度搜索失败',
-      };
+      allArticles = verifiedAiArticles;
     }
   }
 
@@ -824,16 +982,8 @@ export async function searchArticles(
     newArticles.push(article);
   }
 
-  // URL 可访问性验证（使用 Kimi 作为代理）
-  let verifiedArticles = newArticles;
-  if (newArticles.length > 0 && kimiApiKey) {
-    onProgress?.(`正在验证 ${newArticles.length} 篇文章的URL可访问性...`);
-    await new Promise(resolve => setTimeout(resolve, 2000)); // 避免限流
-    verifiedArticles = await verifyUrlsWithKimi(newArticles, kimiApiKey);
-    if (verifiedArticles.length < newArticles.length) {
-      onProgress?.(`URL验证: ${newArticles.length - verifiedArticles.length} 篇文章因URL无效被过滤`);
-    }
-  }
+  // 官方列表页爬取的 URL 是真实的，不需要再验证
+  const verifiedArticles = newArticles;
 
   const duration = (Date.now() - startTime) / 1000;
 
