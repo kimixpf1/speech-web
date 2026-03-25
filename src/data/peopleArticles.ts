@@ -4,7 +4,7 @@
 // 抓取日期：2026-03-20
 // 共116篇文章
 
-import { Speech } from './speeches';
+import type { Speech } from './speeches';
 
 export const peopleArticles: Speech[] = [
   // ===== 2026年 (8篇) =====
@@ -17,7 +17,7 @@ export const peopleArticles: Speech[] = [
     domain: 'economy', domainName: '经济',
     source: '《求是》杂志第6期',
     summary: '文章强调，我国经略海洋、开发海洋历史悠久。推进中国式现代化，必须高效开发利用海洋，推动海洋经济高质量发展。',
-    url: 'https://jhsjk.people.cn/article/40682570'
+    url: 'https://www.qstheory.cn/20260314/eca2335226a84f3f8d583926b70fef9b/c.html'
   },
   {
     id: 'P2026-002',
@@ -28,7 +28,7 @@ export const peopleArticles: Speech[] = [
     domain: 'economy', domainName: '经济',
     source: '《求是》杂志第4期',
     summary: '这是习近平总书记2025年12月10日在中央经济工作会议上讲话的一部分。文章强调，2026年经济工作头绪多，要抓住关键、纲举目张。',
-    url: 'https://jhsjk.people.cn/article/40666627'
+    url: 'https://www.qstheory.cn/20260214/a9022461555c48e6a2f2e4fef36878a9/c.html'
   },
   {
     id: 'P2026-003',
@@ -39,7 +39,7 @@ export const peopleArticles: Speech[] = [
     domain: 'politics', domainName: '政治',
     source: '人民网－人民日报',
     summary: '丙午马年春节即将到来。习近平总书记代表党中央和国务院，向全国各族人民致以节日的美好祝福。',
-    url: 'https://jhsjk.people.cn/article/40666402'
+    url: 'http://politics.people.com.cn/n1/2026/0215/c1024-40666339.html'
   },
   {
     id: 'P2026-004',
@@ -50,7 +50,7 @@ export const peopleArticles: Speech[] = [
     domain: 'economy', domainName: '经济',
     source: '《求是》杂志第3期',
     summary: '党的十八大以来，我们积极探索新时代金融发展规律，逐步走出一条中国特色金融发展之路。',
-    url: 'https://jhsjk.people.cn/article/40657082'
+    url: 'https://www.qstheory.cn/20260131/487aa5b5e0804f7ea968118e541b4e91/c.html'
   },
   {
     id: 'P2026-005',
@@ -61,7 +61,7 @@ export const peopleArticles: Speech[] = [
     domain: 'society', domainName: '社会',
     source: '《求是》杂志第2期',
     summary: '时隔10年，党中央再次召开城市工作会议，总结新时代以来我国城市发展成就。',
-    url: 'https://jhsjk.people.cn/article/40646422'
+    url: 'https://www.qstheory.cn/20260115/d3e63b3075754be4a98c172afdf6d9b7/c.html'
   },
   {
     id: 'P2026-006',

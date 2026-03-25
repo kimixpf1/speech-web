@@ -39,7 +39,7 @@ export const speechesData: Speech[] = [
     domainName: '经济',
     source: '《求是》杂志第4期',
     summary: '这是习近平总书记2025年12月10日在中央经济工作会议上讲话的一部分。文章强调，2026年经济工作头绪多，要抓住关键、纲举目张。坚持内需主导，建设强大国内市场；坚持创新驱动，加紧培育壮大新动能；坚持改革攻坚，增强高质量发展动力活力；坚持"双碳"引领，推动全面绿色转型；坚持民生为大，努力为人民群众多办实事。',
-    url: 'https://www.qstheory.cn/20260215/9f11863af9414728880eda8352202ed6/c.html'
+    url: 'https://www.qstheory.cn/20260214/a9022461555c48e6a2f2e4fef36878a9/c.html'
   },
   {
     id: '2026-02',
@@ -54,7 +54,7 @@ export const speechesData: Speech[] = [
     domainName: '经济',
     source: '《求是》杂志第2期',
     summary: '这是习近平总书记2025年7月14日在中央城市工作会议上的讲话。时隔10年，党中央再次召开城市工作会议，总结新时代以来我国城市发展成就，分析城市工作面临的形势，对当前和今后一个时期城市工作作出部署。',
-    url: 'https://www.qstheory.cn/20260116/dfbbdd564af24b4b9dbf0e96088480c8/c.html'
+    url: 'https://www.qstheory.cn/20260115/d3e63b3075754be4a98c172afdf6d9b7/c.html'
   },
   {
     id: '2026-03',
@@ -69,7 +69,7 @@ export const speechesData: Speech[] = [
     domainName: '政治',
     source: '《求是》杂志第1期',
     summary: '这是习近平总书记2025年10月23日在党的二十届四中全会第二次全体会议上的讲话。全会通过的《建议》，立足于夯实基础、全面发力，对"十五五"时期事关中国式现代化全局的战略任务作出部署，是指导"十五五"时期经济社会发展的纲领性文件。',
-    url: 'http://kaogu.cssn.cn/djgz/esdszqh/202512/t20251231_5967806.shtml'
+    url: 'https://www.qstheory.cn/20251231/89d6ae15de5d48039f63ad4888aeda98/c.html'
   },
   {
     id: '2026-04',
@@ -178,7 +178,7 @@ export const speechesData: Speech[] = [
     source: '新华社',
     location: '北京钓鱼台国宾馆',
     summary: '2月25日下午，国家主席习近平在北京钓鱼台国宾馆会见来华进行正式访问的德国总理默茨。习近平指出，中国和德国分别是世界第二、第三大经济体，中德关系不仅关乎两国利益，也对欧洲和世界有重要辐射效应。',
-    url: 'https://baijiahao.baidu.com/s?id=1858137285053171169'
+    url: 'https://www.news.cn/politics/leaders/20260225/8a5edc19931e49d894bcf24e4b531cb8/c.html'
   },
   {
     id: '2026-11',
@@ -228,7 +228,7 @@ export const speechesData: Speech[] = [
     source: '学习强国',
     location: '北京',
     summary: '习近平总书记主持召开民营企业座谈会，强调扎扎实实落实促进民营经济发展的政策措施，是当前促进民营经济发展的工作重点。凡是党中央定了的就要坚决执行，不能打折扣。',
-    url: 'https://www.xuexi.cn/lgpage/detail/index.html?id=12355104368162374703'
+    url: 'http://cpc.people.com.cn/n1/2025/0217/c64094-40420035.html'
   },
   {
     id: '2025-02',
@@ -275,7 +275,7 @@ export const speechesData: Speech[] = [
     domainName: '经济',
     source: '《求是》杂志第5期',
     summary: '文章强调，2024年是实现"十四五"规划目标任务的关键一年。一年来的发展历程很不平凡，成绩令人鼓舞。经济工作千头万绪，必须统筹好几对重要关系：有效市场和有为政府、总供给和总需求、培育新动能和更新旧动能、做优增量和盘活存量、提升质量和做大总量。',
-    url: 'http://www.qstheory.cn/20250228/f4d73896848446b8ad6423696f16ebbf/c.html'
+    url: 'https://www.qstheory.cn/20250228/38bbd5e750c944abb05dbd63e83a6be4/c.html'
   },
   {
     id: '2025-05',
@@ -290,7 +290,7 @@ export const speechesData: Speech[] = [
     domainName: '经济',
     source: '《求是》杂志第6期',
     summary: '文章强调，我们党在坚持基本经济制度上的观点是明确的、一贯的，而且是不断深化的，从来没有动摇。党和国家坚持和完善社会主义基本经济制度，毫不动摇巩固和发展公有制经济，毫不动摇鼓励、支持、引导非公有制经济发展。',
-    url: 'http://www.qstheory.cn/20250315/54c22dd89ddf43b0b7676fc512b2c96e/c.html'
+    url: 'https://www.qstheory.cn/20250315/54c22dd89ddf43b0b7676fc512b2c96e/c.html'
   },
   {
     id: '2025-06',
@@ -386,7 +386,7 @@ export const speechesData: Speech[] = [
     source: '新华网',
     location: '吉林长春',
     summary: '习近平总书记在吉林省长春市听取吉林省委和省政府工作汇报，强调深入落实推动新时代东北全面振兴战略部署，在中国式现代化建设中展现更大作为。',
-    url: 'http://www.news.cn/'
+    url: 'http://politics.people.com.cn/n1/2025/0208/c1024-40414989.html'
   },
   {
     id: '2025-12',
@@ -448,7 +448,7 @@ export const speechesData: Speech[] = [
     domainName: '经济',
     source: '《求是》杂志第14期',
     summary: '这是习近平总书记2012年12月至2025年4月期间有关重要论述的节录。文章强调，开放带来进步，封闭必然落后。中国的发展离不开世界，世界的繁荣也需要中国。',
-    url: 'http://mp.weixin.qq.com/s?__biz=MzAxNjM5NzA2OQ==&mid=2649526736&idx=1&sn=39a7b11631a6414567938ab7c5afa4b8'
+    url: 'https://www.qstheory.cn/20250714/4506ed33ca0a495da1fd0243ff66cc77/c.html'
   },
   {
     id: '2025-16',
@@ -463,7 +463,7 @@ export const speechesData: Speech[] = [
     domainName: '经济',
     source: '《求是》杂志第22期',
     summary: '这是习近平总书记2023年9月至2025年4月期间有关重要论述的节录。文章强调，新质生产力是创新起主导作用，具有高科技、高效能、高质量特征，符合新发展理念的先进生产力质态。',
-    url: 'http://www.zyshgzb.gov.cn/n1/2025/1218/c461257-40627248.html'
+    url: 'https://www.qstheory.cn/20251114/1eaed05f562144a3948dd858f25bbcf7/c.html'
   },
   {
     id: '2025-18',
@@ -493,7 +493,7 @@ export const speechesData: Speech[] = [
     domainName: '经济',
     source: '《求是》杂志第3期',
     summary: '文章强调，党的十八大以来，我们积极探索新时代金融发展规律，逐步走出一条中国特色金融发展之路。建设金融强国，必须加快构建中国特色现代金融体系，推动金融高质量发展。',
-    url: 'https://www.qstheory.cn/20260131/bcd4780261044de2ac97bf9cea6e4c87/c.html'
+    url: 'https://www.qstheory.cn/20260131/487aa5b5e0804f7ea968118e541b4e91/c.html'
   },
 
   // 2024年内容
@@ -702,7 +702,7 @@ export const speechesData: Speech[] = [
     domainName: '社会',
     source: '《求是》杂志第21期',
     summary: '就业是最基本的民生，事关人民群众切身利益，事关经济社会健康发展，事关国家长治久安。党的十八大以来，党中央坚持把就业工作摆在治国理政的突出位置，强化就业优先政策，健全就业促进机制，有效应对各种风险挑战。',
-    url: 'http://www.qstheory.cn/dukan/qs/2024-10/31/c_1130214661.htm'
+    url: 'https://www.qstheory.cn/dukan/qs/2024-10/31/c_1130214661.htm'
   },
   {
     id: '2024-06',
@@ -733,7 +733,7 @@ export const speechesData: Speech[] = [
     domainName: '经济',
     source: '《求是》杂志第12期',
     summary: '文章强调，高质量发展是"十四五"乃至更长时期我国经济社会发展的主题，关系我国社会主义现代化建设全局。新时代新阶段的发展必须贯彻新发展理念，必须是高质量发展。',
-    url: 'http://www.qstheory.cn/dukan/qs/2024-06/15/c_1130160583.htm'
+    url: 'https://www.qstheory.cn/dukan/qs/2024-06/15/c_1130162887.htm'
   },
   {
     id: '2024-08',
@@ -859,10 +859,10 @@ export const speechesData: Speech[] = [
     categoryName: '重要讲话',
     domain: 'politics',
     domainName: '政治',
-    source: '新华社',
+    source: '人民网',
     location: '北京',
     summary: '习近平总书记出席庆祝全国人民代表大会成立70周年大会并发表重要讲话，强调人民代表大会制度是中国共产党领导中国人民在人类政治制度史上的伟大创造。',
-    url: 'http://politics.people.com.cn/n1/2024/0915/c1024-40307189.html'
+    url: 'https://cpc.people.com.cn/n1/2024/0914/c64094-40320874.html'
   },
   {
     id: '2024-P02',
@@ -875,26 +875,26 @@ export const speechesData: Speech[] = [
     categoryName: '重要讲话',
     domain: 'politics',
     domainName: '政治',
-    source: '新华社',
+    source: '人民网',
     location: '北京',
     summary: '习近平总书记出席庆祝中国人民政治协商会议成立75周年大会并发表重要讲话，强调人民政协是中国共产党把马克思列宁主义统一战线理论同中国具体实际相结合的伟大成果。',
-    url: 'http://politics.people.com.cn/n1/2024/0921/c1024-40310189.html'
+    url: 'http://cpc.people.com.cn/n1/2024/0920/c64094-40324729.html'
   },
   // ===== 从人民网迁移的新文章（文化领域）=====
   {
     id: '2024-C01',
     title: '加强文化遗产保护传承 弘扬中华优秀传统文化',
-    date: '2024-06-08',
+    date: '2024-04-15',
     year: 2024,
-    month: 6,
-    day: 8,
+    month: 4,
+    day: 15,
     category: 'article',
     categoryName: '发表文章',
     domain: 'culture',
     domainName: '文化',
-    source: '《求是》杂志第11期',
+    source: '《求是》杂志第8期',
     summary: '文章强调，中华文明源远流长，从未中断，塑造了我们伟大的民族。文物和文化遗产承载着中华民族的基因和血脉。',
-    url: 'http://www.qstheory.cn/dukan/qs/2024-06/07/c_1130158583.htm'
+    url: 'https://www.qstheory.cn/dukan/qs/2024-04/15/c_1130109121.htm'
   },
   // ===== 从人民网迁移的新文章（社会领域）=====
   {
@@ -908,26 +908,26 @@ export const speechesData: Speech[] = [
     categoryName: '重要会议',
     domain: 'society',
     domainName: '社会',
-    source: '新华社',
+    source: '人民网',
     location: '北京',
     summary: '习近平总书记出席全国教育大会并发表重要讲话，强调建成教育强国是近代以来中华民族梦寐以求的美好愿望。',
-    url: 'http://politics.people.com.cn/n1/2024/0911/c1024-40305189.html'
+    url: 'http://politics.people.com.cn/n1/2024/0910/c1024-40317317.html'
   },
   // ===== 从人民网迁移的新文章（生态领域）=====
   {
     id: '2024-E01',
-    title: '全面推进美丽中国建设',
-    date: '2024-06-05',
+    title: '以美丽中国建设全面推进人与自然和谐共生的现代化',
+    date: '2024-01-01',
     year: 2024,
-    month: 6,
-    day: 5,
+    month: 1,
+    day: 1,
     category: 'article',
     categoryName: '发表文章',
     domain: 'ecology',
     domainName: '生态',
-    source: '《求是》杂志第11期',
-    summary: '文章强调，生态文明建设是关系中华民族永续发展的根本大计。我们要深入贯彻习近平生态文明思想。',
-    url: 'http://www.qstheory.cn/dukan/qs/2024-06/04/c_1130156583.htm'
+    source: '《求是》杂志第1期',
+    summary: '文章强调，今后5年是美丽中国建设的重要时期，要深入贯彻新时代中国特色社会主义生态文明思想，坚持以人民为中心，牢固树立和践行绿水青山就是金山银山的理念。',
+    url: 'https://www.qstheory.cn/dukan/qs/2023-12/31/c_1130048939.htm'
   },
   // ===== 从人民网迁移的新文章（党建领域）=====
   {
@@ -941,27 +941,27 @@ export const speechesData: Speech[] = [
     categoryName: '重要会议',
     domain: 'party',
     domainName: '党建',
-    source: '新华社',
+    source: '人民网',
     location: '北京',
     summary: '习近平总书记出席二十届中央纪委三次全会并发表重要讲话，强调深入推进党的自我革命。',
-    url: 'http://politics.people.com.cn/n1/2024/0109/c1024-40142189.html'
+    url: 'http://cpc.people.com.cn/n1/2024/0108/c64094-40154870.html'
   },
   // ===== 从人民网迁移的新文章（国防领域）=====
   {
     id: '2024-D01',
     title: '在中央军委政治工作会议上的讲话',
-    date: '2024-06-18',
+    date: '2024-06-19',
     year: 2024,
     month: 6,
-    day: 18,
+    day: 19,
     category: 'meeting',
     categoryName: '重要会议',
     domain: 'defense',
     domainName: '国防',
-    source: '新华社',
+    source: '人民网',
     location: '陕西延安',
-    summary: '习近平总书记出席中央军委政治工作会议并发表重要讲话，强调要坚持党对军队绝对领导。',
-    url: 'http://politics.people.com.cn/n1/2024/0619/c1024-40272189.html'
+    summary: '习近平总书记出席中央军委政治工作会议并发表重要讲话，强调要坚持党对军队绝对领导，贯彻落实新时代政治建军方略。',
+    url: 'http://politics.people.com.cn/n1/2024/0619/c1024-40260089.html'
   },
   // ===== 从人民网迁移的新文章（外交领域）=====
   {
@@ -975,10 +975,10 @@ export const speechesData: Speech[] = [
     categoryName: '重要讲话',
     domain: 'diplomacy',
     domainName: '外交',
-    source: '新华社',
+    source: '人民网',
     location: '北京',
-    summary: '习近平主席出席和平共处五项原则发表70周年纪念大会并发表重要讲话。',
-    url: 'http://politics.people.com.cn/n1/2024/0629/c1024-40279189.html'
+    summary: '习近平主席出席和平共处五项原则发表70周年纪念大会并发表重要讲话，强调弘扬和平共处五项原则，携手构建人类命运共同体。',
+    url: 'http://politics.people.com.cn/n1/2024/0628/c1024-40266475.html'
   },
   {
     id: '2024-F02',
@@ -991,10 +991,10 @@ export const speechesData: Speech[] = [
     categoryName: '重要讲话',
     domain: 'diplomacy',
     domainName: '外交',
-    source: '新华社',
+    source: '人民网',
     location: '北京',
-    summary: '习近平主席出席中非合作论坛北京峰会开幕式并发表主旨讲话。',
-    url: 'http://politics.people.com.cn/n1/2024/0906/c1024-40301189.html'
+    summary: '习近平主席出席中非合作论坛北京峰会开幕式并发表主旨讲话，题为《携手推进现代化，共筑命运共同体》。',
+    url: 'http://politics.people.com.cn/n1/2024/0905/c1024-40313787.html'
   }
 ];
 
