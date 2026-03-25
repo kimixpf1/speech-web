@@ -43,7 +43,7 @@ export const zhengjiguanArticles: Speech[] = [
     zhengjiguanLevel: 'central',
     source: '新华社',
     summary: '对于政绩观，习近平总书记始终有着深邃思考与明确指引，锚定为民造福的根本目的，坚守求真务实的基本路径，引领全党不断创造经得起实践、人民、历史检验的实绩。',
-    url: 'https://www.news.cn/politics/leaders/20260225/xxx/c.html'
+    url: 'https://www.news.cn/politics/leaders/20260225/1461d2b01fef439f90ac85c8debdfe9e/c.html'
   },
   {
     id: 'ZJG-C04',
