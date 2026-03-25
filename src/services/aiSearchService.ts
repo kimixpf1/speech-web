@@ -13,14 +13,16 @@ const DEEPSEEK_API_KEY_STORAGE = 'deepseek_api_key';
 const PREFERRED_API_STORAGE = 'preferred_search_api';
 const LAST_SEARCH_TIME_STORAGE = 'last_search_time';
 
-// 搜索关键词配置 - 简化为一个核心查询
+// 搜索关键词配置 - 多维度搜索确保不漏
 const SEARCH_QUERIES = [
-  '习近平总书记今日最新讲话',
+  '习近平总书记今日最新讲话 文章 会议',
+  '习近平 人民网 最新',
+  '习近平 新华社 最新',
 ];
 
 // 百度搜索配置 - 指定网站
 const BAIDU_SEARCH_SITES = ['people.com.cn', 'xinhuanet.com', 'qstheory.cn'];
-const BAIDU_SEARCH_QUERY = '习近平 最新讲话 site:people.com.cn OR site:xinhuanet.com OR site:qstheory.cn';
+const BAIDU_SEARCH_QUERY = '习近平 最新 site:people.com.cn OR site:xinhuanet.com OR site:qstheory.cn';
 
 // 官方来源域名白名单
 const OFFICIAL_DOMAINS = [

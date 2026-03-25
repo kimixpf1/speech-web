@@ -39,22 +39,24 @@ OFFICIAL_DOMAINS = [
 
 BAIDU_SITES = ['people.com.cn', 'xinhuanet.com', 'qstheory.cn']
 
+# 领域关键词 - 按优先级排列（外交优先检测）
 DOMAIN_KEYWORDS = {
-    'diplomacy': ['外交', '会见', '出访', '峰会', '总统', '总理', '国际'],
-    'defense': ['军队', '国防', '军事', '军委', '强军'],
-    'party': ['党建', '从严治党', '纪检', '巡视', '党校'],
-    'ecology': ['生态', '环境', '绿色', '碳达峰', '碳中和'],
-    'culture': ['文化', '文明', '文艺', '教育', '体育'],
-    'society': ['民生', '扶贫', '乡村振兴', '医疗', '就业'],
-    'economy': ['经济', '金融', '科技', '创新', '高质量发展'],
-    'politics': ['政治', '人大', '政协', '全会', '两会', '法治'],
+    'diplomacy': ['外交', '出访', '峰会', '总统', '总理', '国际', '外国', '国事访问', '友好访问'],
+    'defense': ['军队', '国防', '军事', '军委', '强军', '部队', '战士'],
+    'party': ['党建', '从严治党', '纪检', '巡视', '党校', '党员', '党组织'],
+    'ecology': ['生态', '环境', '绿色', '碳达峰', '碳中和', '环保'],
+    'culture': ['文化', '文明', '文艺', '体育', '艺术', '文学'],
+    'society': ['民生', '扶贫', '乡村振兴', '医疗', '就业', '养老', '住房'],
+    'economy': ['经济', '金融', '科技', '创新', '高质量发展', '产业', '企业'],
+    'politics': ['政治', '人大', '政协', '全会', '两会', '法治', '立法'],
 }
 
+# 分类关键词 - 优化优先级
 CATEGORY_KEYWORDS = {
-    'meeting': ['会议', '会见', '座谈会', '全会', '峰会'],
-    'inspection': ['考察', '调研', '走访', '看望', '慰问'],
-    'article': ['《求是》', '发表文章', '重要文章'],
-    'speech': ['讲话', '指示', '批示', '贺电', '贺信', '致辞'],
+    'inspection': ['考察', '调研', '视察', '走访', '看望', '慰问'],
+    'article': ['《求是》', '发表文章', '重要文章', '署名文章'],
+    'meeting': ['会议', '座谈会', '全会', '研讨会', '工作会'],
+    'speech': ['讲话', '指示', '批示', '贺电', '贺信', '致辞', '发言'],
 }
 
 CATEGORY_NAMES = {'speech': '重要讲话', 'article': '发表文章', 'meeting': '重要会议', 'inspection': '考察调研'}
@@ -78,22 +80,46 @@ def get_search_query():
         date_keyword = '今日'
         search_date = 'today'
     
-    query = f'习近平总书记{date_keyword}最新讲话 文章 调研 会议 {target_date}'
+    # 多维度搜索关键词，确保不漏
+    query = f'习近平总书记{date_keyword}最新讲话 文章 调研 会议 会见 {target_date} 人民网 新华社'
     print(f'[Time] Beijing {beijing_hour}:00, searching {date_keyword} ({target_date})')
     return query, search_date, target_date
 
 
 def detect_domain(title: str) -> str:
+    """检测文章领域，外交优先"""
+    # 优先检测外交（因为外交活动常包含"会见"等词）
+    diplomacy_keywords = ['外交', '出访', '峰会', '总统', '总理', '国际', '外国', '国事访问', '友好访问']
+    if any(kw in title for kw in diplomacy_keywords):
+        return 'diplomacy'
+    
+    # 再按顺序检测其他领域
     for domain, keywords in DOMAIN_KEYWORDS.items():
+        if domain == 'diplomacy':
+            continue  # 已检测过
         if any(kw in title for kw in keywords):
             return domain
     return 'politics'
 
 
 def detect_category(title: str) -> str:
+    """检测文章分类，考虑外交会见的特殊情况"""
+    # 如果是外交相关的会见，归为 meeting
+    diplomacy_keywords = ['外交', '出访', '峰会', '总统', '总理', '国际', '外国']
+    is_diplomacy = any(kw in title for kw in diplomacy_keywords)
+    
+    # 按优先级检测
     for category, keywords in CATEGORY_KEYWORDS.items():
         if any(kw in title for kw in keywords):
+            # 特殊处理：外交+会见 = meeting
+            if is_diplomacy and '会见' in title:
+                return 'meeting'
             return category
+    
+    # 如果有"会见"但没匹配到其他，归为 meeting
+    if '会见' in title:
+        return 'meeting'
+    
     return 'speech'
 
 
