@@ -228,7 +228,7 @@ export const speechesData: Speech[] = [
     source: '学习强国',
     location: '北京',
     summary: '习近平总书记主持召开民营企业座谈会，强调扎扎实实落实促进民营经济发展的政策措施，是当前促进民营经济发展的工作重点。凡是党中央定了的就要坚决执行，不能打折扣。',
-    url: 'https://cpc.people.com.cn/n1/2025/0217/c64094-40420035.html'
+    url: 'https://www.news.cn/20250217/d585f37a64b94c9db6eb68cbc5899193/c.html'
   },
   {
     id: '2025-02',
