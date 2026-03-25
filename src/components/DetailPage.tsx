@@ -133,11 +133,6 @@ export function DetailPage() {
   const currentAudioIndexRef = useRef(0);
   const isAudioPlayingRef = useRef(false);
 
-  // iframe状态
-  const [iframeLoading, setIframeLoading] = useState(true);
-  const [iframeError, setIframeError] = useState(false);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
   // AI生成状态
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState('');
@@ -234,24 +229,6 @@ export function DetailPage() {
       setIsLoading(false);
     }
   }, [id]);
-
-  // iframe加载处理
-  const handleIframeLoad = useCallback(() => {
-    setIframeLoading(false);
-    // 检测是否被跨域阻止
-    try {
-      if (iframeRef.current?.contentWindow) {
-        // 尝试访问iframe内容，如果跨域会抛出错误
-        const doc = iframeRef.current.contentDocument || iframeRef.current.contentWindow.document;
-        if (doc) {
-          setIframeError(false);
-        }
-      }
-    } catch (e) {
-      console.log('iframe跨域限制，无法访问内容');
-      setIframeError(true);
-    }
-  }, []);
 
   // AI生成摘要和解读
   const handleGenerateContent = useCallback(async () => {
@@ -881,60 +858,23 @@ export function DetailPage() {
             </CardHeader>
             <CardContent className="pt-0">
               {speech.url && speech.url !== 'http://www.news.cn/' && speech.url !== 'https://www.qstheory.cn/' ? (
-                <div className="relative">
-                  {/* iframe容器 */}
-                  <div className="bg-gray-50 rounded-lg overflow-hidden" style={{ height: '500px' }}>
-                    {iframeLoading && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
-                        <div className="text-center">
-                          <RefreshCw className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-2" />
-                          <p className="text-gray-500">正在加载原文...</p>
-                        </div>
-                      </div>
-                    )}
-                    {iframeError ? (
-                      <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                        <AlertCircle className="w-12 h-12 text-amber-500 mb-4" />
-                        <p className="text-gray-600 mb-4">该网站不支持嵌入显示</p>
-                        <a
-                          href={speech.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                        >
-                          <ExternalLink className="w-5 h-5" />
-                          新窗口打开原文
-                        </a>
-                      </div>
-                    ) : (
-                      <iframe
-                        ref={iframeRef}
-                        src={speech.url}
-                        className="w-full h-full border-0"
-                        onLoad={handleIframeLoad}
-                        title="原文内容"
-                        sandbox="allow-same-origin allow-scripts allow-popups"
-                      />
-                    )}
-                  </div>
-                  {/* 新窗口打开按钮 */}
-                  {!iframeError && (
-                    <div className="mt-3 text-center">
-                      <a
-                        href={speech.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 text-sm"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        新窗口打开原文
-                      </a>
-                    </div>
-                  )}
+                <div className="bg-gray-50 rounded-lg p-6 text-center">
+                  <BookOpen className="w-10 h-10 mx-auto mb-3 text-blue-500" />
+                  <p className="text-gray-600 mb-4">点击下方按钮在新窗口中阅读官方原文</p>
+                  <a
+                    href={speech.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <ExternalLink className="w-5 h-5" />
+                    新窗口打开原文
+                  </a>
+                  <p className="text-xs text-gray-400 mt-3">{speech.source}</p>
                 </div>
               ) : (
-                <div className="bg-gray-50 rounded-lg p-8 text-center text-gray-500">
-                  <BookOpen className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <div className="bg-gray-50 rounded-lg p-6 text-center text-gray-500">
+                  <BookOpen className="w-10 h-10 mx-auto mb-3 text-gray-300" />
                   <p>暂无原文链接</p>
                 </div>
               )}
