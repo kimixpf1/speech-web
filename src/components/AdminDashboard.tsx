@@ -564,11 +564,37 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     try {
       const article = await extractArticleWithKimi(fetchUrl.trim());
 
+      // 从日期字符串中提取年月日
+      let year = new Date().getFullYear();
+      let month = new Date().getMonth() + 1;
+      let day = new Date().getDate();
+
+      if (article.date) {
+        // 支持多种日期格式：YYYY-MM-DD 或 YYYY年M月D日
+        const dateMatch = article.date.match(/(\d{4})[-年](\d{1,2})[-月](\d{1,2})/);
+        if (dateMatch) {
+          year = parseInt(dateMatch[1]);
+          month = parseInt(dateMatch[2]);
+          day = parseInt(dateMatch[3]);
+        } else {
+          // 尝试标准格式
+          const parts = article.date.split('-');
+          if (parts.length === 3) {
+            year = parseInt(parts[0]);
+            month = parseInt(parts[1]);
+            day = parseInt(parts[2]);
+          }
+        }
+      }
+
       // 自动填充表单
       setNewArticle({
         ...newArticle,
         title: article.title,
         date: article.date,
+        year,
+        month,
+        day,
         source: article.source,
         summary: article.summary,
         url: article.url,
@@ -670,10 +696,31 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     }
 
     try {
-      const dateParts = newArticle.date.split('-');
-      const year = parseInt(dateParts[0]);
-      const month = parseInt(dateParts[1]);
-      const day = parseInt(dateParts[2]);
+      // 从日期字符串中提取年月日（防止为空或格式错误）
+      let year = newArticle.year;
+      let month = newArticle.month;
+      let day = newArticle.day;
+
+      if (newArticle.date) {
+        const dateMatch = newArticle.date.match(/(\d{4})[-年](\d{1,2})[-月](\d{1,2})/);
+        if (dateMatch) {
+          year = parseInt(dateMatch[1]);
+          month = parseInt(dateMatch[2]);
+          day = parseInt(dateMatch[3]);
+        } else {
+          const parts = newArticle.date.split('-');
+          if (parts.length === 3) {
+            year = parseInt(parts[0]);
+            month = parseInt(parts[1]);
+            day = parseInt(parts[2]);
+          }
+        }
+      }
+
+      // 确保year/month/day有效
+      if (!year || isNaN(year)) year = new Date().getFullYear();
+      if (!month || isNaN(month)) month = new Date().getMonth() + 1;
+      if (!day || isNaN(day)) day = new Date().getDate();
 
       const articleId = generateArticleId(year);
       const article: Speech = {
@@ -685,7 +732,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         day,
         category: newArticle.category as 'speech' | 'article' | 'meeting' | 'inspection',
         categoryName: newArticle.categoryName || '重要讲话',
-        domain: newArticle.domain as 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy' || 'economy',
+        domain: newArticle.domain || 'economy',
         domainName: newArticle.domainName || '经济',
         isZhengjiguan: newArticle.isZhengjiguan || false,
         zhengjiguanLevel: newArticle.zhengjiguanLevel,
