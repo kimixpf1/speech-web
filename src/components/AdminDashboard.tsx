@@ -104,6 +104,7 @@ import {
 } from '@/services/kimiArticleService';
 import {
   saveArticleDetail,
+  getArticleDetail,
   type ArticleDetailContent
 } from '@/services/articleDetailService';
 import {
@@ -140,6 +141,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   // 编辑文章对话框
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Speech | null>(null);
+  const [editingDetail, setEditingDetail] = useState<ArticleDetailContent | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   
   // 新增文章对话框
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -452,10 +455,37 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     }
   };
 
-  const handleEditArticle = (article: Speech) => {
+  const handleEditArticle = async (article: Speech) => {
     // 创建深拷贝以避免引用问题
     setEditingArticle(JSON.parse(JSON.stringify(article)));
     setEditDialogOpen(true);
+    
+    // 加载文章详情
+    setLoadingDetail(true);
+    try {
+      const detail = await getArticleDetail(article.id);
+      if (detail) {
+        setEditingDetail(detail);
+      } else {
+        // 如果没有详情，创建空详情
+        setEditingDetail({
+          id: article.id,
+          abstract: article.summary || '',
+          fullText: '',
+          analysis: '',
+        });
+      }
+    } catch (error) {
+      console.error('Error loading article detail:', error);
+      setEditingDetail({
+        id: article.id,
+        abstract: article.summary || '',
+        fullText: '',
+        analysis: '',
+      });
+    } finally {
+      setLoadingDetail(false);
+    }
   };
 
   const handleSaveArticle = async () => {
@@ -464,8 +494,13 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     try {
       const result = await updateArticle(editingArticle);
       if (result.success) {
+        // 保存文章详情
+        if (editingDetail) {
+          await saveArticleDetail(editingDetail);
+        }
         setEditDialogOpen(false);
         setEditingArticle(null);
+        setEditingDetail(null);
         await loadData();
         setSuccessMessage('保存成功');
         setTimeout(() => setSuccessMessage(''), 3000);
@@ -1891,6 +1926,40 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   onChange={(e) => setEditingArticle({...editingArticle, summary: e.target.value})}
                   rows={4}
                 />
+              </div>
+              
+              {/* 文章详情编辑 */}
+              <div className="border-t pt-4 mt-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">详情页内容</h4>
+                {loadingDetail ? (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600"></div>
+                    <span className="ml-2 text-sm text-gray-500">加载详情中...</span>
+                  </div>
+                ) : editingDetail && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">原文内容</label>
+                      <Textarea 
+                        value={editingDetail.fullText} 
+                        onChange={(e) => setEditingDetail({...editingDetail, fullText: e.target.value})}
+                        rows={8}
+                        placeholder="输入或粘贴文章原文内容..."
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-xs text-gray-400">当前字数：{editingDetail.fullText.length}</p>
+                    </div>
+                    <div className="space-y-2 mt-4">
+                      <label className="text-sm font-medium">解读</label>
+                      <Textarea 
+                        value={editingDetail.analysis} 
+                        onChange={(e) => setEditingDetail({...editingDetail, analysis: e.target.value})}
+                        rows={4}
+                        placeholder="输入文章解读..."
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
