@@ -47,34 +47,37 @@ function getSearchSystemPrompt(): string {
   const datePrompt = getTodayDatePrompt();
   return `你是一个新闻搜索助手。${datePrompt}
 
-请联网搜索习近平总书记最近的重要讲话、文章、会议、考察调研新闻。
-必须使用联网搜索($web_search)获取最新新闻，绝对不要使用训练数据中的旧新闻！
+请使用联网搜索功能搜索习近平总书记最近的重要讲话、文章、会议、考察调研新闻。
 
-【极其重要】URL真实性要求：
-- 必须返回你通过联网搜索实际访问过、确认存在的真实URL
-- 禁止编造、拼凑、猜测任何URL
-- 如果搜索结果没有提供完整URL，就不要返回这条新闻
-- 宁可少返回，也不能返回假URL
-- 正确的人民网URL格式如：http://politics.people.com.cn/n1/2026/0324/c1024-XXXXXXX.html
-- 正确的新华网URL格式如：http://www.news.cn/politics/leaders/2026-03/24/c_XXXXXXX.htm
+【最重要的规则 - URL真实性】
+1. 你必须使用 $web_search 联网搜索
+2. 只能返回搜索结果中明确显示的真实URL
+3. 绝对禁止自己编造、拼凑、猜测URL
+4. 如果搜索结果没有显示完整URL，就不要返回这条新闻
+5. 宁可返回空数组[]，也不能返回任何虚假URL
 
-请返回一个 JSON 数组，每条新闻包含：
+【如何判断URL是否真实】
+- 真实URL：搜索结果直接显示的链接，你点击后能打开的
+- 虚假URL：你根据规律自己拼凑的，如 people.com.cn/n1/2026/XXXX/c1001-XXXXXXX.html
+- 如果你不确定URL是否真实，就不要返回
+
+请返回JSON数组格式，每条新闻包含：
 {
-  "title": "完整的新闻标题",
-  "date": "YYYY-MM-DD格式的日期",
-  "category": "speech或article或meeting或inspection",
-  "categoryName": "重要讲话或发表文章或重要会议或考察调研",
-  "source": "新华网或人民网或央视等",
-  "url": "新闻原文的完整URL链接（必须是真实可访问的）",
-  "summary": "一句话摘要，不超过100字"
+  "title": "完整新闻标题",
+  "date": "YYYY-MM-DD",
+  "category": "speech/article/meeting/inspection",
+  "categoryName": "重要讲话/发表文章/重要会议/考察调研",
+  "source": "人民网/新华网/央视等",
+  "url": "搜索结果中的真实URL",
+  "summary": "一句话摘要"
 }
 
 要求：
-1. 只返回最近3天内的新闻（超过3天的不要返回）
-2. 最多返回5条
-3. URL必须是联网搜索结果中的真实链接，禁止编造
-4. 只返回JSON数组，不要其他解释文字
-5. 如果没找到最新新闻或无法确认URL真实性，返回空数组 []`;
+1. 只返回最近3天的新闻
+2. 最多5条
+3. URL必须是搜索结果中真实存在的
+4. 只返回JSON数组，无其他文字
+5. 如果没找到或不确定URL真实性，返回空数组 []`;
 }
 
 export interface SearchedArticle {
@@ -188,8 +191,9 @@ function validateArticle(article: SearchedArticle): { valid: boolean; reason: st
   }
   
   // 2. 检查来源是否官方
+  let domain = '';
   try {
-    const domain = new URL(article.url).hostname.toLowerCase();
+    domain = new URL(article.url).hostname.toLowerCase();
     const isOfficial = OFFICIAL_DOMAINS.some(d => domain.includes(d) || d.includes(domain));
     if (!isOfficial) {
       return { valid: false, reason: `非官方来源: ${domain}` };
@@ -213,23 +217,56 @@ function validateArticle(article: SearchedArticle): { valid: boolean; reason: st
     }
   }
   
-  // 4. 检查URL格式是否像是真实的（简单启发式检查）
   const url = article.url;
-  // 检查是否有明显的假URL特征
+  
+  // 4. 检查是否有明显的假URL特征
   if (url.includes('XXXXXXX') || url.includes('example') || url.includes('test')) {
     return { valid: false, reason: 'URL看起来是占位符' };
   }
-  // 人民网URL应该有有效的文章ID（通常是8位以上数字）
-  if (url.includes('people.com.cn') && !/c\d{4}-\d{6,}/.test(url)) {
-    return { valid: false, reason: 'URL格式不符合人民网真实文章格式' };
+  
+  // 5. 检查文章ID是否像是编造的（连续数字、全相同数字等）
+  const idMatch = url.match(/[c_-](\d{7,})/);
+  if (idMatch) {
+    const id = idMatch[1];
+    // 检查是否是连续数字 (如 1234567, 12345678)
+    const isSequential = /^(0123456789|1234567890|123456789|12345678|1234567)/.test(id) ||
+                         /^(\d)\1{5,}$/.test(id);  // 全相同数字如 1111111
+    if (isSequential) {
+      return { valid: false, reason: 'URL中的文章ID看起来是编造的' };
+    }
   }
-  // 新华网URL检查
-  if ((url.includes('xinhuanet.com') || url.includes('news.cn')) && !/c_\d{6,}/.test(url)) {
-    return { valid: false, reason: 'URL格式不符合新华网真实文章格式' };
+  
+  // 6. 人民网URL验证：检查格式和日期
+  if (domain.includes('people.com.cn')) {
+    // 人民网URL应该包含 /n1/YYYY/MMDD/ 或 /n1/YYYY/M/DD/ 格式
+    const peopleMatch = url.match(/\/n1\/(\d{4})\/(\d{2,4})\/c\d+-(\d+)/);
+    if (!peopleMatch) {
+      return { valid: false, reason: 'URL格式不符合人民网真实文章格式' };
+    }
+    // 检查年份是否合理
+    const year = parseInt(peopleMatch[1]);
+    if (year < 2020 || year > 2030) {
+      return { valid: false, reason: 'URL中的年份不合理' };
+    }
+    // 检查文章ID长度（真实ID通常是8位以上）
+    const articleId = peopleMatch[3];
+    if (articleId.length < 8) {
+      return { valid: false, reason: '人民网文章ID长度不足' };
+    }
   }
-  // 求是网URL检查
-  if (url.includes('qstheory.cn') && !/c_\d{6,}/.test(url)) {
-    return { valid: false, reason: 'URL格式不符合求是网真实文章格式' };
+  
+  // 7. 新华网URL验证
+  if (domain.includes('xinhuanet.com') || domain.includes('news.cn')) {
+    if (!/c_\d{8,}/.test(url) && !/\/\d{4}-\d{2}\/\d{2}\//.test(url)) {
+      return { valid: false, reason: 'URL格式不符合新华网真实文章格式' };
+    }
+  }
+  
+  // 8. 求是网URL验证
+  if (domain.includes('qstheory.cn')) {
+    if (!/c_\d{8,}/.test(url) && !/\/\d{4}-\d{2}\/\d{2}\//.test(url)) {
+      return { valid: false, reason: 'URL格式不符合求是网真实文章格式' };
+    }
   }
   
   return { valid: true, reason: '' };
@@ -389,23 +426,21 @@ async function searchBaiduViaKimi(apiKey: string): Promise<SearchedArticle[]> {
   const datePrompt = getTodayDatePrompt();
   const BAIDU_SYSTEM_PROMPT = `你是一个新闻搜索助手。${datePrompt}
 
-请联网搜索以下网站上习近平总书记最近的重要讲话、文章、会议、调研新闻：
+请使用联网搜索功能，在以下官方网站搜索习近平总书记最近的新闻：
 - 人民网 (people.com.cn)
 - 新华网 (xinhuanet.com, news.cn)
 - 求是网 (qstheory.cn)
 
-重要：必须使用联网搜索($web_search)获取最新新闻，绝对不要使用训练数据！
+【最重要的规则 - URL真实性】
+1. 你必须使用 $web_search 联网搜索
+2. 只能返回搜索结果中明确显示的真实URL
+3. 绝对禁止自己编造URL，如果搜索结果没显示完整URL就不返回
+4. 宁可返回空数组[]，也不能返回任何虚假URL
 
-【极其重要】URL真实性要求：
-- 必须返回你通过联网搜索实际访问过、确认存在的真实URL
-- 禁止编造、拼凑、猜测任何URL
-- 如果搜索结果没有提供完整URL，就不要返回这条新闻
-- 宁可少返回，也不能返回假URL
+请返回JSON数组：
+{"title": "标题", "date": "YYYY-MM-DD", "category": "speech", "categoryName": "重要讲话", "source": "来源", "url": "真实URL", "summary": "摘要"}
 
-请返回一个 JSON 数组，每条新闻包含：
-{"title": "标题", "date": "YYYY-MM-DD", "category": "speech", "categoryName": "重要讲话", "source": "来源网站", "url": "完整URL（必须真实可访问）", "summary": "摘要"}
-
-要求：只返回最近3天内的新闻，最多5条，只返回JSON数组。如果无法确认URL真实性，返回空数组[]。`;
+要求：只返回最近3天新闻，最多5条，只返回JSON数组。不确定URL真实性就返回[]。`;
 
   try {
     console.log('开始百度搜索（via Kimi）...');
