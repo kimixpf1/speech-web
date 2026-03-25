@@ -48,6 +48,14 @@ function getSearchSystemPrompt(): string {
 请联网搜索习近平总书记最近的重要讲话、文章、会议、考察调研新闻。
 必须使用联网搜索($web_search)获取最新新闻，绝对不要使用训练数据中的旧新闻！
 
+【极其重要】URL真实性要求：
+- 必须返回你通过联网搜索实际访问过、确认存在的真实URL
+- 禁止编造、拼凑、猜测任何URL
+- 如果搜索结果没有提供完整URL，就不要返回这条新闻
+- 宁可少返回，也不能返回假URL
+- 正确的人民网URL格式如：http://politics.people.com.cn/n1/2026/0324/c1024-XXXXXXX.html
+- 正确的新华网URL格式如：http://www.news.cn/politics/leaders/2026-03/24/c_XXXXXXX.htm
+
 请返回一个 JSON 数组，每条新闻包含：
 {
   "title": "完整的新闻标题",
@@ -55,16 +63,16 @@ function getSearchSystemPrompt(): string {
   "category": "speech或article或meeting或inspection",
   "categoryName": "重要讲话或发表文章或重要会议或考察调研",
   "source": "新华网或人民网或央视等",
-  "url": "新闻原文的完整URL链接",
+  "url": "新闻原文的完整URL链接（必须是真实可访问的）",
   "summary": "一句话摘要，不超过100字"
 }
 
 要求：
 1. 只返回最近3天内的新闻（超过3天的不要返回）
 2. 最多返回5条
-3. URL必须是真实有效的链接
+3. URL必须是联网搜索结果中的真实链接，禁止编造
 4. 只返回JSON数组，不要其他解释文字
-5. 如果没找到最新新闻，返回空数组 []`;
+5. 如果没找到最新新闻或无法确认URL真实性，返回空数组 []`;
 }
 
 export interface SearchedArticle {
@@ -203,7 +211,90 @@ function validateArticle(article: SearchedArticle): { valid: boolean; reason: st
     }
   }
   
+  // 4. 检查URL格式是否像是真实的（简单启发式检查）
+  const url = article.url;
+  // 检查是否有明显的假URL特征
+  if (url.includes('XXXXXXX') || url.includes('example') || url.includes('test')) {
+    return { valid: false, reason: 'URL看起来是占位符' };
+  }
+  // 人民网URL应该有有效的文章ID（通常是8位以上数字）
+  if (url.includes('people.com.cn') && !/c\d{4}-\d{6,}/.test(url)) {
+    return { valid: false, reason: 'URL格式不符合人民网真实文章格式' };
+  }
+  // 新华网URL检查
+  if ((url.includes('xinhuanet.com') || url.includes('news.cn')) && !/c_\d{6,}/.test(url)) {
+    return { valid: false, reason: 'URL格式不符合新华网真实文章格式' };
+  }
+  // 求是网URL检查
+  if (url.includes('qstheory.cn') && !/c_\d{6,}/.test(url)) {
+    return { valid: false, reason: 'URL格式不符合求是网真实文章格式' };
+  }
+  
   return { valid: true, reason: '' };
+}
+
+/**
+ * 使用 Kimi 验证 URL 是否可访问
+ */
+async function verifyUrlsWithKimi(articles: SearchedArticle[], apiKey: string): Promise<SearchedArticle[]> {
+  if (!articles.length || !apiKey) return articles;
+  
+  const urls = articles.map(a => a.url).join('\n');
+  
+  try {
+    console.log('使用Kimi验证URL可访问性...');
+    const response = await fetch(KIMI_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'moonshot-v1-auto',
+        messages: [
+          { role: 'system', content: '你是一个URL验证助手。请联网访问以下URL，验证哪些是可以访问的真实网页。只返回可以成功访问的URL列表，每行一个URL。如果URL无法访问或返回404，不要包含它。' },
+          { role: 'user', content: `请验证以下URL是否可以访问：\n${urls}` },
+        ],
+        tools: [{
+          type: 'builtin_function',
+          function: { name: '$web_search' },
+        }],
+        temperature: 0.1,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Kimi URL验证失败:', response.status);
+      return articles; // 验证失败，返回原列表
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    console.log('Kimi URL验证结果:', content);
+    
+    // 提取验证通过的URL
+    const validUrls = new Set<string>();
+    const urlPattern = /https?:\/\/[^\s"'<>]+/g;
+    const matches = content.match(urlPattern);
+    if (matches) {
+      matches.forEach(url => validUrls.add(url.replace(/[,;，。、]$/, '')));
+    }
+    
+    // 过滤只保留验证通过的文章
+    const verifiedArticles = articles.filter(a => {
+      const isValid = validUrls.has(a.url) || validUrls.has(a.url.replace(/\/$/, ''));
+      if (!isValid) {
+        console.log(`URL验证失败，已过滤: ${a.title?.substring(0, 30)}... - ${a.url}`);
+      }
+      return isValid;
+    });
+    
+    console.log(`URL验证完成: ${verifiedArticles.length}/${articles.length} 通过`);
+    return verifiedArticles;
+  } catch (error) {
+    console.error('URL验证异常:', error);
+    return articles; // 出错时返回原列表
+  }
 }
 
 /**
@@ -303,10 +394,16 @@ async function searchBaiduViaKimi(apiKey: string): Promise<SearchedArticle[]> {
 
 重要：必须使用联网搜索($web_search)获取最新新闻，绝对不要使用训练数据！
 
-请返回一个 JSON 数组，每条新闻包含：
-{"title": "标题", "date": "YYYY-MM-DD", "category": "speech", "categoryName": "重要讲话", "source": "来源网站", "url": "完整URL", "summary": "摘要"}
+【极其重要】URL真实性要求：
+- 必须返回你通过联网搜索实际访问过、确认存在的真实URL
+- 禁止编造、拼凑、猜测任何URL
+- 如果搜索结果没有提供完整URL，就不要返回这条新闻
+- 宁可少返回，也不能返回假URL
 
-要求：只返回最近3天内的新闻，最多5条，只返回JSON数组。`;
+请返回一个 JSON 数组，每条新闻包含：
+{"title": "标题", "date": "YYYY-MM-DD", "category": "speech", "categoryName": "重要讲话", "source": "来源网站", "url": "完整URL（必须真实可访问）", "summary": "摘要"}
+
+要求：只返回最近3天内的新闻，最多5条，只返回JSON数组。如果无法确认URL真实性，返回空数组[]。`;
 
   try {
     console.log('开始百度搜索（via Kimi）...');
@@ -622,12 +719,23 @@ export async function searchArticles(
     newArticles.push(article);
   }
 
+  // URL 可访问性验证（使用 Kimi 作为代理）
+  let verifiedArticles = newArticles;
+  if (newArticles.length > 0 && kimiApiKey) {
+    onProgress?.(`正在验证 ${newArticles.length} 篇文章的URL可访问性...`);
+    await new Promise(resolve => setTimeout(resolve, 2000)); // 避免限流
+    verifiedArticles = await verifyUrlsWithKimi(newArticles, kimiApiKey);
+    if (verifiedArticles.length < newArticles.length) {
+      onProgress?.(`URL验证: ${newArticles.length - verifiedArticles.length} 篇文章因URL无效被过滤`);
+    }
+  }
+
   const duration = (Date.now() - startTime) / 1000;
 
   // 写入待审核表
-  if (newArticles.length > 0) {
-    onProgress?.(`正在保存 ${newArticles.length} 篇新文章...`);
-    await savePendingArticles(newArticles);
+  if (verifiedArticles.length > 0) {
+    onProgress?.(`正在保存 ${verifiedArticles.length} 篇新文章...`);
+    await savePendingArticles(verifiedArticles);
   }
 
   // 更新最后搜索时间
@@ -659,9 +767,9 @@ export async function searchArticles(
     api_used: finalApiUsed,
     queries: SEARCH_QUERIES,
     crawl_count: allArticles.length,
-    new_count: newArticles.length,
+    new_count: verifiedArticles.length,
     status: logStatus,
-    details: searchDetails,
+    details: { ...searchDetails, filtered_by_url_check: newArticles.length - verifiedArticles.length },
     duration_seconds: Math.round(duration),
   };
   await saveSearchLog(log);
@@ -670,8 +778,8 @@ export async function searchArticles(
 
   return {
     success: true,
-    articles: newArticles,
-    newCount: newArticles.length,
+    articles: verifiedArticles,
+    newCount: verifiedArticles.length,
     totalCount: allArticles.length,
     duration,
     apiUsed: finalApiUsed,

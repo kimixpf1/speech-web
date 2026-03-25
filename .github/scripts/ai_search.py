@@ -169,10 +169,16 @@ def search_with_kimi(query: str) -> List[Dict]:
 2. 绝对不要使用训练数据中的旧新闻
 3. 只返回{today_date}之后发布的新闻，更早的新闻直接丢弃
 
+【极其重要】URL真实性要求：
+- 必须返回你通过联网搜索实际访问过、确认存在的真实URL
+- 禁止编造、拼凑、猜测任何URL
+- 如果搜索结果没有提供完整URL，就不要返回这条新闻
+- 宁可少返回，也不能返回假URL
+
 请联网搜索习近平总书记最近的重要讲话、文章、会议、考察调研新闻。
 返回JSON数组，每条包含：
-{{"title": "标题", "date": "YYYY-MM-DD", "category": "speech", "categoryName": "重要讲话", "source": "来源", "url": "链接", "summary": "摘要"}}
-要求：只返回最近3天内的新闻，最多10条，只返回JSON数组。如果没找到最新新闻，返回空数组[]。"""
+{{"title": "标题", "date": "YYYY-MM-DD", "category": "speech", "categoryName": "重要讲话", "source": "来源", "url": "真实可访问的链接", "summary": "摘要"}}
+要求：只返回最近3天内的新闻，最多10条，只返回JSON数组。如果没找到最新新闻或无法确认URL真实性，返回空数组[]。"""
 
     print(f'[Kimi] Searching: {query}')
     try:
@@ -341,8 +347,10 @@ def save_log(kimi_count, baidu_count, new_count, status, details):
         print('[Log] SUPABASE_URL not configured')
         return
     try:
+        # 使用北京时间
+        beijing_now = datetime.utcnow() + timedelta(hours=8)
         log_data = {
-            'executed_at': datetime.now().isoformat(),
+            'executed_at': beijing_now.isoformat(),
             'crawl_count': kimi_count + baidu_count,
             'search_count': kimi_count + baidu_count,
             'new_count': new_count,
