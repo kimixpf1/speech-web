@@ -273,15 +273,17 @@ function validateArticle(article: SearchedArticle): { valid: boolean; reason: st
 }
 
 /**
- * 使用 Kimi 验证 URL 是否可访问
+ * 使用 Kimi 验证 URL 是否可访问，并获取真实页面标题进行对比
+ * 这是防止 AI 幻觉的最后一道防线
  */
 async function verifyUrlsWithKimi(articles: SearchedArticle[], apiKey: string): Promise<SearchedArticle[]> {
   if (!articles.length || !apiKey) return articles;
   
-  const urls = articles.map(a => a.url).join('\n');
+  // 构建验证请求：让 Kimi 访问每个 URL 并返回实际页面标题
+  const urlList = articles.map((a, i) => `${i + 1}. ${a.url}`).join('\n');
   
   try {
-    console.log('使用Kimi验证URL可访问性...');
+    console.log('使用Kimi验证URL可访问性并获取页面标题...');
     const response = await fetch(KIMI_API_URL, {
       method: 'POST',
       headers: {
@@ -291,8 +293,23 @@ async function verifyUrlsWithKimi(articles: SearchedArticle[], apiKey: string): 
       body: JSON.stringify({
         model: 'moonshot-v1-auto',
         messages: [
-          { role: 'system', content: '你是一个URL验证助手。请联网访问以下URL，验证哪些是可以访问的真实网页。只返回可以成功访问的URL列表，每行一个URL。如果URL无法访问或返回404，不要包含它。' },
-          { role: 'user', content: `请验证以下URL是否可以访问：\n${urls}` },
+          { 
+            role: 'system', 
+            content: `你是一个URL验证助手。请联网访问用户提供的每个URL，验证是否可以正常访问。
+
+对于每个URL，请返回以下格式的JSON数组：
+[
+  {"index": 1, "accessible": true/false, "pageTitle": "页面的实际标题", "reason": "如果不可访问，说明原因"},
+  ...
+]
+
+判断标准：
+- accessible=true：页面能正常打开，显示新闻内容
+- accessible=false：404、页面不存在、重定向到首页、非新闻内容页面
+
+只返回JSON数组，不要其他文字。` 
+          },
+          { role: 'user', content: `请验证以下URL是否可以访问，并返回每个页面的实际标题：\n${urlList}` },
         ],
         tools: [{
           type: 'builtin_function',
@@ -304,36 +321,89 @@ async function verifyUrlsWithKimi(articles: SearchedArticle[], apiKey: string): 
 
     if (!response.ok) {
       console.error('Kimi URL验证失败:', response.status);
-      return articles; // 验证失败，返回原列表
+      return []; // 验证失败，不返回任何文章，宁缺毋滥
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || '';
     console.log('Kimi URL验证结果:', content);
     
-    // 提取验证通过的URL
-    const validUrls = new Set<string>();
-    const urlPattern = /https?:\/\/[^\s"'<>]+/g;
-    const matches = content.match(urlPattern);
-    if (matches) {
-      matches.forEach(url => validUrls.add(url.replace(/[,;，。、]$/, '')));
+    // 解析验证结果
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      console.log('无法解析验证结果，拒绝所有文章');
+      return [];
+    }
+    
+    let verifyResults: Array<{index: number; accessible: boolean; pageTitle?: string; reason?: string}> = [];
+    try {
+      verifyResults = JSON.parse(jsonMatch[0]);
+    } catch {
+      console.log('JSON解析失败，拒绝所有文章');
+      return [];
     }
     
     // 过滤只保留验证通过的文章
-    const verifiedArticles = articles.filter(a => {
-      const isValid = validUrls.has(a.url) || validUrls.has(a.url.replace(/\/$/, ''));
-      if (!isValid) {
-        console.log(`URL验证失败，已过滤: ${a.title?.substring(0, 30)}... - ${a.url}`);
+    const verifiedArticles: SearchedArticle[] = [];
+    
+    for (const result of verifyResults) {
+      const article = articles[result.index - 1];
+      if (!article) continue;
+      
+      if (!result.accessible) {
+        console.log(`URL验证失败: ${article.title?.substring(0, 30)}... - ${result.reason || '无法访问'}`);
+        continue;
       }
-      return isValid;
-    });
+      
+      // 对比页面标题与搜索结果标题是否相似
+      if (result.pageTitle) {
+        const similarity = calculateTitleSimilarity(article.title, result.pageTitle);
+        if (similarity < 0.3) {
+          console.log(`标题不匹配: 搜索标题="${article.title?.substring(0, 30)}", 页面标题="${result.pageTitle?.substring(0, 30)}", 相似度=${similarity.toFixed(2)}`);
+          continue;
+        }
+      }
+      
+      console.log(`URL验证通过: ${article.title?.substring(0, 40)}...`);
+      verifiedArticles.push(article);
+    }
     
     console.log(`URL验证完成: ${verifiedArticles.length}/${articles.length} 通过`);
     return verifiedArticles;
   } catch (error) {
     console.error('URL验证异常:', error);
-    return articles; // 出错时返回原列表
+    return []; // 出错时不返回任何文章，宁缺毋滥
   }
+}
+
+/**
+ * 计算两个标题的相似度（简单实现）
+ */
+function calculateTitleSimilarity(title1: string, title2: string): number {
+  if (!title1 || !title2) return 0;
+  
+  // 清理标题：去除标点、空格，转小写
+  const clean = (s: string) => s.replace(/[《》""「」『』【】\s\-_—·：:,，。.、]/g, '').toLowerCase();
+  const s1 = clean(title1);
+  const s2 = clean(title2);
+  
+  if (s1 === s2) return 1;
+  
+  // 检查包含关系
+  if (s1.includes(s2) || s2.includes(s1)) return 0.8;
+  
+  // 计算公共子串长度
+  let commonLen = 0;
+  const shorter = s1.length < s2.length ? s1 : s2;
+  const longer = s1.length < s2.length ? s2 : s1;
+  
+  for (let i = 0; i < shorter.length; i++) {
+    if (longer.includes(shorter[i])) {
+      commonLen++;
+    }
+  }
+  
+  return commonLen / Math.max(s1.length, s2.length);
 }
 
 /**
