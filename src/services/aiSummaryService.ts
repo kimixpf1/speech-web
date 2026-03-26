@@ -64,6 +64,38 @@ export function clearSummaryCache(articleId?: string): void {
 }
 
 /**
+ * 清理AI生成的文本，移除乱码和无关符号
+ */
+function cleanGeneratedText(text: string | undefined | null): string {
+  if (!text) return '';
+  
+  return text
+    // 移除JSON转义字符
+    .replace(/\\n/g, '\n')
+    .replace(/\\r/g, '')
+    .replace(/\\t/g, ' ')
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, '\\')
+    // 移除markdown代码块标记
+    .replace(/```json/gi, '')
+    .replace(/```/g, '')
+    // 移除JSON关键字和结构符号
+    .replace(/^\s*[{\[]\s*/g, '')
+    .replace(/\s*[}\]]\s*$/g, '')
+    .replace(/"summary"\s*:\s*/gi, '')
+    .replace(/"analysis"\s*:\s*/gi, '')
+    // 移除开头和结尾的引号
+    .replace(/^["']+/g, '')
+    .replace(/["']+$/g, '')
+    // 清理多余空白和空行
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/^\s+|\s+$/g, '')
+    // 清理段落开头的多余空格
+    .replace(/\n\s+/g, '\n')
+    .trim();
+}
+
+/**
  * 调用 Kimi API 生成摘要和解读
  */
 async function generateWithKimi(
@@ -147,23 +179,45 @@ ${articleContent.substring(0, 8000)}
   
   // 尝试解析JSON
   try {
-    // 提取JSON部分（可能被markdown代码块包裹）
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    // 清理内容：移除markdown代码块标记
+    let cleanContent = content
+      .replace(/```json\s*/gi, '')
+      .replace(/```\s*/g, '')
+      .trim();
+    
+    // 提取JSON部分
+    const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
       return {
-        summary: parsed.summary || '生成失败',
-        analysis: parsed.analysis || '生成失败',
+        summary: cleanGeneratedText(parsed.summary) || '生成失败',
+        analysis: cleanGeneratedText(parsed.analysis) || '生成失败',
       };
     }
   } catch (e) {
     console.warn('JSON解析失败，尝试直接提取:', e);
   }
 
-  // 降级：直接使用返回内容作为摘要
+  // 降级：尝试通过正则直接提取summary和analysis
+  try {
+    const summaryMatch = content.match(/"summary"\s*:\s*"([^"]*(?:\\.[^"]*)*)"/s);
+    const analysisMatch = content.match(/"analysis"\s*:\s*"([^"]*(?:\\.[^"]*)*)"/s);
+    
+    if (summaryMatch || analysisMatch) {
+      return {
+        summary: cleanGeneratedText(summaryMatch?.[1] || '') || '生成失败',
+        analysis: cleanGeneratedText(analysisMatch?.[1] || '') || '生成失败',
+      };
+    }
+  } catch (e) {
+    console.warn('正则提取失败:', e);
+  }
+
+  // 最终降级：清理后直接使用返回内容
+  const cleanedContent = cleanGeneratedText(content);
   return {
-    summary: content.substring(0, 200) || '生成失败',
-    analysis: content.substring(200, 500) || '生成失败',
+    summary: cleanedContent.substring(0, 300) || '生成失败',
+    analysis: cleanedContent.substring(300) || '生成失败',
   };
 }
 
