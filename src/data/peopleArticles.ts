@@ -10,21 +10,10 @@ export const peopleArticles: Speech[] = [
   // ===== 2026年 =====
   // P2026-001 已删除：与speeches.ts 2026-14重复（推动海洋经济高质量发展，URL相同）
   // P2026-002 已删除：与speeches.ts 2026-01重复（当前经济工作的重点任务，URL相同）
+  // P2026-003 已删除：与speeches.ts 2026-06重复（春节团拜会讲话，URL已失效404）
   // P2026-004 已删除：与speeches.ts 2025-17重复（金融强国文章，URL相同）
   // P2026-005 已删除：与speeches.ts 2026-02重复（城市工作会议，URL相同）
   
-  // P2026-003 保留：春节团拜会讲话（人民网版本，与speeches.ts新华网版本URL不同）
-  {
-    id: 'P2026-003',
-    title: '在二〇二六年春节团拜会上的讲话',
-    date: '2026-02-15',
-    year: 2026, month: 2, day: 15,
-    category: 'speech', categoryName: '重要讲话',
-    domain: 'politics', domainName: '政治',
-    source: '人民网－人民日报',
-    summary: '丙午马年春节即将到来。习近平总书记代表党中央和国务院，向全国各族人民致以节日的美好祝福。',
-    url: 'https://cpc.people.com.cn/n1/2026/0215/c64387-40683966.html'
-  },
   // P2026-006 保留：全国政协新年茶话会（政协官网URL有效）
   {
     id: 'P2026-006',
@@ -40,6 +29,7 @@ export const peopleArticles: Speech[] = [
 
   // ===== 2025年 =====
   // P2025-001 已删除：与P2026-006重复（全国政协新年茶话会），且URL有SSL证书问题
+  // P2025-005 已删除：与speeches.ts 2025-16重复（因地制宜发展新质生产力，URL相同）
   {
     id: 'P2025-002',
     title: '《求是》杂志发表习近平总书记重要文章 扩大内需是战略之举',
@@ -73,17 +63,7 @@ export const peopleArticles: Speech[] = [
     summary: '胡耀邦同志是久经考验的忠诚的共产主义战士，伟大的无产阶级革命家、政治家。',
     url: 'https://politics.people.com.cn/n1/2025/1120/c1024-40608187.html'
   },
-  {
-    id: 'P2025-005',
-    title: '《求是》杂志发表习近平总书记重要文章 因地制宜发展新质生产力',
-    date: '2025-11-16',
-    year: 2025, month: 11, day: 16,
-    category: 'article', categoryName: '发表文章',
-    domain: 'economy', domainName: '经济',
-    source: '人民网－人民日报',
-    summary: '文章强调因地制宜发展新质生产力是推动高质量发展的内在要求。',
-    url: 'https://www.qstheory.cn/20251114/1eaed05f562144a3948dd858f25bbcf7/c.html'
-  },
+  // P2025-005 已删除：与speeches.ts 2025-16重复（因地制宜发展新质生产力，URL相同）
   {
     id: 'P2025-006',
     title: '共同开创可持续的美好明天——在亚太经合组织第三十二次领导人非正式会议第二阶段会议上的讲话',

@@ -1,0 +1,96 @@
+{
+  "speeches_count": 58,
+  "people_count": 30,
+  "same_url": [
+    {
+      "url": "https://www.qstheory.cn/20251114/1eaed05f562144a3948dd858f25bbcf7/c.html",
+      "articles": [
+        {
+          "file": "speeches.ts",
+          "id": "2025-16",
+          "title": "因地制宜发展新质生产力",
+          "date": "2025-11-16"
+        },
+        {
+          "file": "peopleArticles.ts",
+          "id": "P2025-005",
+          "title": "《求是》杂志发表习近平总书记重要文章 因地制宜发展新质生产力",
+          "date": "2025-11-16"
+        }
+      ]
+    }
+  ],
+  "similar_title": [
+    {
+      "keyword": "北京考察",
+      "articles": [
+        {
+          "file": "speeches.ts",
+          "id": "2026-04",
+          "title": "在北京考察并看望慰问基层干部群众",
+          "date": "2026-02-10",
+          "url": "https://www.news.cn/politics/leaders/20260211/3eb4469929bb4e99828e5e2ed4b1ee77/c.html"
+        },
+        {
+          "file": "speeches.ts",
+          "id": "2024-F02",
+          "title": "在中非合作论坛北京峰会开幕式上的主旨讲话",
+          "date": "2024-09-05",
+          "url": "http://www.news.cn/20240908/53d07ce1b0ba47e8a45bb75022109cc9/c.html"
+        },
+        {
+          "file": "peopleArticles.ts",
+          "id": "P2025-010",
+          "title": "弘扬北京世妇会精神 加速妇女全面发展新进程——在全球妇女峰会开幕式的主旨讲话",
+          "date": "2025-10-13",
+          "url": "https://www.news.cn/politics/leaders/20251013/29d8aa71c81e4d4f9c76f6fa3e5959dc/c.html"
+        }
+      ]
+    },
+    {
+      "keyword": "新年贺词",
+      "articles": [
+        {
+          "file": "speeches.ts",
+          "id": "2026-05",
+          "title": "二〇二六年新年贺词",
+          "date": "2026-01-01",
+          "url": "https://www.news.cn/politics/leaders/20251231/00c3feccf5424d3c90bccbb1519f47ae/c.html"
+        },
+        {
+          "file": "peopleArticles.ts",
+          "id": "P2024-013",
+          "title": "国家主席习近平发表二〇二四年新年贺词",
+          "date": "2024-01-01",
+          "url": "https://www.news.cn/politics/leaders/20231231/64cc67c422ae40038a4c47ab241bce11/c.html"
+        }
+      ]
+    },
+    {
+      "keyword": "春节团拜会",
+      "articles": [
+        {
+          "file": "speeches.ts",
+          "id": "2026-06",
+          "title": "在2026年春节团拜会上的讲话",
+          "date": "2026-02-14",
+          "url": "https://www.news.cn/politics/leaders/20260214/6b31b0de246547e0ab00cad14b81d570/c.html"
+        },
+        {
+          "file": "peopleArticles.ts",
+          "id": "P2026-003",
+          "title": "在二〇二六年春节团拜会上的讲话",
+          "date": "2026-02-15",
+          "url": "https://cpc.people.com.cn/n1/2026/0215/c64387-40683966.html"
+        },
+        {
+          "file": "peopleArticles.ts",
+          "id": "P2024-012",
+          "title": "在二〇二四年春节团拜会上的讲话",
+          "date": "2024-02-08",
+          "url": "https://www.news.cn/20240208/f3f534fc8e1b47e1bbb3462cfd21fb8e/c.html"
+        }
+      ]
+    }
+  ]
+}
