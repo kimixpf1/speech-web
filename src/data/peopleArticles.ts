@@ -7,33 +7,13 @@
 import type { Speech } from './speeches';
 
 export const peopleArticles: Speech[] = [
-  // ===== 2026年 (8篇) =====
-  {
-    id: 'P2026-001',
-    title: '《求是》杂志发表习近平总书记重要文章《推动海洋经济高质量发展》',
-    date: '2026-03-16',
-    year: 2026, month: 3, day: 16,
-    category: 'article', categoryName: '发表文章',
-    domain: 'economy', domainName: '经济',
-    source: '《求是》杂志第6期',
-    summary: '文章强调，我国经略海洋、开发海洋历史悠久。推进中国式现代化，必须高效开发利用海洋，推动海洋经济高质量发展。',
-    url: 'https://www.qstheory.cn/20260314/eca2335226a84f3f8d583926b70fef9b/c.html'
-  },
-  {
-    id: 'P2026-002',
-    title: '《求是》杂志发表习近平总书记重要文章 当前经济工作的重点任务',
-    date: '2026-02-16',
-    year: 2026, month: 2, day: 16,
-    category: 'article', categoryName: '发表文章',
-    domain: 'economy', domainName: '经济',
-    source: '《求是》杂志第4期',
-    summary: '这是习近平总书记2025年12月10日在中央经济工作会议上讲话的一部分。文章强调，2026年经济工作头绪多，要抓住关键、纲举目张。',
-    url: 'https://www.qstheory.cn/20260214/a9022461555c48e6a2f2e4fef36878a9/c.html'
-  },
-  // P2026-004 已删除：与speeches.ts的2025-17重复（金融强国文章，URL相同）
-  // P2026-005 已删除：与speeches.ts的2026-02重复（城市工作会议，URL相同）
+  // ===== 2026年 =====
+  // P2026-001 已删除：与speeches.ts 2026-14重复（推动海洋经济高质量发展，URL相同）
+  // P2026-002 已删除：与speeches.ts 2026-01重复（当前经济工作的重点任务，URL相同）
+  // P2026-004 已删除：与speeches.ts 2025-17重复（金融强国文章，URL相同）
+  // P2026-005 已删除：与speeches.ts 2026-02重复（城市工作会议，URL相同）
   
-  // P2026-003 保留：春节团拜会讲话（人民网版本，与speeches.ts新华网版本URL不同，可能是不同来源报道）
+  // P2026-003 保留：春节团拜会讲话（人民网版本，与speeches.ts新华网版本URL不同）
   {
     id: 'P2026-003',
     title: '在二〇二六年春节团拜会上的讲话',
@@ -45,6 +25,7 @@ export const peopleArticles: Speech[] = [
     summary: '丙午马年春节即将到来。习近平总书记代表党中央和国务院，向全国各族人民致以节日的美好祝福。',
     url: 'https://cpc.people.com.cn/n1/2026/0215/c64387-40683966.html'
   },
+  // P2026-006 保留：全国政协新年茶话会（政协官网URL有效）
   {
     id: 'P2026-006',
     title: '在全国政协新年茶话会上的讲话',
@@ -57,18 +38,8 @@ export const peopleArticles: Speech[] = [
     url: 'http://www.cppcc.gov.cn/zxww/2025/12/31/ARTI1767168160430186.shtml'
   },
 
-  // ===== 2025年 (41篇) =====
-  {
-    id: 'P2025-001',
-    title: '习近平：在全国政协新年茶话会上的讲话',
-    date: '2025-12-31',
-    year: 2025, month: 12, day: 31,
-    category: 'speech', categoryName: '重要讲话',
-    domain: 'politics', domainName: '政治',
-    source: '新华社',
-    summary: '在全国政协新年茶话会上的讲话，向各民主党派、工商联和无党派人士致以美好祝福。',
-    url: 'https://politics.people.com.cn/n1/2025/1231/c1024-40636747.html'
-  },
+  // ===== 2025年 =====
+  // P2025-001 已删除：与P2026-006重复（全国政协新年茶话会），且URL有SSL证书问题
   {
     id: 'P2025-002',
     title: '《求是》杂志发表习近平总书记重要文章 扩大内需是战略之举',
