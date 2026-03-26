@@ -848,7 +848,13 @@ def main():
     search_new = sum(1 for a in new_articles if a.get('discovered_by') == 'search')
 
     # 写入搜索日志（增强版 - 包含详细日志）
+    # 明确设置北京时间戳，避免数据库时区问题
+    from datetime import timezone
+    beijing_tz = timezone(timedelta(hours=8))
+    beijing_now = datetime.now(beijing_tz).isoformat()
+    
     log_entry = {
+        'executed_at': beijing_now,  # 明确设置北京时间
         'crawl_count': crawl_raw_count,
         'search_count': search_raw_count,
         'new_count': len(new_articles),

@@ -1479,10 +1479,16 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                   log.status === 'partial_fail' ? 'bg-yellow-500' : 'bg-red-500'
                                 }`}></span>
                                 <span className="text-sm font-medium text-gray-700">
-                                  {new Date(log.executed_at).toLocaleString('zh-CN', {
-                                    month: 'short', day: 'numeric',
-                                    hour: '2-digit', minute: '2-digit'
-                                  })}
+                                  {(() => {
+                                    // 正确处理时区：确保时间戳被解析为北京时间
+                                    const date = new Date(log.executed_at);
+                                    // 使用 toLocaleString 并明确指定时区
+                                    return date.toLocaleString('zh-CN', {
+                                      month: 'short', day: 'numeric',
+                                      hour: '2-digit', minute: '2-digit',
+                                      timeZone: 'Asia/Shanghai'
+                                    });
+                                  })()}
                                 </span>
                                 <span className={`text-xs px-2 py-0.5 rounded ${
                                   log.status === 'success' ? 'bg-green-100 text-green-700' :

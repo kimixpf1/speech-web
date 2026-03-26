@@ -1016,8 +1016,17 @@ export async function searchArticles(
   const usedBaidu = searchDetails['baidu_search'] && (searchDetails['baidu_search'] as any).status === 'success';
   const finalApiUsed: 'kimi' | 'deepseek' | 'kimi+baidu' = usedBaidu && apiUsed === 'kimi' ? 'kimi+baidu' : apiUsed;
   
+  // 获取北京时间字符串（ISO 格式带时区信息）
+  const getBeijingTime = () => {
+    const now = new Date();
+    const beijingOffset = 8 * 60; // 北京时间 UTC+8
+    const localOffset = now.getTimezoneOffset();
+    const beijingTime = new Date(now.getTime() + (beijingOffset + localOffset) * 60000);
+    return beijingTime.toISOString().replace('Z', '+08:00');
+  };
+
   const log: SearchLog = {
-    executed_at: new Date().toISOString(),
+    executed_at: getBeijingTime(),
     search_type: searchType,
     api_used: finalApiUsed,
     queries: SEARCH_QUERIES,
