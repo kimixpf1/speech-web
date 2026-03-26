@@ -48,8 +48,8 @@ def get_all_articles():
         return []
     
     try:
-        # 构建查询URL - 先不带筛选获取所有文章
-        base_url = f'{SUPABASE_URL}/rest/v1/{ARTICLES_TABLE}?select=id,title,url,summary,source,domain,domainName&order=date.desc&limit=2000'
+        # 构建查询URL - 使用正确的字段名 domain_name（下划线）
+        base_url = f'{SUPABASE_URL}/rest/v1/{ARTICLES_TABLE}?select=id,title,url,summary,source,domain,domain_name&order=date.desc&limit=2000'
         
         print(f'[Debug] 请求URL: {base_url[:100]}...')
         
@@ -67,24 +67,24 @@ def get_all_articles():
             articles = resp.json()
             print(f'[Fetch] 获取到 {len(articles)} 篇文章')
             
-            # 显示 domain 字段的实际值分布
+            # 显示 domain_name 字段的实际值分布
             domain_stats = {}
             for a in articles:
-                d = a.get('domain') or a.get('domainName') or 'null'
+                d = a.get('domain') or a.get('domain_name') or 'null'
                 domain_stats[str(d)] = domain_stats.get(str(d), 0) + 1
-            print(f'[Debug] domain 字段分布: {domain_stats}')
+            print(f'[Debug] domain_name 字段分布: {domain_stats}')
             
             # 客户端筛选领域
             if DOMAIN_FILTER:
-                domain_name = DOMAIN_NAMES.get(DOMAIN_FILTER, DOMAIN_FILTER)
-                print(f'[Filter] 筛选领域: domain="{DOMAIN_FILTER}" 或 domainName="{domain_name}"')
+                domain_name_target = DOMAIN_NAMES.get(DOMAIN_FILTER, DOMAIN_FILTER)
+                print(f'[Filter] 筛选领域: domain="{DOMAIN_FILTER}" 或 domain_name="{domain_name_target}"')
                 
-                # 显示前5篇文章的 domain 值
-                print(f'[Debug] 前5篇文章的 domain 值:')
+                # 显示前5篇文章的 domain_name 值
+                print(f'[Debug] 前5篇文章的 domain_name 值:')
                 for a in articles[:5]:
-                    print(f'  - id={a.get("id")}, domain={a.get("domain")}, domainName={a.get("domainName")}')
+                    print(f'  - id={a.get("id")}, domain={a.get("domain")}, domain_name={a.get("domain_name")}')
                 
-                articles = [a for a in articles if a.get('domain') == DOMAIN_FILTER or a.get('domainName') == domain_name]
+                articles = [a for a in articles if a.get('domain') == DOMAIN_FILTER or a.get('domain_name') == domain_name_target]
                 print(f'[Filter] 筛选后: {len(articles)} 篇文章')
             
             return articles
@@ -279,7 +279,7 @@ def main():
         title = article.get('title', '')
         url = article.get('url', '')
         existing_summary = article.get('summary', '')
-        domain_name = article.get('domainName', '')
+        domain_name = article.get('domain_name', '')
         
         domain_tag = f'[{domain_name}] ' if domain_name else ''
         print(f'\n[{i+1}/{len(articles)}] {domain_tag}{title[:40]}...')
