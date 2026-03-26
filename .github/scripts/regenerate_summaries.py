@@ -48,31 +48,36 @@ def get_all_articles():
         return []
     
     try:
-        # 构建查询URL
+        # 构建查询URL - 先不带筛选获取所有文章
         base_url = f'{SUPABASE_URL}/rest/v1/{ARTICLES_TABLE}?select=id,title,url,summary,source,domain,domainName&order=date.desc&limit=2000'
         
-        # 如果指定了领域筛选
-        if DOMAIN_FILTER:
-            base_url += f"&domain=eq.{DOMAIN_FILTER}"
-            domain_name = DOMAIN_NAMES.get(DOMAIN_FILTER, DOMAIN_FILTER)
-            print(f'[Filter] 筛选领域: {domain_name}')
+        print(f'[Debug] 请求URL: {base_url[:100]}...')
         
         resp = requests.get(
             base_url,
             headers={
                 'apikey': SUPABASE_KEY,
-                'Authorization': f'Bearer {SUPABASE_KEY}'
+                'Authorization': f'Bearer {SUPABASE_KEY}',
+                'Content-Type': 'application/json'
             },
             timeout=30
         )
         
         if resp.status_code == 200:
             articles = resp.json()
-            domain_info = f"领域 [{DOMAIN_NAMES.get(DOMAIN_FILTER, DOMAIN_FILTER)}]" if DOMAIN_FILTER else "所有领域"
-            print(f'[Fetch] 获取到 {len(articles)} 篇文章 ({domain_info})')
+            print(f'[Fetch] 获取到 {len(articles)} 篇文章')
+            
+            # 客户端筛选领域
+            if DOMAIN_FILTER:
+                domain_name = DOMAIN_NAMES.get(DOMAIN_FILTER, DOMAIN_FILTER)
+                print(f'[Filter] 筛选领域: {domain_name}')
+                articles = [a for a in articles if a.get('domain') == DOMAIN_FILTER or a.get('domainName') == domain_name]
+                print(f'[Filter] 筛选后: {len(articles)} 篇文章')
+            
             return articles
         else:
             print(f'[Error] 获取文章失败: {resp.status_code}')
+            print(f'[Error] 响应内容: {resp.text[:500]}')
             return []
     except Exception as e:
         print(f'[Error] 获取文章异常: {e}')
