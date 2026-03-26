@@ -180,49 +180,18 @@ def generate_summary_and_analysis(title, content, existing_summary=''):
 def save_article_detail(article_id, abstract, analysis, full_text=''):
     """保存文章详情到数据库"""
     if not SUPABASE_URL:
+        print('  [Error] SUPABASE_URL 未配置')
         return False
     
     try:
-        # 先尝试更新
-        resp = requests.patch(
-            f'{SUPABASE_URL}/rest/v1/{DETAILS_TABLE}?id=eq.{article_id}',
-            headers={
-                'apikey': SUPABASE_KEY,
-                'Authorization': f'Bearer {SUPABASE_KEY}',
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal'
-            },
-            json={
-                'abstract': abstract,
-                'analysis': analysis,
-                'full_text': full_text
-            },
-            timeout=30
-        )
-        
-        # 如果没有更新到记录，则插入
-        if resp.status_code == 200:
-            # 检查是否真的更新了（可能记录不存在）
-            check_resp = requests.get(
-                f'{SUPABASE_URL}/rest/v1/{DETAILS_TABLE}?id=eq.{article_id}&select=id',
-                headers={
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': f'Bearer {SUPABASE_KEY}'
-                },
-                timeout=10
-            )
-            
-            if check_resp.status_code == 200 and check_resp.json():
-                return True
-        
-        # 插入新记录
+        # 直接使用 upsert 插入或更新
         resp = requests.post(
-            f'{SUPABASE_URL}/rest/v1/{DETAILS_TABLE}',
+            f'{SUPABASE_URL}/rest/v1/{DETAILS_TABLE}?on_conflict=id',
             headers={
                 'apikey': SUPABASE_KEY,
                 'Authorization': f'Bearer {SUPABASE_KEY}',
                 'Content-Type': 'application/json',
-                'Prefer': 'return=minimal'
+                'Prefer': 'resolution=merge-duplicates,return=minimal'
             },
             json={
                 'id': article_id,
@@ -233,10 +202,15 @@ def save_article_detail(article_id, abstract, analysis, full_text=''):
             timeout=30
         )
         
-        return resp.status_code in (200, 201)
+        if resp.status_code in (200, 201):
+            return True
+        else:
+            print(f'  [Error] 保存失败: HTTP {resp.status_code}')
+            print(f'  [Error] 响应: {resp.text[:200]}')
+            return False
     
     except Exception as e:
-        print(f'  [Error] 保存失败: {e}')
+        print(f'  [Error] 保存异常: {e}')
         return False
 
 
