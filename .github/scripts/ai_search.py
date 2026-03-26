@@ -374,10 +374,12 @@ def save_log(kimi_count, baidu_count, new_count, status, details):
         print('[Log] SUPABASE_URL not configured')
         return
     try:
-        # 使用北京时间
-        beijing_now = datetime.utcnow() + timedelta(hours=8)
+        # 使用北京时间，明确带时区信息
+        from datetime import timezone
+        beijing_tz = timezone(timedelta(hours=8))
+        beijing_now = datetime.now(beijing_tz)
         log_data = {
-            'executed_at': beijing_now.isoformat(),
+            'executed_at': beijing_now.isoformat(),  # 带时区的北京时间
             'crawl_count': kimi_count + baidu_count,
             'search_count': kimi_count + baidu_count,
             'new_count': new_count,
