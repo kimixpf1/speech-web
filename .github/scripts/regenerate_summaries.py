@@ -14,10 +14,17 @@ from datetime import datetime, timezone, timedelta
 SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
 SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY') or os.environ.get('SUPABASE_ANON_KEY', '')
 KIMI_API_KEY = os.environ.get('KIMI_API_KEY', '')
+DOMAIN_FILTER = os.environ.get('DOMAIN_FILTER', '')  # 领域筛选
 
 KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions'
 ARTICLES_TABLE = 'articles'
 DETAILS_TABLE = 'article_details'
+
+# 领域名称映射
+DOMAIN_NAMES = {
+    'economy': '经济', 'politics': '政治', 'culture': '文化', 'society': '社会',
+    'ecology': '生态', 'party': '党建', 'defense': '国防', 'diplomacy': '外交',
+}
 
 # 请求延迟（避免API限流）
 REQUEST_DELAY = 2.0
@@ -25,6 +32,7 @@ REQUEST_DELAY = 2.0
 print(f'[Config] SUPABASE_URL: {"已配置" if SUPABASE_URL else "未配置"}')
 print(f'[Config] SUPABASE_KEY: {"已配置" if SUPABASE_KEY else "未配置"}')
 print(f'[Config] KIMI_API_KEY: {"已配置" if KIMI_API_KEY else "未配置"}')
+print(f'[Config] DOMAIN_FILTER: {DOMAIN_FILTER or "全部领域"}')
 
 
 def get_beijing_time():
@@ -34,15 +42,23 @@ def get_beijing_time():
 
 
 def get_all_articles():
-    """获取所有文章列表"""
+    """获取文章列表（支持领域筛选）"""
     if not SUPABASE_URL:
         print('[Error] SUPABASE_URL 未配置')
         return []
     
     try:
-        # 获取所有文章，按日期降序
+        # 构建查询URL
+        base_url = f'{SUPABASE_URL}/rest/v1/{ARTICLES_TABLE}?select=id,title,url,summary,source,domain,domainName&order=date.desc&limit=2000'
+        
+        # 如果指定了领域筛选
+        if DOMAIN_FILTER:
+            base_url += f"&domain=eq.{DOMAIN_FILTER}"
+            domain_name = DOMAIN_NAMES.get(DOMAIN_FILTER, DOMAIN_FILTER)
+            print(f'[Filter] 筛选领域: {domain_name}')
+        
         resp = requests.get(
-            f'{SUPABASE_URL}/rest/v1/{ARTICLES_TABLE}?select=id,title,url,summary,source&order=date.desc&limit=2000',
+            base_url,
             headers={
                 'apikey': SUPABASE_KEY,
                 'Authorization': f'Bearer {SUPABASE_KEY}'
@@ -52,7 +68,8 @@ def get_all_articles():
         
         if resp.status_code == 200:
             articles = resp.json()
-            print(f'[Fetch] 获取到 {len(articles)} 篇文章')
+            domain_info = f"领域 [{DOMAIN_NAMES.get(DOMAIN_FILTER, DOMAIN_FILTER)}]" if DOMAIN_FILTER else "所有领域"
+            print(f'[Fetch] 获取到 {len(articles)} 篇文章 ({domain_info})')
             return articles
         else:
             print(f'[Error] 获取文章失败: {resp.status_code}')
@@ -217,19 +234,22 @@ def save_article_detail(article_id, abstract, analysis, full_text=''):
 def main():
     start_time = time.time()
     
+    domain_display = DOMAIN_NAMES.get(DOMAIN_FILTER, DOMAIN_FILTER) if DOMAIN_FILTER else "全部领域"
+    
     print('=' * 60)
     print(f'批量重新生成摘要和解读 - {get_beijing_time()}')
+    print(f'目标领域: {domain_display}')
     print('=' * 60)
     
     if not SUPABASE_URL or not KIMI_API_KEY:
         print('[Error] 配置不完整，退出')
         return
     
-    # 获取所有文章
+    # 获取文章列表（已支持领域筛选）
     articles = get_all_articles()
     
     if not articles:
-        print('[Error] 没有获取到文章')
+        print('[Info] 没有获取到文章，可能该领域暂无文章')
         return
     
     success_count = 0
@@ -241,8 +261,10 @@ def main():
         title = article.get('title', '')
         url = article.get('url', '')
         existing_summary = article.get('summary', '')
+        domain_name = article.get('domainName', '')
         
-        print(f'\n[{i+1}/{len(articles)}] {title[:40]}...')
+        domain_tag = f'[{domain_name}] ' if domain_name else ''
+        print(f'\n[{i+1}/{len(articles)}] {domain_tag}{title[:40]}...')
         
         if not article_id:
             print('  [Skip] 缺少ID')
@@ -282,6 +304,7 @@ def main():
     
     print('\n' + '=' * 60)
     print(f'处理完成！耗时 {duration} 秒')
+    print(f'领域: {domain_display}')
     print(f'成功: {success_count}, 失败: {fail_count}, 跳过: {skip_count}')
     print('=' * 60)
 

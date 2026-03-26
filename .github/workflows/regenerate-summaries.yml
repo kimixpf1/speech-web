@@ -3,10 +3,30 @@ name: Regenerate Summaries
 on:
   workflow_dispatch:  # 手动触发
     inputs:
+      domain:
+        description: '指定领域（留空=全部）'
+        required: false
+        default: 'economy'
+        type: choice
+        options:
+          - ''
+          - 'economy'
+          - 'politics'
+          - 'culture'
+          - 'society'
+          - 'ecology'
+          - 'party'
+          - 'defense'
+          - 'diplomacy'
       limit:
         description: '处理文章数量限制（0=全部）'
         required: false
         default: '0'
+
+# 并发控制：同一时间只允许一个实例运行，新实例会取消旧的
+concurrency:
+  group: regenerate-summaries
+  cancel-in-progress: true
 
 env:
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -25,10 +45,11 @@ jobs:
         with:
           ref: main
 
-      - name: Debug - Show current time
+      - name: Debug - Show current time and settings
         run: |
           echo "UTC Time: $(date -u)"
           echo "Beijing Time: $(TZ='Asia/Shanghai' date)"
+          echo "Domain filter: ${{ inputs.domain }}"
           echo "Checking environment variables..."
           echo "SUPABASE_URL set: ${{ env.SUPABASE_URL != '' }}"
           echo "SUPABASE_SERVICE_ROLE_KEY set: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' }}"
@@ -44,6 +65,8 @@ jobs:
 
       - name: Run regeneration script
         run: python .github/scripts/regenerate_summaries.py
+        env:
+          DOMAIN_FILTER: ${{ inputs.domain }}
 
       - name: Report completion
         if: always()
