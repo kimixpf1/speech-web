@@ -146,50 +146,48 @@ export function DetailPage() {
     if (id) {
       // 异步加载详情数据的辅助函数
       const loadDetailAndSet = async (baseSpeech: Speech) => {
-        // 先从静态数据查找详情
-        const staticDetail = getSpeechDetail(id);
+        // 优先从云端获取最新数据（云端有最新的摘要和解读）
+        try {
+          const cloudDetail = await getArticleDetail(id, true); // 强制刷新，获取最新数据
+          if (cloudDetail && (cloudDetail.abstract || cloudDetail.analysis)) {
+            // 云端有摘要或解读数据，优先使用云端数据
+            const staticDetail = getSpeechDetail(id);
+            setSpeech({
+              ...baseSpeech,
+              abstract: cloudDetail.abstract || staticDetail?.abstract || '摘要正在整理中...',
+              fullText: cloudDetail.fullText || staticDetail?.fullText || '原文加载中...',
+              analysis: cloudDetail.analysis || staticDetail?.analysis || '解读分析正在整理中...',
+            } as SpeechDetail);
+            setIsLoading(false);
+            return;
+          }
+        } catch (err) {
+          console.error('获取云端详情失败:', err);
+        }
         
-        // 判断静态数据是否完整（有fullText且长度合理、不是占位文本）
+        // 云端没有数据，使用静态数据
+        const staticDetail = getSpeechDetail(id);
         const isStaticComplete = staticDetail 
           && staticDetail.fullText 
           && staticDetail.fullText.length > 100
           && !staticDetail.fullText.includes('正在整理中');
         
         if (isStaticComplete) {
-          // 静态数据完整，直接使用，不再获取云端数据
           setSpeech({
             ...baseSpeech,
             abstract: staticDetail!.abstract,
             fullText: staticDetail!.fullText,
             analysis: staticDetail!.analysis,
           } as SpeechDetail);
-          setIsLoading(false);
-          return;
+        } else {
+          setSpeech({
+            ...baseSpeech,
+            abstract: staticDetail?.abstract || '摘要正在整理中...',
+            fullText: staticDetail?.fullText || '原文加载中...',
+            analysis: staticDetail?.analysis || '解读分析正在整理中...',
+          } as SpeechDetail);
         }
-
-        // 静态数据不完整，先显示占位，再从云端获取
-        setSpeech({
-          ...baseSpeech,
-          abstract: staticDetail?.abstract || '摘要加载中...',
-          fullText: staticDetail?.fullText || '原文加载中...',
-          analysis: staticDetail?.analysis || '解读加载中...',
-        } as SpeechDetail);
-
-        try {
-          const cloudDetail = await getArticleDetail(id);
-          if (cloudDetail && cloudDetail.fullText && cloudDetail.fullText.length > 100) {
-            setSpeech({
-              ...baseSpeech,
-              abstract: cloudDetail.abstract || staticDetail?.abstract || '摘要正在整理中...',
-              fullText: cloudDetail.fullText,
-              analysis: cloudDetail.analysis || staticDetail?.analysis || '解读分析正在整理中...',
-            } as SpeechDetail);
-          }
-        } catch (err) {
-          console.error('获取云端详情失败:', err);
-        } finally {
-          setIsLoading(false);
-        }
+        setIsLoading(false);
       };
 
       // 先从静态数据查找（包括主列表和政绩观专题）
