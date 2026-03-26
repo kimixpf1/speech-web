@@ -34,11 +34,14 @@ function saveLocalDetails(details: Record<string, ArticleDetailContent>): void {
 }
 
 // 获取文章详情
-export async function getArticleDetail(id: string): Promise<ArticleDetailContent | null> {
-  // 先检查本地缓存
-  const localDetails = getLocalDetails();
-  if (localDetails[id]) {
-    return localDetails[id];
+export async function getArticleDetail(id: string, forceRefresh: boolean = false): Promise<ArticleDetailContent | null> {
+  // 如果强制刷新，跳过本地缓存
+  if (!forceRefresh) {
+    // 先检查本地缓存
+    const localDetails = getLocalDetails();
+    if (localDetails[id]) {
+      return localDetails[id];
+    }
   }
 
   // 从云端获取
@@ -59,6 +62,7 @@ export async function getArticleDetail(id: string): Promise<ArticleDetailContent
         };
         
         // 更新本地缓存
+        const localDetails = getLocalDetails();
         localDetails[id] = detail;
         saveLocalDetails(localDetails);
         
@@ -70,6 +74,27 @@ export async function getArticleDetail(id: string): Promise<ArticleDetailContent
   }
 
   return null;
+}
+
+// 清除本地缓存
+export function clearLocalDetailsCache(): void {
+  try {
+    localStorage.removeItem(DETAILS_CACHE_KEY);
+    console.log('Local details cache cleared');
+  } catch (error) {
+    console.error('Error clearing local details cache:', error);
+  }
+}
+
+// 清除指定文章的本地缓存
+export function clearArticleDetailCache(id: string): void {
+  try {
+    const localDetails = getLocalDetails();
+    delete localDetails[id];
+    saveLocalDetails(localDetails);
+  } catch (error) {
+    console.error('Error clearing article detail cache:', error);
+  }
 }
 
 // 保存文章详情
