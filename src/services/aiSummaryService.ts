@@ -69,7 +69,7 @@ export function clearSummaryCache(articleId?: string): void {
 function cleanGeneratedText(text: string | undefined | null): string {
   if (!text) return '';
   
-  return text
+  let result = text
     // 移除JSON转义字符
     .replace(/\\n/g, '\n')
     .replace(/\\r/g, '')
@@ -77,22 +77,24 @@ function cleanGeneratedText(text: string | undefined | null): string {
     .replace(/\\"/g, '"')
     .replace(/\\\\/g, '\\')
     // 移除markdown代码块标记
-    .replace(/```json/gi, '')
+    .replace(/```[a-z]*\s*/gi, '')
     .replace(/```/g, '')
-    // 移除JSON关键字和结构符号
-    .replace(/^\s*[{\[]\s*/g, '')
-    .replace(/\s*[}\]]\s*$/g, '')
-    .replace(/"summary"\s*:\s*/gi, '')
-    .replace(/"analysis"\s*:\s*/gi, '')
-    // 移除开头和结尾的引号
-    .replace(/^["']+/g, '')
-    .replace(/["']+$/g, '')
+    // 移除JSON结构符号和关键字
+    .replace(/^\s*\{\s*/g, '')
+    .replace(/\s*\}\s*$/g, '')
+    .replace(/"summary"\s*:\s*"/gi, '')
+    .replace(/"analysis"\s*:\s*"/gi, '')
+    .replace(/",?\s*$/g, '')
+    .replace(/^"\s*/g, '')
+    // 移除段落标记（如果不需要）
+    .replace(/^[\[\u3010]摘要[\]\u3011]\s*/gm, '')
+    .replace(/^[\[\u3010]解读[\]\u3011]\s*/gm, '')
     // 清理多余空白和空行
     .replace(/\n{3,}/g, '\n\n')
-    .replace(/^\s+|\s+$/g, '')
-    // 清理段落开头的多余空格
-    .replace(/\n\s+/g, '\n')
+    .replace(/^\s+|\s+$/gm, '')
     .trim();
+  
+  return result;
 }
 
 /**
@@ -107,53 +109,28 @@ async function generateWithKimi(
     throw new Error('未配置 Kimi API Key，请在管理员后台配置');
   }
 
-  const prompt = `你是一位资深的时政理论和党史研究专家，擅长深度解读习近平总书记重要讲话的政治高度、理论深度和实践意义。
-
-请根据以下文章内容，生成专业的摘要和深度解读。
+  const prompt = `你是一位资深的时政理论专家。请根据以下文章内容，生成专业的摘要和深度解读。
 
 文章标题：${articleTitle}
 
 文章内容：
-${articleContent.substring(0, 8000)}
+${articleContent.substring(0, 6000)}
 
-【摘要撰写要求】
-1. 准确概括文章核心内容，150-250字
-2. 提炼核心观点和关键论断
-3. 不添加个人观点，客观陈述
+请直接输出纯中文内容，绝对禁止输出JSON格式，绝对禁止使用英文。格式如下：
 
-【解读分析撰写要求】
-解读必须有政治高度和理论深度，严禁简单概括！必须包含以下维度：
+【摘要】
+（在此写150-200字的摘要，准确概括核心内容）
 
-1. **政治高度**（100字左右）：
-   - 结合习近平新时代中国特色社会主义思想分析
-   - 说明讲话在党和国家事业全局中的定位
-   - 体现"两个确立"的决定性意义
+【解读】
+（在此写400-500字的深度解读，包含以下内容：
+一、政治高度：结合习近平新时代中国特色社会主义思想分析
+二、理论深度：阐释核心要义和精神实质
+三、实践意义：指出对实际工作的指导作用）
 
-2. **理论深度**（150字左右）：
-   - 阐释核心要义和精神实质
-   - 分析其中蕴含的马克思主义立场观点方法
-   - 揭示其理论创新价值和学理内涵
-
-3. **历史贯通**（100字左右）：
-   - 联系习近平总书记之前的相关重要讲话和论述
-   - 分析一脉相承的思想脉络和发展演进
-   - 体现习近平新时代中国特色社会主义思想的系统性完整性
-
-4. **实践意义**（100字左右）：
-   - 指出对推动中国式现代化的指导作用
-   - 分析对相关领域工作的实践要求
-   - 说明贯彻落实的关键着力点
-
-请按以下JSON格式输出：
-{
-  "summary": "文章摘要（150-250字）",
-  "analysis": "深度解读（400-600字，分四个维度展开，每个维度用小标题区分）"
-}
-
-注意：
-1. 解读必须体现政治高度，不能只是简单概括文章内容
-2. 必须有历史贯通分析，联系相关重要讲话
-3. 语言要庄重规范，适合政务学习场景`;
+重要要求：
+1. 全部使用中文，禁止英文
+2. 禁止JSON格式，禁止引号和大括号
+3. 语言庄重规范，适合政务学习场景`;
 
   const response = await fetch(KIMI_API_URL, {
     method: 'POST',
@@ -177,47 +154,48 @@ ${articleContent.substring(0, 8000)}
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content || '';
   
-  // 尝试解析JSON
-  try {
-    // 清理内容：移除markdown代码块标记
-    let cleanContent = content
-      .replace(/```json\s*/gi, '')
-      .replace(/```\s*/g, '')
-      .trim();
-    
-    // 提取JSON部分
-    const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        summary: cleanGeneratedText(parsed.summary) || '生成失败',
-        analysis: cleanGeneratedText(parsed.analysis) || '生成失败',
-      };
-    }
-  } catch (e) {
-    console.warn('JSON解析失败，尝试直接提取:', e);
+  // 解析纯文本格式：【摘要】...【解读】...
+  let summary = '';
+  let analysis = '';
+  
+  // 先清理内容
+  const cleanContent = cleanGeneratedText(content);
+  
+  // 方法一：通过【摘要】和【解读】标记提取
+  const summaryMatch = cleanContent.match(/[【\[]?摘要[】\]]?[\s\uff1a:]*([\s\S]*?)(?=[【\[]?解读[】\]]|$)/i);
+  const analysisMatch = cleanContent.match(/[【\[]?解读[】\]]?[\s\uff1a:]*([\s\S]*?)$/i);
+  
+  if (summaryMatch && summaryMatch[1]) {
+    summary = summaryMatch[1].trim();
   }
-
-  // 降级：尝试通过正则直接提取summary和analysis
-  try {
-    const summaryMatch = content.match(/"summary"\s*:\s*"([^"]*(?:\\.[^"]*)*)"/s);
-    const analysisMatch = content.match(/"analysis"\s*:\s*"([^"]*(?:\\.[^"]*)*)"/s);
-    
-    if (summaryMatch || analysisMatch) {
-      return {
-        summary: cleanGeneratedText(summaryMatch?.[1] || '') || '生成失败',
-        analysis: cleanGeneratedText(analysisMatch?.[1] || '') || '生成失败',
-      };
-    }
-  } catch (e) {
-    console.warn('正则提取失败:', e);
+  if (analysisMatch && analysisMatch[1]) {
+    analysis = analysisMatch[1].trim();
   }
-
-  // 最终降级：清理后直接使用返回内容
-  const cleanedContent = cleanGeneratedText(content);
+  
+  // 方法二：如果标记提取失败，尝试JSON解析
+  if (!summary || !analysis) {
+    try {
+      const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        summary = summary || cleanGeneratedText(parsed.summary) || '';
+        analysis = analysis || cleanGeneratedText(parsed.analysis) || '';
+      }
+    } catch (e) {
+      // JSON解析失败，继续
+    }
+  }
+  
+  // 方法三：如果仍然失败，按比例分割内容
+  if (!summary && !analysis && cleanContent.length > 100) {
+    const splitPoint = Math.min(250, Math.floor(cleanContent.length * 0.3));
+    summary = cleanContent.substring(0, splitPoint).trim();
+    analysis = cleanContent.substring(splitPoint).trim();
+  }
+  
   return {
-    summary: cleanedContent.substring(0, 300) || '生成失败',
-    analysis: cleanedContent.substring(300) || '生成失败',
+    summary: summary || '生成失败',
+    analysis: analysis || '生成失败',
   };
 }
 
