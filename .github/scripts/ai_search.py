@@ -425,11 +425,11 @@ def main():
     
     saved = save_articles(new_articles)
     
+    # 状态判定：工作流正常运行即为成功，没找到文章不是失败
+    # failed 仅用于 API 调用异常等真正的失败情况
     status = 'success'
-    if not kimi_articles and not baidu_articles:
-        status = 'failed'
-    elif not kimi_articles or not baidu_articles:
-        status = 'partial_fail'
+    # 记录搜索源状态到 details 中，但不改变 success 状态
+    # 因为"没找到文章"也是正常的业务结果
     
     save_log(len(kimi_articles), len(baidu_articles), saved, status,
              {'kimi': len(kimi_articles), 'baidu': len(baidu_articles), 
