@@ -16,13 +16,22 @@ env:
 jobs:
   ai-search:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           ref: main
+
+      - name: Debug - Show current time
+        run: |
+          echo "UTC Time: $(date -u)"
+          echo "Beijing Time: $(TZ='Asia/Shanghai' date)"
+          echo "Checking environment variables..."
+          echo "SUPABASE_URL set: ${{ env.SUPABASE_URL != '' }}"
+          echo "SUPABASE_SERVICE_ROLE_KEY set: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' }}"
+          echo "KIMI_API_KEY set: ${{ env.KIMI_API_KEY != '' }}"
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -37,4 +46,4 @@ jobs:
 
       - name: Report status
         if: always()
-        run: echo "AI Search completed at $(date)"
+        run: echo "AI Search completed at $(TZ='Asia/Shanghai' date)"
