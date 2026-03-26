@@ -30,39 +30,12 @@ export const peopleArticles: Speech[] = [
     summary: '这是习近平总书记2025年12月10日在中央经济工作会议上讲话的一部分。文章强调，2026年经济工作头绪多，要抓住关键、纲举目张。',
     url: 'https://www.qstheory.cn/20260214/a9022461555c48e6a2f2e4fef36878a9/c.html'
   },
-  {
-    id: 'P2026-003',
-    title: '在二〇二六年春节团拜会上的讲话',
-    date: '2026-02-15',
-    year: 2026, month: 2, day: 15,
-    category: 'speech', categoryName: '重要讲话',
-    domain: 'politics', domainName: '政治',
-    source: '人民网－人民日报',
-    summary: '丙午马年春节即将到来。习近平总书记代表党中央和国务院，向全国各族人民致以节日的美好祝福。',
-    url: 'https://politics.people.com.cn/n1/2026/0215/c1024-40666339.html'
-  },
-  {
-    id: 'P2026-004',
-    title: '《求是》杂志发表习近平总书记重要文章 走好中国特色金融发展之路，建设金融强国',
-    date: '2026-02-01',
-    year: 2026, month: 2, day: 1,
-    category: 'article', categoryName: '发表文章',
-    domain: 'economy', domainName: '经济',
-    source: '《求是》杂志第3期',
-    summary: '党的十八大以来，我们积极探索新时代金融发展规律，逐步走出一条中国特色金融发展之路。',
-    url: 'https://www.qstheory.cn/20260131/487aa5b5e0804f7ea968118e541b4e91/c.html'
-  },
-  {
-    id: 'P2026-005',
-    title: '《求是》杂志发表习近平总书记重要文章 在中央城市工作会议上的讲话',
-    date: '2026-01-16',
-    year: 2026, month: 1, day: 16,
-    category: 'article', categoryName: '发表文章',
-    domain: 'society', domainName: '社会',
-    source: '《求是》杂志第2期',
-    summary: '时隔10年，党中央再次召开城市工作会议，总结新时代以来我国城市发展成就。',
-    url: 'https://www.qstheory.cn/20260115/d3e63b3075754be4a98c172afdf6d9b7/c.html'
-  },
+  // P2026-003 已删除：与speeches.ts的2026-06重复（春节团拜会讲话）
+  // P2026-004 已删除：与speeches.ts的2025-17重复（金融强国文章）
+  // P2026-005 已删除：与speeches.ts的2026-02重复（城市工作会议）
+  // P2026-006 保留：全国政协新年茶话会（无重复）
+  // P2026-007 已删除：与speeches.ts的2026-05重复（新年贺词）
+
   {
     id: 'P2026-006',
     title: '在全国政协新年茶话会上的讲话',
@@ -70,19 +43,8 @@ export const peopleArticles: Speech[] = [
     year: 2026, month: 1, day: 1,
     category: 'speech', categoryName: '重要讲话',
     domain: 'politics', domainName: '政治',
-    source: '人民网－人民日报',
+    source: '新华社',
     summary: '很高兴与大家欢聚一堂，畅叙友情、共商国是，共同迎接新的一年。',
-    url: 'https://politics.people.com.cn/n1/2026/0101/c1024-40637111.html'
-  },
-  {
-    id: 'P2026-007',
-    title: '国家主席习近平发表二〇二六年新年贺词',
-    date: '2026-01-01',
-    year: 2026, month: 1, day: 1,
-    category: 'speech', categoryName: '重要讲话',
-    domain: 'politics', domainName: '政治',
-    source: '人民网－人民日报',
-    summary: '新年前夕，国家主席习近平通过中央广播电视总台和互联网，发表二〇二六年新年贺词。',
     url: 'https://www.news.cn/politics/leaders/20251231/00c3feccf5424d3c90bccbb1519f47ae/c.html'
   },
 
