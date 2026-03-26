@@ -48,13 +48,13 @@ export const peopleArticles: Speech[] = [
   {
     id: 'P2026-006',
     title: '在全国政协新年茶话会上的讲话',
-    date: '2026-01-01',
-    year: 2026, month: 1, day: 1,
+    date: '2025-12-31',
+    year: 2025, month: 12, day: 31,
     category: 'speech', categoryName: '重要讲话',
     domain: 'politics', domainName: '政治',
     source: '新华社',
     summary: '很高兴与大家欢聚一堂，畅叙友情、共商国是，共同迎接新的一年。',
-    url: 'https://www.news.cn/politics/leaders/20251231/00c3feccf5424d3c90bccbb1519f47ae/c.html'
+    url: 'http://www.cppcc.gov.cn/zxww/2025/12/31/ARTI1767168160430186.shtml'
   },
 
   // ===== 2025年 (41篇) =====

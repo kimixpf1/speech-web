@@ -100,7 +100,7 @@ export const speechesData: Speech[] = [
     domainName: '政治',
     source: '人民网',
     summary: '新年前夕，国家主席习近平通过中央广播电视总台和互联网，发表了二〇二六年新年贺词。2025年是"十四五"收官之年，5年来我国经济实力、科技实力、国防实力、综合国力跃上新台阶。2026年是"十五五"开局之年，要锚定目标任务，坚定信心、乘势而上，扎实推动高质量发展。',
-    url: 'https://www.news.cn/politics/leaders/20251231/da5cb3efa993428392e783bc9e16728f/c.html'
+    url: 'https://www.news.cn/politics/leaders/20251231/00c3feccf5424d3c90bccbb1519f47ae/c.html'
   },
   {
     id: '2026-06',
