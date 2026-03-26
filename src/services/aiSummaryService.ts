@@ -64,12 +64,12 @@ export function clearSummaryCache(articleId?: string): void {
 }
 
 /**
- * 清理AI生成的文本，移除乱码和无关符号
+ * 清理AI生成的文本中的转义字符和多余空白
  */
-function cleanGeneratedText(text: string | undefined | null): string {
+function cleanEscapeChars(text: string | undefined | null): string {
   if (!text) return '';
   
-  let result = text
+  return text
     // 移除JSON转义字符
     .replace(/\\n/g, '\n')
     .replace(/\\r/g, '')
@@ -79,22 +79,9 @@ function cleanGeneratedText(text: string | undefined | null): string {
     // 移除markdown代码块标记
     .replace(/```[a-z]*\s*/gi, '')
     .replace(/```/g, '')
-    // 移除JSON结构符号和关键字
-    .replace(/^\s*\{\s*/g, '')
-    .replace(/\s*\}\s*$/g, '')
-    .replace(/"summary"\s*:\s*"/gi, '')
-    .replace(/"analysis"\s*:\s*"/gi, '')
-    .replace(/",?\s*$/g, '')
-    .replace(/^"\s*/g, '')
-    // 移除段落标记（如果不需要）
-    .replace(/^[\[\u3010]摘要[\]\u3011]\s*/gm, '')
-    .replace(/^[\[\u3010]解读[\]\u3011]\s*/gm, '')
     // 清理多余空白和空行
     .replace(/\n{3,}/g, '\n\n')
-    .replace(/^\s+|\s+$/gm, '')
     .trim();
-  
-  return result;
 }
 
 /**
@@ -109,28 +96,32 @@ async function generateWithKimi(
     throw new Error('未配置 Kimi API Key，请在管理员后台配置');
   }
 
-  const prompt = `你是一位资深的时政理论专家。请根据以下文章内容，生成专业的摘要和深度解读。
+  const prompt = `你是一位资深的时政理论专家，擅长深度解读习近平总书记重要讲话。请根据以下文章内容，生成专业的摘要和深度解读。
 
 文章标题：${articleTitle}
 
 文章内容：
 ${articleContent.substring(0, 6000)}
 
-请直接输出纯中文内容，绝对禁止输出JSON格式，绝对禁止使用英文。格式如下：
+请严格按照以下格式输出（禁止JSON，禁止英文）：
 
 【摘要】
-（在此写150-200字的摘要，准确概括核心内容）
+150-200字，准确概括文章核心内容，提炼关键论断。
 
 【解读】
-（在此写400-500字的深度解读，包含以下内容：
-一、政治高度：结合习近平新时代中国特色社会主义思想分析
-二、理论深度：阐释核心要义和精神实质
-三、实践意义：指出对实际工作的指导作用）
+400-600字深度解读，分为三个段落（每段开头标注小标题）：
 
-重要要求：
-1. 全部使用中文，禁止英文
-2. 禁止JSON格式，禁止引号和大括号
-3. 语言庄重规范，适合政务学习场景`;
+一、政治高度：结合习近平新时代中国特色社会主义思想，阐述讲话在党和国家事业全局中的重大意义。
+
+二、理论深度：阐释核心要义、精神实质，分析其中蕴含的马克思主义立场观点方法。
+
+三、历史贯通与实践：联系习近平总书记历次相关重要讲话，分析一脉相承的思想脉络，指出对推动中国式现代化的实践指导意义。
+
+严格要求：
+1. 全部使用中文，禁止任何英文
+2. 禁止JSON格式，禁止引号、大括号等符号
+3. 解读必须分三段，每段用"一、""二、""三、"开头
+4. 语言庄重规范，适合政务学习场景`;
 
   const response = await fetch(KIMI_API_URL, {
     method: 'POST',
@@ -154,16 +145,18 @@ ${articleContent.substring(0, 6000)}
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content || '';
   
-  // 解析纯文本格式：【摘要】...【解读】...
+  // 第一步：先清理转义字符，但保留【摘要】【解读】标记
+  const rawContent = cleanEscapeChars(content);
+  
+  // 第二步：提取摘要和解读内容
   let summary = '';
   let analysis = '';
   
-  // 先清理内容
-  const cleanContent = cleanGeneratedText(content);
-  
-  // 方法一：通过【摘要】和【解读】标记提取
-  const summaryMatch = cleanContent.match(/[【\[]?摘要[】\]]?[\s\uff1a:]*([\s\S]*?)(?=[【\[]?解读[】\]]|$)/i);
-  const analysisMatch = cleanContent.match(/[【\[]?解读[】\]]?[\s\uff1a:]*([\s\S]*?)$/i);
+  // 方法一：通过【摘要】和【解读】标记提取（最可靠）
+  // 匹配【摘要】后面到【解读】之前的内容
+  const summaryMatch = rawContent.match(/【摘要】[\s：:]*([\s\S]*?)(?=【解读】|$)/i);
+  // 匹配【解读】后面的所有内容
+  const analysisMatch = rawContent.match(/【解读】[\s：:]*([\s\S]*?)$/i);
   
   if (summaryMatch && summaryMatch[1]) {
     summary = summaryMatch[1].trim();
@@ -172,30 +165,42 @@ ${articleContent.substring(0, 6000)}
     analysis = analysisMatch[1].trim();
   }
   
-  // 方法二：如果标记提取失败，尝试JSON解析
+  // 方法二：尝试JSON解析（兼容旧格式）
   if (!summary || !analysis) {
     try {
-      const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+      const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
-        summary = summary || cleanGeneratedText(parsed.summary) || '';
-        analysis = analysis || cleanGeneratedText(parsed.analysis) || '';
+        summary = summary || (parsed.summary ? String(parsed.summary).trim() : '');
+        analysis = analysis || (parsed.analysis ? String(parsed.analysis).trim() : '');
       }
     } catch (e) {
       // JSON解析失败，继续
     }
   }
   
-  // 方法三：如果仍然失败，按比例分割内容
-  if (!summary && !analysis && cleanContent.length > 100) {
-    const splitPoint = Math.min(250, Math.floor(cleanContent.length * 0.3));
-    summary = cleanContent.substring(0, splitPoint).trim();
-    analysis = cleanContent.substring(splitPoint).trim();
+  // 方法三：尝试通过"摘要""解读"关键词提取
+  if (!summary || !analysis) {
+    const kwSummaryMatch = rawContent.match(/摘\s*要[\s：:]*([\s\S]*?)(?=解\s*读|$)/i);
+    const kwAnalysisMatch = rawContent.match(/解\s*读[\s：:]*([\s\S]*?)$/i);
+    if (kwSummaryMatch && kwSummaryMatch[1]) {
+      summary = summary || kwSummaryMatch[1].trim();
+    }
+    if (kwAnalysisMatch && kwAnalysisMatch[1]) {
+      analysis = analysis || kwAnalysisMatch[1].trim();
+    }
+  }
+  
+  // 方法四：按比例分割（最终降级）
+  if (!summary && !analysis && rawContent.length > 100) {
+    const splitPoint = Math.min(250, Math.floor(rawContent.length * 0.3));
+    summary = rawContent.substring(0, splitPoint).trim();
+    analysis = rawContent.substring(splitPoint).trim();
   }
   
   return {
-    summary: summary || '生成失败',
-    analysis: analysis || '生成失败',
+    summary: summary || '摘要生成失败，请重试',
+    analysis: analysis || '解读生成失败，请重试',
   };
 }
 
