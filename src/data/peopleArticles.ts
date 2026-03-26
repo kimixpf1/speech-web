@@ -30,12 +30,21 @@ export const peopleArticles: Speech[] = [
     summary: '这是习近平总书记2025年12月10日在中央经济工作会议上讲话的一部分。文章强调，2026年经济工作头绪多，要抓住关键、纲举目张。',
     url: 'https://www.qstheory.cn/20260214/a9022461555c48e6a2f2e4fef36878a9/c.html'
   },
-  // P2026-003 已删除：与speeches.ts的2026-06重复（春节团拜会讲话）
-  // P2026-004 已删除：与speeches.ts的2025-17重复（金融强国文章）
-  // P2026-005 已删除：与speeches.ts的2026-02重复（城市工作会议）
-  // P2026-006 保留：全国政协新年茶话会（无重复）
-  // P2026-007 已删除：与speeches.ts的2026-05重复（新年贺词）
-
+  // P2026-004 已删除：与speeches.ts的2025-17重复（金融强国文章，URL相同）
+  // P2026-005 已删除：与speeches.ts的2026-02重复（城市工作会议，URL相同）
+  
+  // P2026-003 保留：春节团拜会讲话（人民网版本，与speeches.ts新华网版本URL不同，可能是不同来源报道）
+  {
+    id: 'P2026-003',
+    title: '在二〇二六年春节团拜会上的讲话',
+    date: '2026-02-15',
+    year: 2026, month: 2, day: 15,
+    category: 'speech', categoryName: '重要讲话',
+    domain: 'politics', domainName: '政治',
+    source: '人民网－人民日报',
+    summary: '丙午马年春节即将到来。习近平总书记代表党中央和国务院，向全国各族人民致以节日的美好祝福。',
+    url: 'https://cpc.people.com.cn/n1/2026/0215/c64387-40683966.html'
+  },
   {
     id: 'P2026-006',
     title: '在全国政协新年茶话会上的讲话',
