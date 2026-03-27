@@ -72,20 +72,20 @@ def get_beijing_time():
     return datetime.now(beijing_tz).isoformat()
 
 
-def get_all_articles():
-    """获取文章列表（支持领域筛选）"""
+def get_articles_missing_details():
+    """获取缺少摘要或解读的文章列表"""
     if not SUPABASE_URL:
         print('[Error] SUPABASE_URL 未配置')
         return []
     
     try:
-        # 构建查询URL - 使用正确的字段名 domain_name（下划线）
-        base_url = f'{SUPABASE_URL}/rest/v1/{ARTICLES_TABLE}?select=id,title,url,summary,source,domain,domain_name&order=date.desc&limit=2000'
+        # 1. 先获取所有文章
+        articles_url = f'{SUPABASE_URL}/rest/v1/{ARTICLES_TABLE}?select=id,title,url,summary,source,domain,domain_name&order=date.desc&limit=2000'
         
-        print(f'[Debug] 请求URL: {base_url[:100]}...')
+        print(f'[Debug] 请求文章列表...')
         
         resp = requests.get(
-            base_url,
+            articles_url,
             headers={
                 'apikey': SUPABASE_KEY,
                 'Authorization': f'Bearer {SUPABASE_KEY}',
@@ -94,35 +94,72 @@ def get_all_articles():
             timeout=30
         )
         
-        if resp.status_code == 200:
-            articles = resp.json()
-            print(f'[Fetch] 获取到 {len(articles)} 篇文章')
-            
-            # 显示 domain_name 字段的实际值分布
-            domain_stats = {}
-            for a in articles:
-                d = a.get('domain') or a.get('domain_name') or 'null'
-                domain_stats[str(d)] = domain_stats.get(str(d), 0) + 1
-            print(f'[Debug] domain_name 字段分布: {domain_stats}')
-            
-            # 客户端筛选领域
-            if DOMAIN_FILTER:
-                domain_name_target = DOMAIN_NAMES.get(DOMAIN_FILTER, DOMAIN_FILTER)
-                print(f'[Filter] 筛选领域: domain="{DOMAIN_FILTER}" 或 domain_name="{domain_name_target}"')
-                
-                # 显示前5篇文章的 domain_name 值
-                print(f'[Debug] 前5篇文章的 domain_name 值:')
-                for a in articles[:5]:
-                    print(f'  - id={a.get("id")}, domain={a.get("domain")}, domain_name={a.get("domain_name")}')
-                
-                articles = [a for a in articles if a.get('domain') == DOMAIN_FILTER or a.get('domain_name') == domain_name_target]
-                print(f'[Filter] 筛选后: {len(articles)} 篇文章')
-            
-            return articles
-        else:
+        if resp.status_code != 200:
             print(f'[Error] 获取文章失败: {resp.status_code}')
-            print(f'[Error] 响应内容: {resp.text[:500]}')
             return []
+        
+        articles = resp.json()
+        print(f'[Fetch] 获取到 {len(articles)} 篇文章')
+        
+        # 2. 获取已有详情的文章ID
+        details_url = f'{SUPABASE_URL}/rest/v1/{DETAILS_TABLE}?select=id,abstract,analysis'
+        
+        print(f'[Debug] 请求已有详情...')
+        
+        details_resp = requests.get(
+            details_url,
+            headers={
+                'apikey': SUPABASE_KEY,
+                'Authorization': f'Bearer {SUPABASE_KEY}',
+                'Content-Type': 'application/json'
+            },
+            timeout=30
+        )
+        
+        # 已有摘要的文章ID集合
+        has_abstract = set()
+        has_analysis = set()
+        
+        if details_resp.status_code == 200:
+            details = details_resp.json()
+            for d in details:
+                article_id = d.get('id')
+                abstract = d.get('abstract', '')
+                analysis = d.get('analysis', '')
+                
+                # 有有效摘要
+                if abstract and len(abstract) > 50 and '正在整理' not in abstract:
+                    has_abstract.add(article_id)
+                # 有有效解读
+                if analysis and len(analysis) > 100 and '正在整理' not in analysis:
+                    has_analysis.add(article_id)
+            
+            print(f'[Debug] 已有摘要: {len(has_abstract)} 篇, 已有解读: {len(has_analysis)} 篇')
+        
+        # 3. 筛选缺少摘要或解读的文章
+        missing_articles = []
+        for a in articles:
+            article_id = a.get('id')
+            if not article_id:
+                continue
+            
+            # 缺少摘要或解读
+            if article_id not in has_abstract or article_id not in has_analysis:
+                missing_articles.append(a)
+        
+        print(f'[Filter] 缺少摘要或解读: {len(missing_articles)} 篇')
+        
+        # 4. 领域筛选（如果指定）
+        if DOMAIN_FILTER:
+            domain_name_target = DOMAIN_NAMES.get(DOMAIN_FILTER, DOMAIN_FILTER)
+            print(f'[Filter] 筛选领域: domain="{DOMAIN_FILTER}" 或 domain_name="{domain_name_target}"')
+            
+            missing_articles = [a for a in missing_articles 
+                              if a.get('domain') == DOMAIN_FILTER or a.get('domain_name') == domain_name_target]
+            print(f'[Filter] 筛选后: {len(missing_articles)} 篇')
+        
+        return missing_articles
+        
     except Exception as e:
         print(f'[Error] 获取文章异常: {e}')
         return []
@@ -337,12 +374,12 @@ def main():
     print(f'目标领域: {domain_display}')
     print('=' * 60)
     
-    if not SUPABASE_URL or not KIMI_API_KEY:
+    if not SUPABASE_URL or not KIMI_API_KEYS:
         print('[Error] 配置不完整，退出')
         return
     
-    # 获取文章列表（已支持领域筛选）
-    articles = get_all_articles()
+    # 获取缺少摘要或解读的文章列表
+    articles = get_articles_missing_details()
     
     if not articles:
         print('[Info] 没有获取到文章，可能该领域暂无文章')
