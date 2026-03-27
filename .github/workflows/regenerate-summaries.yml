@@ -32,9 +32,7 @@ env:
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
   SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
   SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-  KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
-  KIMI_API_KEY_2: ${{ secrets.KIMI_API_KEY_2 }}
-  KIMI_API_KEY_3: ${{ secrets.KIMI_API_KEY_3 }}
+  DS_API_KEY: ${{ secrets.DS_API_KEY }}
 
 jobs:
   regenerate:
@@ -55,9 +53,7 @@ jobs:
           echo "Checking environment variables..."
           echo "SUPABASE_URL set: ${{ env.SUPABASE_URL != '' }}"
           echo "SUPABASE_SERVICE_ROLE_KEY set: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' }}"
-          echo "KIMI_API_KEY set: ${{ env.KIMI_API_KEY != '' }}"
-          echo "KIMI_API_KEY_2 set: ${{ env.KIMI_API_KEY_2 != '' }}"
-          echo "KIMI_API_KEY_3 set: ${{ env.KIMI_API_KEY_3 != '' }}"
+          echo "DS_API_KEY set: ${{ env.DS_API_KEY != '' }}"
 
       - name: Setup Python
         uses: actions/setup-python@v5
