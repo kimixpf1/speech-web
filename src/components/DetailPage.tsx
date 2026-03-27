@@ -142,6 +142,7 @@ export function DetailPage() {
     // 进入详情页时直接跳转到顶部（无动画）
     window.scrollTo({ top: 0, behavior: 'auto' });
     setIsLoading(true);
+    setSpeech(null); // 重置 speech 状态
     
     if (id) {
       // 异步加载详情数据的辅助函数
@@ -152,6 +153,7 @@ export function DetailPage() {
           if (cloudDetail && (cloudDetail.abstract || cloudDetail.analysis)) {
             // 云端有摘要或解读数据，优先使用云端数据
             const staticDetail = getSpeechDetail(id);
+            // 一次性更新状态，避免中间状态
             setSpeech({
               ...baseSpeech,
               abstract: cloudDetail.abstract || staticDetail?.abstract || '摘要正在整理中...',
@@ -206,18 +208,26 @@ export function DetailPage() {
       } else {
         // 本地也没有，从云端获取（同时查主文章和政绩观文章）
         const loadFromCloud = async () => {
-          const cloudArticles = await getArticles();
-          let cloudSpeech = cloudArticles.find(s => s.id === id);
-          
-          // 主列表没找到，查政绩观专题
-          if (!cloudSpeech) {
-            const zjgArticles = await getZhengjiguanArticles();
-            cloudSpeech = zjgArticles.find(s => s.id === id);
-          }
-          
-          if (cloudSpeech) {
-            await loadDetailAndSet(cloudSpeech);
-          } else {
+          try {
+            const cloudArticles = await getArticles();
+            let cloudSpeech = cloudArticles.find(s => s.id === id);
+            
+            // 主列表没找到，查政绩观专题
+            if (!cloudSpeech) {
+              const zjgArticles = await getZhengjiguanArticles();
+              cloudSpeech = zjgArticles.find(s => s.id === id);
+            }
+            
+            if (cloudSpeech) {
+              await loadDetailAndSet(cloudSpeech);
+            } else {
+              // 确保在找不到内容时，先设置 speech 为 null，再设置 isLoading
+              setSpeech(null);
+              setIsLoading(false);
+            }
+          } catch (err) {
+            console.error('从云端加载文章失败:', err);
+            setSpeech(null);
             setIsLoading(false);
           }
         };
