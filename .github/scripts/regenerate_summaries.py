@@ -13,7 +13,17 @@ from datetime import datetime, timezone, timedelta
 # 配置
 SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
 SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY') or os.environ.get('SUPABASE_ANON_KEY', '')
-KIMI_API_KEY = os.environ.get('KIMI_API_KEY', '')
+
+# 多 API Key 轮换配置
+KIMI_API_KEYS = [
+    key for key in [
+        os.environ.get('KIMI_API_KEY', ''),
+        os.environ.get('KIMI_API_KEY_2', ''),
+        os.environ.get('KIMI_API_KEY_3', ''),
+    ] if key  # 过滤掉空的 Key
+]
+current_key_index = 0
+
 DOMAIN_FILTER = os.environ.get('DOMAIN_FILTER', '')  # 领域筛选
 
 KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions'
@@ -26,14 +36,34 @@ DOMAIN_NAMES = {
     'ecology': '生态', 'party': '党建', 'defense': '国防', 'diplomacy': '外交',
 }
 
-# 请求延迟（避免API限流）- Kimi API 有严格的 RPM 限制
-REQUEST_DELAY = 5.0  # 增加到 5 秒
-MAX_RETRIES = 5  # 最大重试次数
+# 请求延迟（避免API限流）- 多 Key 轮换时可以减少延迟
+REQUEST_DELAY = 3.0  # 有 3 个 Key 轮换，延迟可以减少
+MAX_RETRIES = 3  # 每个 Key 重试次数
 
 print(f'[Config] SUPABASE_URL: {"已配置" if SUPABASE_URL else "未配置"}')
 print(f'[Config] SUPABASE_KEY: {"已配置" if SUPABASE_KEY else "未配置"}')
-print(f'[Config] KIMI_API_KEY: {"已配置" if KIMI_API_KEY else "未配置"}')
+print(f'[Config] KIMI_API_KEYS: {len(KIMI_API_KEYS)} 个 Key 已配置')
+for i, key in enumerate(KIMI_API_KEYS):
+    print(f'[Config]   Key {i+1}: {key[:8]}...{key[-4:]}')
 print(f'[Config] DOMAIN_FILTER: {DOMAIN_FILTER or "全部领域"}')
+
+
+def get_current_api_key():
+    """获取当前 API Key"""
+    if not KIMI_API_KEYS:
+        return None
+    return KIMI_API_KEYS[current_key_index]
+
+
+def switch_to_next_key():
+    """切换到下一个 API Key"""
+    global current_key_index
+    if len(KIMI_API_KEYS) <= 1:
+        return False  # 只有一个 Key，无法切换
+    old_index = current_key_index
+    current_key_index = (current_key_index + 1) % len(KIMI_API_KEYS)
+    print(f'  [Key] 切换 API Key: Key {old_index + 1} -> Key {current_key_index + 1}')
+    return True
 
 
 def get_beijing_time():
@@ -123,9 +153,9 @@ def get_article_content(url):
 
 
 def generate_summary_and_analysis(title, content, existing_summary=''):
-    """调用 Kimi API 生成摘要和解读（带 429 限流重试）"""
-    if not KIMI_API_KEY:
-        raise Exception('KIMI_API_KEY 未配置')
+    """调用 Kimi API 生成摘要和解读（带 Key 轮换和 429 重试）"""
+    if not KIMI_API_KEYS:
+        raise Exception('没有可用的 KIMI_API_KEY')
     
     # 使用现有摘要作为备选内容
     article_content = content if content and len(content) > 200 else existing_summary or title
@@ -158,81 +188,106 @@ def generate_summary_and_analysis(title, content, existing_summary=''):
 4. 语言庄重规范，适合政务学习场景'''
     
     last_error = None
-    for retry in range(MAX_RETRIES):
-        try:
-            response = requests.post(
-                KIMI_API_URL,
-                headers={
-                    'Content-Type': 'application/json',
-                    'Authorization': f'Bearer {KIMI_API_KEY}'
-                },
-                json={
-                    'model': 'moonshot-v1-8k',
-                    'messages': [{'role': 'user', 'content': prompt}],
-                    'temperature': 0.7,
-                    'max_tokens': 2000,
-                },
-                timeout=120
-            )
-            
-            # 处理 429 限流
-            if response.status_code == 429:
-                wait_time = 60 * (retry + 1)  # 指数退避：60, 120, 180...
-                print(f'  [429] API限流，等待 {wait_time} 秒后重试 ({retry + 1}/{MAX_RETRIES})...')
-                time.sleep(wait_time)
-                continue
-            
-            if response.status_code != 200:
-                raise Exception(f'API 错误: {response.status_code}')
-            
-            data = response.json()
-            raw_content = data.get('choices', [{}])[0].get('message', {}).get('content', '')
-            
-            # 解析摘要和解读
-            summary = ''
-            analysis = ''
-            
-            # 方法一：通过【摘要】和【解读】标记提取
-            summary_match = re.search(r'【摘要】[\s：:]*([\s\S]*?)(?=【解读】|$)', raw_content)
-            analysis_match = re.search(r'【解读】[\s：:]*([\s\S]*?)$', raw_content)
-            
-            if summary_match:
-                summary = summary_match.group(1).strip()
-            if analysis_match:
-                analysis = analysis_match.group(1).strip()
-            
-            # 方法二：通过关键词提取
-            if not summary:
-                kw_match = re.search(r'摘\s*要[\s：:]*([\s\S]*?)(?=解\s*读|一、|$)', raw_content)
-                if kw_match:
-                    summary = kw_match.group(1).strip()
-            
-            if not analysis:
-                kw_match = re.search(r'(一、政治高度[\s\S]*)', raw_content)
-                if kw_match:
-                    analysis = kw_match.group(1).strip()
-            
-            return {
-                'summary': summary or existing_summary or '摘要生成失败',
-                'analysis': analysis or '解读生成失败'
-            }
-        
-        except requests.exceptions.Timeout:
-            last_error = 'API 超时'
-            print(f'  [Warning] API超时，重试 ({retry + 1}/{MAX_RETRIES})...')
-            time.sleep(10)
-        except Exception as e:
-            last_error = str(e)
-            if '429' in str(e) or 'rate' in str(e).lower():
-                wait_time = 60 * (retry + 1)
-                print(f'  [429] 限流错误，等待 {wait_time} 秒...')
-                time.sleep(wait_time)
-            else:
-                print(f'  [Error] 生成失败: {e}')
-                raise
+    keys_tried = set()  # 记录已尝试的 Key
     
-    # 所有重试都失败
-    raise Exception(f'API限流或错误，已重试{MAX_RETRIES}次仍失败: {last_error}')
+    while len(keys_tried) < len(KIMI_API_KEYS):
+        api_key = get_current_api_key()
+        key_index = current_key_index + 1
+        
+        if api_key in keys_tried:
+            # 所有 Key 都试过了
+            break
+        keys_tried.add(api_key)
+        
+        print(f'  [Key] 使用 Key {key_index}: {api_key[:8]}...{api_key[-4:]}')
+        
+        for retry in range(MAX_RETRIES):
+            try:
+                response = requests.post(
+                    KIMI_API_URL,
+                    headers={
+                        'Content-Type': 'application/json',
+                        'Authorization': f'Bearer {api_key}'
+                    },
+                    json={
+                        'model': 'moonshot-v1-8k',
+                        'messages': [{'role': 'user', 'content': prompt}],
+                        'temperature': 0.7,
+                        'max_tokens': 2000,
+                    },
+                    timeout=120
+                )
+                
+                # 处理 429 限流 - 切换到下一个 Key
+                if response.status_code == 429:
+                    print(f'  [429] Key {key_index} 限流')
+                    if switch_to_next_key():
+                        print(f'  [429] 切换到下一个 Key 继续...')
+                        break  # 跳出重试循环，使用下一个 Key
+                    else:
+                        # 只有一个 Key，等待后重试
+                        wait_time = 30 * (retry + 1)
+                        print(f'  [429] 无其他 Key，等待 {wait_time} 秒后重试 ({retry + 1}/{MAX_RETRIES})...')
+                        time.sleep(wait_time)
+                        continue
+                
+                if response.status_code != 200:
+                    raise Exception(f'API 错误: {response.status_code}')
+                
+                data = response.json()
+                raw_content = data.get('choices', [{}])[0].get('message', {}).get('content', '')
+                
+                # 解析摘要和解读
+                summary = ''
+                analysis = ''
+                
+                # 方法一：通过【摘要】和【解读】标记提取
+                summary_match = re.search(r'【摘要】[\s：:]*([\s\S]*?)(?=【解读】|$)', raw_content)
+                analysis_match = re.search(r'【解读】[\s：:]*([\s\S]*?)$', raw_content)
+                
+                if summary_match:
+                    summary = summary_match.group(1).strip()
+                if analysis_match:
+                    analysis = analysis_match.group(1).strip()
+                
+                # 方法二：通过关键词提取
+                if not summary:
+                    kw_match = re.search(r'摘\s*要[\s：:]*([\s\S]*?)(?=解\s*读|一、|$)', raw_content)
+                    if kw_match:
+                        summary = kw_match.group(1).strip()
+                
+                if not analysis:
+                    kw_match = re.search(r'(一、政治高度[\s\S]*)', raw_content)
+                    if kw_match:
+                        analysis = kw_match.group(1).strip()
+                
+                # 成功！切换到下一个 Key 为下次请求做准备
+                switch_to_next_key()
+                return {
+                    'summary': summary or existing_summary or '摘要生成失败',
+                    'analysis': analysis or '解读生成失败'
+                }
+            
+            except requests.exceptions.Timeout:
+                last_error = 'API 超时'
+                print(f'  [Warning] API超时，重试 ({retry + 1}/{MAX_RETRIES})...')
+                time.sleep(5)
+            except Exception as e:
+                last_error = str(e)
+                if '429' in str(e) or 'rate' in str(e).lower():
+                    if switch_to_next_key():
+                        print(f'  [429] 切换到下一个 Key...')
+                        break  # 跳出重试循环
+                    else:
+                        wait_time = 30
+                        print(f'  [429] 无其他 Key，等待 {wait_time} 秒...')
+                        time.sleep(wait_time)
+                else:
+                    print(f'  [Error] 生成失败: {e}')
+                    raise
+    
+    # 所有 Key 都失败
+    raise Exception(f'所有 API Key 都限流或失败: {last_error}')
 
 
 def save_article_detail(article_id, abstract, analysis, full_text=''):
