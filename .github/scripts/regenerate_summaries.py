@@ -26,8 +26,9 @@ DOMAIN_NAMES = {
     'ecology': '生态', 'party': '党建', 'defense': '国防', 'diplomacy': '外交',
 }
 
-# 请求延迟（避免API限流）
-REQUEST_DELAY = 2.0
+# 请求延迟（避免API限流）- Kimi API 有严格的 RPM 限制
+REQUEST_DELAY = 5.0  # 增加到 5 秒
+MAX_RETRIES = 5  # 最大重试次数
 
 print(f'[Config] SUPABASE_URL: {"已配置" if SUPABASE_URL else "未配置"}')
 print(f'[Config] SUPABASE_KEY: {"已配置" if SUPABASE_KEY else "未配置"}')
@@ -122,7 +123,7 @@ def get_article_content(url):
 
 
 def generate_summary_and_analysis(title, content, existing_summary=''):
-    """调用 Kimi API 生成摘要和解读"""
+    """调用 Kimi API 生成摘要和解读（带 429 限流重试）"""
     if not KIMI_API_KEY:
         raise Exception('KIMI_API_KEY 未配置')
     
@@ -156,60 +157,82 @@ def generate_summary_and_analysis(title, content, existing_summary=''):
 3. 解读必须分三段，每段用"一、""二、""三、"开头
 4. 语言庄重规范，适合政务学习场景'''
     
-    try:
-        response = requests.post(
-            KIMI_API_URL,
-            headers={
-                'Content-Type': 'application/json',
-                'Authorization': f'Bearer {KIMI_API_KEY}'
-            },
-            json={
-                'model': 'moonshot-v1-8k',
-                'messages': [{'role': 'user', 'content': prompt}],
-                'temperature': 0.7,
-                'max_tokens': 2000,
-            },
-            timeout=120
-        )
+    last_error = None
+    for retry in range(MAX_RETRIES):
+        try:
+            response = requests.post(
+                KIMI_API_URL,
+                headers={
+                    'Content-Type': 'application/json',
+                    'Authorization': f'Bearer {KIMI_API_KEY}'
+                },
+                json={
+                    'model': 'moonshot-v1-8k',
+                    'messages': [{'role': 'user', 'content': prompt}],
+                    'temperature': 0.7,
+                    'max_tokens': 2000,
+                },
+                timeout=120
+            )
+            
+            # 处理 429 限流
+            if response.status_code == 429:
+                wait_time = 60 * (retry + 1)  # 指数退避：60, 120, 180...
+                print(f'  [429] API限流，等待 {wait_time} 秒后重试 ({retry + 1}/{MAX_RETRIES})...')
+                time.sleep(wait_time)
+                continue
+            
+            if response.status_code != 200:
+                raise Exception(f'API 错误: {response.status_code}')
+            
+            data = response.json()
+            raw_content = data.get('choices', [{}])[0].get('message', {}).get('content', '')
+            
+            # 解析摘要和解读
+            summary = ''
+            analysis = ''
+            
+            # 方法一：通过【摘要】和【解读】标记提取
+            summary_match = re.search(r'【摘要】[\s：:]*([\s\S]*?)(?=【解读】|$)', raw_content)
+            analysis_match = re.search(r'【解读】[\s：:]*([\s\S]*?)$', raw_content)
+            
+            if summary_match:
+                summary = summary_match.group(1).strip()
+            if analysis_match:
+                analysis = analysis_match.group(1).strip()
+            
+            # 方法二：通过关键词提取
+            if not summary:
+                kw_match = re.search(r'摘\s*要[\s：:]*([\s\S]*?)(?=解\s*读|一、|$)', raw_content)
+                if kw_match:
+                    summary = kw_match.group(1).strip()
+            
+            if not analysis:
+                kw_match = re.search(r'(一、政治高度[\s\S]*)', raw_content)
+                if kw_match:
+                    analysis = kw_match.group(1).strip()
+            
+            return {
+                'summary': summary or existing_summary or '摘要生成失败',
+                'analysis': analysis or '解读生成失败'
+            }
         
-        if response.status_code != 200:
-            raise Exception(f'API 错误: {response.status_code}')
-        
-        data = response.json()
-        raw_content = data.get('choices', [{}])[0].get('message', {}).get('content', '')
-        
-        # 解析摘要和解读
-        summary = ''
-        analysis = ''
-        
-        # 方法一：通过【摘要】和【解读】标记提取
-        summary_match = re.search(r'【摘要】[\s：:]*([\s\S]*?)(?=【解读】|$)', raw_content)
-        analysis_match = re.search(r'【解读】[\s：:]*([\s\S]*?)$', raw_content)
-        
-        if summary_match:
-            summary = summary_match.group(1).strip()
-        if analysis_match:
-            analysis = analysis_match.group(1).strip()
-        
-        # 方法二：通过关键词提取
-        if not summary:
-            kw_match = re.search(r'摘\s*要[\s：:]*([\s\S]*?)(?=解\s*读|一、|$)', raw_content)
-            if kw_match:
-                summary = kw_match.group(1).strip()
-        
-        if not analysis:
-            kw_match = re.search(r'(一、政治高度[\s\S]*)', raw_content)
-            if kw_match:
-                analysis = kw_match.group(1).strip()
-        
-        return {
-            'summary': summary or existing_summary or '摘要生成失败',
-            'analysis': analysis or '解读生成失败'
-        }
+        except requests.exceptions.Timeout:
+            last_error = 'API 超时'
+            print(f'  [Warning] API超时，重试 ({retry + 1}/{MAX_RETRIES})...')
+            time.sleep(10)
+        except Exception as e:
+            last_error = str(e)
+            if '429' in str(e) or 'rate' in str(e).lower():
+                wait_time = 60 * (retry + 1)
+                print(f'  [429] 限流错误，等待 {wait_time} 秒...')
+                time.sleep(wait_time)
+            else:
+                print(f'  [Error] 生成失败: {e}')
+                raise
     
-    except Exception as e:
-        print(f'  [Error] 生成失败: {e}')
-        raise
+    # 所有重试都失败
+    raise Exception(f'API限流或错误，已重试{MAX_RETRIES}次仍失败: {last_error}')
 
 
 def save_article_detail(article_id, abstract, analysis, full_text=''):
@@ -316,7 +339,9 @@ def main():
         except Exception as e:
             print(f'  [Fail] {e}')
             fail_count += 1
-            time.sleep(3)  # 失败后多等一会儿
+            # 失败后等待更长时间再继续
+            print(f'  [Wait] 等待 30 秒后继续下一篇...')
+            time.sleep(30)
     
     duration = int(time.time() - start_time)
     
