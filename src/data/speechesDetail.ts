@@ -14,6 +14,8 @@ export interface SpeechDetail {
   abstract: string;
   fullText: string;
   analysis: string;
+  domain?: string;
+  domainName?: string;
 }
 
 // 摘要和解读分析数据
