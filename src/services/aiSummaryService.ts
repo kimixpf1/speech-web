@@ -2,8 +2,10 @@
 // 基于文章URL动态生成摘要和解读分析
 
 import { getKimiApiKey } from './kimiArticleService';
+import { getDeepSeekApiKey } from './aiSearchService';
 
 const KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions';
+const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
 // 缓存键前缀
 const CACHE_PREFIX = 'ai_summary_cache_';
@@ -85,6 +87,90 @@ function cleanEscapeChars(text: string | undefined | null): string {
 }
 
 /**
+ * 调用 DeepSeek API 生成摘要和解读（优先使用）
+ */
+async function generateWithDeepSeek(
+  articleContent: string,
+  articleTitle: string
+): Promise<{ summary: string; analysis: string }> {
+  const apiKey = getDeepSeekApiKey();
+  if (!apiKey) {
+    throw new Error('未配置 DeepSeek API Key');
+  }
+
+  const prompt = `你是一位资深的时政理论专家。请根据以下文章生成摘要和解读。
+
+文章标题：${articleTitle}
+文章内容：${articleContent.substring(0, 6000)}
+
+请按格式输出：
+【摘要】150-200字，概括核心内容。
+【解读】400-600字，分三段，每段用"一、""二、""三、"开头：
+一、政治高度：阐述讲话的重大意义。
+二、理论深度：阐释核心要义和马克思主义立场观点方法。
+三、历史贯通与实践：分析思想脉络和实践指导意义。
+
+要求：全中文，禁止JSON格式。`;
+
+  const response = await fetch(DEEPSEEK_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'deepseek-chat',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+      max_tokens: 2000,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || 'DeepSeek API调用失败');
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content || '';
+  
+  return parseAIContent(content);
+}
+
+/**
+ * 解析AI返回的内容，提取摘要和解读
+ */
+function parseAIContent(rawContent: string): { summary: string; analysis: string } {
+  const content = cleanEscapeChars(rawContent);
+  
+  let summary = '';
+  let analysis = '';
+  
+  // 通过【摘要】和【解读】标记提取
+  const summaryMatch = content.match(/【摘要】[\s：:]*([\s\S]*?)(?=【解读】|$)/i);
+  const analysisMatch = content.match(/【解读】[\s：:]*([\s\S]*?)$/i);
+  
+  if (summaryMatch && summaryMatch[1]) {
+    summary = summaryMatch[1].trim();
+  }
+  if (analysisMatch && analysisMatch[1]) {
+    analysis = analysisMatch[1].trim();
+  }
+  
+  // 降级：按比例分割
+  if (!summary && !analysis && content.length > 100) {
+    const splitPoint = Math.min(250, Math.floor(content.length * 0.3));
+    summary = content.substring(0, splitPoint).trim();
+    analysis = content.substring(splitPoint).trim();
+  }
+  
+  return {
+    summary: summary || '摘要生成失败，请重试',
+    analysis: analysis || '解读生成失败，请重试',
+  };
+}
+
+/**
  * 调用 Kimi API 生成摘要和解读
  */
 async function generateWithKimi(
@@ -145,63 +231,7 @@ ${articleContent.substring(0, 6000)}
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content || '';
   
-  // 第一步：先清理转义字符，但保留【摘要】【解读】标记
-  const rawContent = cleanEscapeChars(content);
-  
-  // 第二步：提取摘要和解读内容
-  let summary = '';
-  let analysis = '';
-  
-  // 方法一：通过【摘要】和【解读】标记提取（最可靠）
-  // 匹配【摘要】后面到【解读】之前的内容
-  const summaryMatch = rawContent.match(/【摘要】[\s：:]*([\s\S]*?)(?=【解读】|$)/i);
-  // 匹配【解读】后面的所有内容
-  const analysisMatch = rawContent.match(/【解读】[\s：:]*([\s\S]*?)$/i);
-  
-  if (summaryMatch && summaryMatch[1]) {
-    summary = summaryMatch[1].trim();
-  }
-  if (analysisMatch && analysisMatch[1]) {
-    analysis = analysisMatch[1].trim();
-  }
-  
-  // 方法二：尝试JSON解析（兼容旧格式）
-  if (!summary || !analysis) {
-    try {
-      const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        summary = summary || (parsed.summary ? String(parsed.summary).trim() : '');
-        analysis = analysis || (parsed.analysis ? String(parsed.analysis).trim() : '');
-      }
-    } catch (e) {
-      // JSON解析失败，继续
-    }
-  }
-  
-  // 方法三：尝试通过"摘要""解读"关键词提取
-  if (!summary || !analysis) {
-    const kwSummaryMatch = rawContent.match(/摘\s*要[\s：:]*([\s\S]*?)(?=解\s*读|$)/i);
-    const kwAnalysisMatch = rawContent.match(/解\s*读[\s：:]*([\s\S]*?)$/i);
-    if (kwSummaryMatch && kwSummaryMatch[1]) {
-      summary = summary || kwSummaryMatch[1].trim();
-    }
-    if (kwAnalysisMatch && kwAnalysisMatch[1]) {
-      analysis = analysis || kwAnalysisMatch[1].trim();
-    }
-  }
-  
-  // 方法四：按比例分割（最终降级）
-  if (!summary && !analysis && rawContent.length > 100) {
-    const splitPoint = Math.min(250, Math.floor(rawContent.length * 0.3));
-    summary = rawContent.substring(0, splitPoint).trim();
-    analysis = rawContent.substring(splitPoint).trim();
-  }
-  
-  return {
-    summary: summary || '摘要生成失败，请重试',
-    analysis: analysis || '解读生成失败，请重试',
-  };
+  return parseAIContent(content);
 }
 
 /**
@@ -267,9 +297,35 @@ export async function generateSummaryAndAnalysis(
     articleContent = articleSummary || articleTitle;
   }
 
-  // 4. 调用AI生成
+  // 4. 调用AI生成（优先DeepSeek，fallback到Kimi）
   try {
-    const result = await generateWithKimi(articleContent, articleTitle);
+    let result: { summary: string; analysis: string };
+    
+    // 优先使用 DeepSeek
+    const deepSeekKey = getDeepSeekApiKey();
+    if (deepSeekKey) {
+      console.log('使用 DeepSeek API 生成摘要和解读');
+      try {
+        result = await generateWithDeepSeek(articleContent, articleTitle);
+      } catch (e) {
+        console.warn('DeepSeek 生成失败，尝试 Kimi:', e);
+        const kimiKey = getKimiApiKey();
+        if (kimiKey) {
+          console.log('Fallback 到 Kimi API');
+          result = await generateWithKimi(articleContent, articleTitle);
+        } else {
+          throw e;
+        }
+      }
+    } else {
+      // DeepSeek 未配置，使用 Kimi
+      const kimiKey = getKimiApiKey();
+      if (!kimiKey) {
+        throw new Error('未配置 API Key，请在管理员后台配置 DeepSeek 或 Kimi API Key');
+      }
+      console.log('使用 Kimi API 生成摘要和解读');
+      result = await generateWithKimi(articleContent, articleTitle);
+    }
     
     const generated: GeneratedContent = {
       summary: result.summary,
@@ -342,5 +398,14 @@ function extractTextFromHtml(html: string): string {
  * 检查是否配置了API Key
  */
 export function isApiKeyConfigured(): boolean {
-  return !!getKimiApiKey();
+  return !!(getDeepSeekApiKey() || getKimiApiKey());
+}
+
+/**
+ * 获取当前使用的 AI 提供商名称
+ */
+export function getCurrentAIProvider(): 'deepseek' | 'kimi' | null {
+  if (getDeepSeekApiKey()) return 'deepseek';
+  if (getKimiApiKey()) return 'kimi';
+  return null;
 }
