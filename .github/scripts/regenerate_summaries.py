@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 批量重新生成文章摘要和解读
-使用 Kimi API 按照最新的解读格式要求重新生成所有文章
+使用 DeepSeek API 按照最新的解读格式要求重新生成所有文章
 """
 import os
 import re
@@ -10,439 +10,132 @@ import time
 import requests
 from datetime import datetime, timezone, timedelta
 
-# 配置
 SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
 SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY') or os.environ.get('SUPABASE_ANON_KEY', '')
-
-# 多 API Key 轮换配置
-KIMI_API_KEYS = [
-    key for key in [
-        os.environ.get('KIMI_API_KEY', ''),
-        os.environ.get('KIMI_API_KEY_2', ''),
-        os.environ.get('KIMI_API_KEY_3', ''),
-    ] if key  # 过滤掉空的 Key
-]
-current_key_index = 0
-
-DOMAIN_FILTER = os.environ.get('DOMAIN_FILTER', '')  # 领域筛选
-
-KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions'
+DS_API_KEY = os.environ.get('DS_API_KEY', '')
+DS_API_URL = 'https://api.deepseek.com/v1/chat/completions'
+DS_MODEL = 'deepseek-chat'
+DOMAIN_FILTER = os.environ.get('DOMAIN_FILTER', '')
 ARTICLES_TABLE = 'articles'
 DETAILS_TABLE = 'article_details'
 
-# 领域名称映射
 DOMAIN_NAMES = {
     'economy': '经济', 'politics': '政治', 'culture': '文化', 'society': '社会',
     'ecology': '生态', 'party': '党建', 'defense': '国防', 'diplomacy': '外交',
 }
 
-# 请求延迟（避免API限流）- 多 Key 轮换时可以减少延迟
-REQUEST_DELAY = 3.0  # 有 3 个 Key 轮换，延迟可以减少
-MAX_RETRIES = 3  # 每个 Key 重试次数
+REQUEST_DELAY = 2.0
+MAX_RETRIES = 3
 
 print(f'[Config] SUPABASE_URL: {"已配置" if SUPABASE_URL else "未配置"}')
-print(f'[Config] SUPABASE_KEY: {"已配置" if SUPABASE_KEY else "未配置"}')
-print(f'[Config] KIMI_API_KEYS: {len(KIMI_API_KEYS)} 个 Key 已配置')
-for i, key in enumerate(KIMI_API_KEYS):
-    print(f'[Config]   Key {i+1}: {key[:8]}...{key[-4:]}')
+print(f'[Config] DS_API_KEY: {"已配置" if DS_API_KEY else "未配置"}')
 print(f'[Config] DOMAIN_FILTER: {DOMAIN_FILTER or "全部领域"}')
 
-
-def get_current_api_key():
-    """获取当前 API Key"""
-    if not KIMI_API_KEYS:
-        return None
-    return KIMI_API_KEYS[current_key_index]
-
-
-def switch_to_next_key():
-    """切换到下一个 API Key"""
-    global current_key_index
-    if len(KIMI_API_KEYS) <= 1:
-        return False  # 只有一个 Key，无法切换
-    old_index = current_key_index
-    current_key_index = (current_key_index + 1) % len(KIMI_API_KEYS)
-    print(f'  [Key] 切换 API Key: Key {old_index + 1} -> Key {current_key_index + 1}')
-    return True
-
-
 def get_beijing_time():
-    """获取北京时间"""
-    beijing_tz = timezone(timedelta(hours=8))
-    return datetime.now(beijing_tz).isoformat()
-
+    return datetime.now(timezone(timedelta(hours=8))).isoformat()
 
 def get_articles_missing_details():
-    """获取缺少摘要或解读的文章列表"""
     if not SUPABASE_URL:
-        print('[Error] SUPABASE_URL 未配置')
         return []
+    articles_resp = requests.get(f'{SUPABASE_URL}/rest/v1/{ARTICLES_TABLE}?select=id,title,url,summary,domain,domain_name&order=date.desc&limit=2000', headers={'apikey': SUPABASE_KEY}, timeout=30)
+    articles = articles_resp.json() if articles_resp.status_code == 200 else []
+    print(f'[Fetch] 获取到 {len(articles)} 篇文章')
     
-    try:
-        # 1. 先获取所有文章
-        articles_url = f'{SUPABASE_URL}/rest/v1/{ARTICLES_TABLE}?select=id,title,url,summary,source,domain,domain_name&order=date.desc&limit=2000'
-        
-        print(f'[Debug] 请求文章列表...')
-        
-        resp = requests.get(
-            articles_url,
-            headers={
-                'apikey': SUPABASE_KEY,
-                'Authorization': f'Bearer {SUPABASE_KEY}',
-                'Content-Type': 'application/json'
-            },
-            timeout=30
-        )
-        
-        if resp.status_code != 200:
-            print(f'[Error] 获取文章失败: {resp.status_code}')
-            return []
-        
-        articles = resp.json()
-        print(f'[Fetch] 获取到 {len(articles)} 篇文章')
-        
-        # 2. 获取已有详情的文章ID
-        details_url = f'{SUPABASE_URL}/rest/v1/{DETAILS_TABLE}?select=id,abstract,analysis'
-        
-        print(f'[Debug] 请求已有详情...')
-        
-        details_resp = requests.get(
-            details_url,
-            headers={
-                'apikey': SUPABASE_KEY,
-                'Authorization': f'Bearer {SUPABASE_KEY}',
-                'Content-Type': 'application/json'
-            },
-            timeout=30
-        )
-        
-        # 已有摘要的文章ID集合
-        has_abstract = set()
-        has_analysis = set()
-        
-        if details_resp.status_code == 200:
-            details = details_resp.json()
-            for d in details:
-                article_id = d.get('id')
-                abstract = d.get('abstract', '')
-                analysis = d.get('analysis', '')
-                
-                # 有有效摘要
-                if abstract and len(abstract) > 50 and '正在整理' not in abstract:
-                    has_abstract.add(article_id)
-                # 有有效解读
-                if analysis and len(analysis) > 100 and '正在整理' not in analysis:
-                    has_analysis.add(article_id)
-            
-            print(f'[Debug] 已有摘要: {len(has_abstract)} 篇, 已有解读: {len(has_analysis)} 篇')
-        
-        # 3. 筛选缺少摘要或解读的文章
-        missing_articles = []
-        for a in articles:
-            article_id = a.get('id')
-            if not article_id:
-                continue
-            
-            # 缺少摘要或解读
-            if article_id not in has_abstract or article_id not in has_analysis:
-                missing_articles.append(a)
-        
-        print(f'[Filter] 缺少摘要或解读: {len(missing_articles)} 篇')
-        
-        # 4. 领域筛选（如果指定）
-        if DOMAIN_FILTER:
-            domain_name_target = DOMAIN_NAMES.get(DOMAIN_FILTER, DOMAIN_FILTER)
-            print(f'[Filter] 筛选领域: domain="{DOMAIN_FILTER}" 或 domain_name="{domain_name_target}"')
-            
-            missing_articles = [a for a in missing_articles 
-                              if a.get('domain') == DOMAIN_FILTER or a.get('domain_name') == domain_name_target]
-            print(f'[Filter] 筛选后: {len(missing_articles)} 篇')
-        
-        return missing_articles
-        
-    except Exception as e:
-        print(f'[Error] 获取文章异常: {e}')
-        return []
-
+    details_resp = requests.get(f'{SUPABASE_URL}/rest/v1/{DETAILS_TABLE}?select=id,abstract,analysis', headers={'apikey': SUPABASE_KEY}, timeout=30)
+    has_abstract, has_analysis = set(), set()
+    if details_resp.status_code == 200:
+        for d in details_resp.json():
+            aid, abstract, analysis = d.get('id'), d.get('abstract', ''), d.get('analysis', '')
+            if abstract and len(abstract) > 50 and '正在整理' not in abstract:
+                has_abstract.add(aid)
+            if analysis and len(analysis) > 100 and '正在整理' not in analysis:
+                has_analysis.add(aid)
+    print(f'[Debug] 已有摘要: {len(has_abstract)}, 已有解读: {len(has_analysis)}')
+    
+    missing = [a for a in articles if a.get('id') and (a['id'] not in has_abstract or a['id'] not in has_analysis)]
+    print(f'[Filter] 缺少摘要或解读: {len(missing)} 篇')
+    return missing
 
 def get_article_content(url):
-    """获取文章内容"""
     if not url:
         return ''
-    
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-    }
-    
     try:
-        resp = requests.get(url, headers=headers, timeout=30)
+        resp = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=30)
         if resp.status_code == 200:
-            # 简单提取正文
-            text = re.sub(r'<script[^>]*>[\s\S]*?</script>', '', resp.text)
-            text = re.sub(r'<style[^>]*>[\s\S]*?</style>', '', text)
-            text = re.sub(r'<[^>]+>', ' ', text)
-            text = re.sub(r'\s+', ' ', text).strip()
-            return text[:8000]  # 限制长度
-    except Exception as e:
-        print(f'  [Warning] 获取内容失败: {e}')
-    
+            text = re.sub(r'<[^>]+>', ' ', re.sub(r'<script[^>]*>[\s\S]*?</script>', '', re.sub(r'<style[^>]*>[\s\S]*?</style>', '', resp.text)))
+            return re.sub(r'\s+', ' ', text).strip()[:8000]
+    except:
+        pass
     return ''
 
-
 def generate_summary_and_analysis(title, content, existing_summary=''):
-    """调用 Kimi API 生成摘要和解读（带 Key 轮换和 429 重试）"""
-    if not KIMI_API_KEYS:
-        raise Exception('没有可用的 KIMI_API_KEY')
-    
-    # 使用现有摘要作为备选内容
+    if not DS_API_KEY:
+        raise Exception('DS_API_KEY 未配置')
     article_content = content if content and len(content) > 200 else existing_summary or title
-    
-    prompt = f'''你是一位资深的时政理论专家，擅长深度解读习近平总书记重要讲话。请根据以下文章内容，生成专业的摘要和深度解读。
+    prompt = f'''你是一位资深的时政理论专家。请根据以下文章生成摘要和解读。
 
 文章标题：{title}
+文章内容：{article_content[:6000]}
 
-文章内容：
-{article_content[:6000]}
+请按格式输出：
+【摘要】150-200字，概括核心内容。
+【解读】400-600字，分三段，每段用"一、""二、""三、"开头：
+一、政治高度：阐述讲话的重大意义。
+二、理论深度：阐释核心要义和马克思主义立场观点方法。
+三、历史贯通与实践：分析思想脉络和实践指导意义。
 
-请严格按照以下格式输出（禁止JSON，禁止英文）：
+要求：全中文，禁止JSON格式。'''
 
-【摘要】
-150-200字，准确概括文章核心内容，提炼关键论断。
-
-【解读】
-400-600字深度解读，分为三个段落（每段开头标注小标题）：
-
-一、政治高度：结合习近平新时代中国特色社会主义思想，阐述讲话在党和国家事业全局中的重大意义。
-
-二、理论深度：阐释核心要义、精神实质，分析其中蕴含的马克思主义立场观点方法。
-
-三、历史贯通与实践：联系习近平总书记历次相关重要讲话，分析一脉相承的思想脉络，指出对推动中国式现代化的实践指导意义。
-
-严格要求：
-1. 全部使用中文，禁止任何英文
-2. 禁止JSON格式，禁止引号、大括号等符号
-3. 解读必须分三段，每段用"一、""二、""三、"开头
-4. 语言庄重规范，适合政务学习场景'''
-    
-    last_error = None
-    keys_tried = set()  # 记录已尝试的 Key
-    
-    while len(keys_tried) < len(KIMI_API_KEYS):
-        api_key = get_current_api_key()
-        key_index = current_key_index + 1
-        
-        if api_key in keys_tried:
-            # 所有 Key 都试过了
-            break
-        keys_tried.add(api_key)
-        
-        print(f'  [Key] 使用 Key {key_index}: {api_key[:8]}...{api_key[-4:]}')
-        
-        for retry in range(MAX_RETRIES):
-            try:
-                response = requests.post(
-                    KIMI_API_URL,
-                    headers={
-                        'Content-Type': 'application/json',
-                        'Authorization': f'Bearer {api_key}'
-                    },
-                    json={
-                        'model': 'moonshot-v1-8k',
-                        'messages': [{'role': 'user', 'content': prompt}],
-                        'temperature': 0.7,
-                        'max_tokens': 2000,
-                    },
-                    timeout=120
-                )
-                
-                # 处理 429 限流 - 切换到下一个 Key
-                if response.status_code == 429:
-                    print(f'  [429] Key {key_index} 限流')
-                    if switch_to_next_key():
-                        print(f'  [429] 切换到下一个 Key 继续...')
-                        break  # 跳出重试循环，使用下一个 Key
-                    else:
-                        # 只有一个 Key，等待后重试
-                        wait_time = 30 * (retry + 1)
-                        print(f'  [429] 无其他 Key，等待 {wait_time} 秒后重试 ({retry + 1}/{MAX_RETRIES})...')
-                        time.sleep(wait_time)
-                        continue
-                
-                if response.status_code != 200:
-                    raise Exception(f'API 错误: {response.status_code}')
-                
-                data = response.json()
-                raw_content = data.get('choices', [{}])[0].get('message', {}).get('content', '')
-                
-                # 解析摘要和解读
-                summary = ''
-                analysis = ''
-                
-                # 方法一：通过【摘要】和【解读】标记提取
-                summary_match = re.search(r'【摘要】[\s：:]*([\s\S]*?)(?=【解读】|$)', raw_content)
-                analysis_match = re.search(r'【解读】[\s：:]*([\s\S]*?)$', raw_content)
-                
-                if summary_match:
-                    summary = summary_match.group(1).strip()
-                if analysis_match:
-                    analysis = analysis_match.group(1).strip()
-                
-                # 方法二：通过关键词提取
-                if not summary:
-                    kw_match = re.search(r'摘\s*要[\s：:]*([\s\S]*?)(?=解\s*读|一、|$)', raw_content)
-                    if kw_match:
-                        summary = kw_match.group(1).strip()
-                
-                if not analysis:
-                    kw_match = re.search(r'(一、政治高度[\s\S]*)', raw_content)
-                    if kw_match:
-                        analysis = kw_match.group(1).strip()
-                
-                # 成功！切换到下一个 Key 为下次请求做准备
-                switch_to_next_key()
-                return {
-                    'summary': summary or existing_summary or '摘要生成失败',
-                    'analysis': analysis or '解读生成失败'
-                }
-            
-            except requests.exceptions.Timeout:
-                last_error = 'API 超时'
-                print(f'  [Warning] API超时，重试 ({retry + 1}/{MAX_RETRIES})...')
-                time.sleep(5)
-            except Exception as e:
-                last_error = str(e)
-                if '429' in str(e) or 'rate' in str(e).lower():
-                    if switch_to_next_key():
-                        print(f'  [429] 切换到下一个 Key...')
-                        break  # 跳出重试循环
-                    else:
-                        wait_time = 30
-                        print(f'  [429] 无其他 Key，等待 {wait_time} 秒...')
-                        time.sleep(wait_time)
-                else:
-                    print(f'  [Error] 生成失败: {e}')
-                    raise
-    
-    # 所有 Key 都失败
-    raise Exception(f'所有 API Key 都限流或失败: {last_error}')
-
+    for retry in range(MAX_RETRIES):
+        try:
+            resp = requests.post(DS_API_URL, headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {DS_API_KEY}'}, json={'model': DS_MODEL, 'messages': [{'role': 'user', 'content': prompt}], 'temperature': 0.7, 'max_tokens': 2000}, timeout=120)
+            if resp.status_code == 429:
+                time.sleep(30 * (retry + 1))
+                continue
+            if resp.status_code != 200:
+                raise Exception(f'API错误: {resp.status_code}')
+            raw = resp.json().get('choices', [{}])[0].get('message', {}).get('content', '')
+            sm = re.search(r'【摘要】[\s：:]*([\s\S]*?)(?=【解读】|$)', raw)
+            am = re.search(r'【解读】[\s：:]*([\s\S]*?)$', raw)
+            return {'summary': sm.group(1).strip() if sm else existing_summary or '摘要生成失败', 'analysis': am.group(1).strip() if am else '解读生成失败'}
+        except Exception as e:
+            if retry == MAX_RETRIES - 1:
+                raise
+            time.sleep(10)
+    raise Exception('API调用失败')
 
 def save_article_detail(article_id, abstract, analysis, full_text=''):
-    """保存文章详情到数据库"""
-    if not SUPABASE_URL:
-        print('  [Error] SUPABASE_URL 未配置')
-        return False
-    
-    try:
-        # 直接使用 upsert 插入或更新
-        resp = requests.post(
-            f'{SUPABASE_URL}/rest/v1/{DETAILS_TABLE}?on_conflict=id',
-            headers={
-                'apikey': SUPABASE_KEY,
-                'Authorization': f'Bearer {SUPABASE_KEY}',
-                'Content-Type': 'application/json',
-                'Prefer': 'resolution=merge-duplicates,return=minimal'
-            },
-            json={
-                'id': article_id,
-                'abstract': abstract,
-                'analysis': analysis,
-                'full_text': full_text
-            },
-            timeout=30
-        )
-        
-        if resp.status_code in (200, 201):
-            return True
-        else:
-            print(f'  [Error] 保存失败: HTTP {resp.status_code}')
-            print(f'  [Error] 响应: {resp.text[:200]}')
-            return False
-    
-    except Exception as e:
-        print(f'  [Error] 保存异常: {e}')
-        return False
-
+    resp = requests.post(f'{SUPABASE_URL}/rest/v1/{DETAILS_TABLE}?on_conflict=id', headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}', 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal'}, json={'id': article_id, 'abstract': abstract, 'analysis': analysis, 'full_text': full_text}, timeout=30)
+    return resp.status_code in (200, 201)
 
 def main():
-    start_time = time.time()
-    
-    domain_display = DOMAIN_NAMES.get(DOMAIN_FILTER, DOMAIN_FILTER) if DOMAIN_FILTER else "全部领域"
-    
-    print('=' * 60)
-    print(f'批量重新生成摘要和解读 - {get_beijing_time()}')
-    print(f'目标领域: {domain_display}')
-    print('=' * 60)
-    
-    if not SUPABASE_URL or not KIMI_API_KEYS:
-        print('[Error] 配置不完整，退出')
+    print(f'=== 批量生成摘要和解读 - {get_beijing_time()} ===')
+    if not SUPABASE_URL or not DS_API_KEY:
+        print('[Error] 配置不完整')
         return
-    
-    # 获取缺少摘要或解读的文章列表
     articles = get_articles_missing_details()
-    
     if not articles:
-        print('[Info] 没有获取到文章，可能该领域暂无文章')
+        print('[Info] 没有需要处理的文章')
         return
-    
-    success_count = 0
-    fail_count = 0
-    skip_count = 0
-    
-    for i, article in enumerate(articles):
-        article_id = article.get('id', '')
-        title = article.get('title', '')
-        url = article.get('url', '')
-        existing_summary = article.get('summary', '')
-        domain_name = article.get('domain_name', '')
-        
-        domain_tag = f'[{domain_name}] ' if domain_name else ''
-        print(f'\n[{i+1}/{len(articles)}] {domain_tag}{title[:40]}...')
-        
-        if not article_id:
-            print('  [Skip] 缺少ID')
-            skip_count += 1
-            continue
-        
+    success, fail = 0, 0
+    for i, a in enumerate(articles):
+        print(f'\n[{i+1}/{len(articles)}] {a.get("title", "")[:40]}...')
         try:
-            # 获取文章内容
-            content = ''
-            if url:
-                content = get_article_content(url)
-                time.sleep(1)  # 避免请求过快
-            
-            # 生成摘要和解读
-            result = generate_summary_and_analysis(title, content, existing_summary)
-            
-            print(f'  [Summary] {result["summary"][:50]}...')
-            print(f'  [Analysis] {result["analysis"][:50]}...')
-            
-            # 保存到数据库
-            if save_article_detail(article_id, result['summary'], result['analysis'], content):
+            content = get_article_content(a.get('url', ''))
+            time.sleep(1)
+            result = generate_summary_and_analysis(a.get('title', ''), content, a.get('summary', ''))
+            if save_article_detail(a['id'], result['summary'], result['analysis'], content):
                 print('  [OK] 保存成功')
-                success_count += 1
+                success += 1
             else:
                 print('  [Fail] 保存失败')
-                fail_count += 1
-            
-            # 延迟避免API限流
+                fail += 1
             time.sleep(REQUEST_DELAY)
-            
         except Exception as e:
             print(f'  [Fail] {e}')
-            fail_count += 1
-            # 失败后等待更长时间再继续
-            print(f'  [Wait] 等待 30 秒后继续下一篇...')
+            fail += 1
             time.sleep(30)
-    
-    duration = int(time.time() - start_time)
-    
-    print('\n' + '=' * 60)
-    print(f'处理完成！耗时 {duration} 秒')
-    print(f'领域: {domain_display}')
-    print(f'成功: {success_count}, 失败: {fail_count}, 跳过: {skip_count}')
-    print('=' * 60)
-
+    print(f'\n=== 完成！成功: {success}, 失败: {fail} ===')
 
 if __name__ == '__main__':
     main()
