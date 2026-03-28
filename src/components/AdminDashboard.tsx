@@ -845,20 +845,29 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       return;
     }
     
+    // 检查是否有 API Key
+    const kimiKey = getKimiApiKey();
+    const deepSeekKey = getDeepSeekApiKey();
+    
+    if (!kimiKey && !deepSeekKey) {
+      // 没有 API Key，只填入 URL，不自动提取
+      setFetchUrl(url);
+      setNewArticle(prev => ({
+        ...prev,
+        title: title || prev.title,
+        summary: summary || prev.summary,
+        url: url,
+      }));
+      setFetchError('未配置 Kimi/DeepSeek API Key，请手动填写或配置 API Key');
+      return;
+    }
+    
     setFetchingArticle(true);
     setFetchError('');
+    setFetchUrl(url);
     
     try {
-      const kimiKey = getKimiApiKey();
-      const deepSeekKey = getDeepSeekApiKey();
-      
-      if (!kimiKey && !deepSeekKey) {
-        setFetchError('请先配置 API Key');
-        setFetchingArticle(false);
-        return;
-      }
-      
-      const article = await extractArticleWithKimi(url, kimiKey || '');
+      const article = await extractArticleWithKimi(url, kimiKey || deepSeekKey || '');
       
       setNewArticle(prev => ({
         ...prev,
@@ -878,11 +887,18 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       setFetchedContent(article.fullText || '');
       setFetchedAnalysis(article.analysis || '');
       
-      setSuccessMessage(`内容提取成功！标题: ${article.title}`);
+      setSuccessMessage(`AI提取成功！标题: ${article.title}`);
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (error) {
       console.error('Fetch article error:', error);
       setFetchError(error instanceof Error ? error.message : '提取文章失败，请手动填写');
+      // 即使提取失败，也填入基本信息
+      setNewArticle(prev => ({
+        ...prev,
+        title: title || prev.title,
+        summary: summary || prev.summary,
+        url: url,
+      }));
     } finally {
       setFetchingArticle(false);
     }
@@ -1051,7 +1067,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const handleAISearch = async (type: 'manual' | 'auto' = 'manual') => {
     // 优先使用 GitHub Actions 后台搜索（更可靠，与自动搜索一致）
     if (hasGitHubToken()) {
-      return handleBackendSearch();
+      await handleBackendSearch();
+      return;
     }
     
     // 如果没有 GitHub Token，使用前端搜索
