@@ -800,8 +800,19 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   };
 
   const handleApprovePending = async (pending: PendingArticle) => {
-    // 打开新增文章对话框，自动填入URL并触发AI提取
-    setNewArticle({
+    // 记录当前审批的 pending 文章 ID，以便添加后自动审批
+    setPendingToApprove(pending.id);
+    
+    // 先设置 URL（用于 AI 提取框）
+    if (pending.url) {
+      setFetchUrl(pending.url);
+    }
+    
+    // 打开对话框
+    setAddDialogOpen(true);
+    
+    // 设置文章基本信息
+    const articleData = {
       title: pending.title,
       date: pending.date,
       year: pending.year || new Date().getFullYear(),
@@ -815,24 +826,15 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       summary: pending.summary || '',
       url: pending.url || '',
       location: pending.location,
-    });
+    };
+    setNewArticle(articleData);
     
-    // 记录当前审批的 pending 文章 ID，以便添加后自动审批
-    setPendingToApprove(pending.id);
-    
-    // 打开对话框
-    setAddDialogOpen(true);
-    
-    // 如果有 URL，自动填入并触发 AI 提取
+    // 如果有 URL，自动触发 AI 提取
     if (pending.url) {
-      // 延迟一点确保对话框已打开
+      // 延迟确保对话框已渲染
       setTimeout(() => {
-        setFetchUrl(pending.url || '');
-        // 自动触发 AI 提取
-        setTimeout(() => {
-          handleFetchFromUrlAuto(pending.url || '', pending.title, pending.summary);
-        }, 100);
-      }, 100);
+        handleFetchFromUrlAuto(pending.url || '', pending.title, pending.summary);
+      }, 300);
     }
   };
 
@@ -841,7 +843,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   // 自动触发 AI 提取（审批时调用）
   const handleFetchFromUrlAuto = async (url: string, title?: string, summary?: string) => {
+    console.log('handleFetchFromUrlAuto 被调用:', url);
+    
     if (!url.trim()) {
+      console.log('URL 为空，跳过提取');
       return;
     }
     
@@ -849,7 +854,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     const kimiKey = getKimiApiKey();
     const deepSeekKey = getDeepSeekApiKey();
     
+    console.log('API Key 状态:', { kimi: !!kimiKey, deepseek: !!deepSeekKey });
+    
     if (!kimiKey && !deepSeekKey) {
+      console.log('没有 API Key，只填入基本信息');
       // 没有 API Key，只填入 URL，不自动提取
       setFetchUrl(url);
       setNewArticle(prev => ({
@@ -867,7 +875,9 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     setFetchUrl(url);
     
     try {
+      console.log('开始 AI 提取...');
       const article = await extractArticleWithKimi(url, kimiKey || deepSeekKey || '');
+      console.log('AI 提取成功:', article.title);
       
       setNewArticle(prev => ({
         ...prev,
@@ -1114,11 +1124,15 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   // 后台搜索（使用 GitHub Actions 工作流，最可靠）
   const handleBackendSearch = async () => {
+    console.log('handleBackendSearch 被调用');
+    
     if (!hasGitHubToken()) {
+      console.log('没有 GitHub Token，显示配置对话框');
       setShowTokenDialog(true);
       return;
     }
 
+    console.log('有 GitHub Token，开始后台搜索');
     setSearching(true);
     setSearchStage('running');
     setSearchMessage('正在触发后台搜索任务...');
@@ -1126,7 +1140,9 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
     try {
       // 触发工作流
+      console.log('触发 GitHub Actions 工作流...');
       const triggerResult = await triggerBackendSearch();
+      console.log('触发结果:', triggerResult);
       
       if (!triggerResult.success) {
         setSearchStage('failed');
@@ -1135,15 +1151,23 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         return;
       }
 
+      setSearchMessage('后台搜索已启动，等待完成（约1-2分钟）...');
+      
       // 等待工作流完成
       const result = await waitForWorkflowCompletion(
         (progress) => setSearchMessage(progress),
         180000 // 最多等待3分钟
       );
+      
+      console.log('工作流完成结果:', result);
 
       if (result.success) {
         setSearchStage('completed');
-        setSearchMessage(`后台搜索完成！新增 ${result.newCount} 篇待审核文章`);
+        if (result.newCount > 0) {
+          setSearchMessage(`后台搜索完成！新增 ${result.newCount} 篇待审核文章`);
+        } else {
+          setSearchMessage('后台搜索完成！暂无新文章（可能已存在或工作流未找到）');
+        }
         
         // 刷新数据
         await loadData();
@@ -1152,6 +1176,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         setSearchMessage('后台搜索超时或失败，请稍后在待审核列表查看结果');
       }
     } catch (error) {
+      console.error('后台搜索出错:', error);
       setSearchStage('failed');
       setSearchMessage(error instanceof Error ? error.message : '后台搜索出错');
     } finally {
