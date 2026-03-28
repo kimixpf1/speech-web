@@ -231,15 +231,35 @@ function validateArticle(article: SearchedArticle): { valid: boolean; reason: st
     return { valid: false, reason: 'URL解析失败' };
   }
   
-  // 3. 检查日期是否最近3天
+  // 3. 检查日期 - 只保留前一天或当天的文章
+  // 早上搜索应只保留前一天，晚上搜索应只保留当天
   if (article.date) {
     try {
       const articleDate = new Date(article.date);
       const now = new Date();
       const beijingNow = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-      const daysDiff = Math.floor((beijingNow.getTime() - articleDate.getTime()) / (1000 * 60 * 60 * 24));
-      if (daysDiff > 3 || daysDiff < -1) {
-        return { valid: false, reason: `日期过旧: ${article.date}（距今${daysDiff}天）` };
+      const beijingHour = beijingNow.getHours();
+      
+      // 计算允许的日期范围
+      const todayStr = beijingNow.toISOString().split('T')[0];
+      const yesterday = new Date(beijingNow.getTime() - 24 * 60 * 60 * 1000);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      
+      const articleDateStr = articleDate.toISOString().split('T')[0];
+      
+      // 根据北京时间决定允许的日期
+      let allowedDates: string[];
+      if (beijingHour < 12) {
+        // 早上(0-12点): 只允许前一天的文章
+        allowedDates = [yesterdayStr];
+      } else {
+        // 晚上(12-24点): 只允许当天的文章
+        allowedDates = [todayStr];
+      }
+      
+      if (!allowedDates.includes(articleDateStr)) {
+        const daysDiff = Math.floor((beijingNow.getTime() - articleDate.getTime()) / (1000 * 60 * 60 * 24));
+        return { valid: false, reason: `日期不在范围内: ${article.date}（需要${beijingHour < 12 ? '前一天' : '当天'}的文章，距今${daysDiff}天）` };
       }
     } catch {
       // 日期解析失败，继续处理
@@ -1034,10 +1054,20 @@ export async function searchArticles(
   // 获取北京时间字符串（ISO 格式带时区信息）
   const getBeijingTime = () => {
     const now = new Date();
-    const beijingOffset = 8 * 60; // 北京时间 UTC+8
-    const localOffset = now.getTimezoneOffset();
-    const beijingTime = new Date(now.getTime() + (beijingOffset + localOffset) * 60000);
-    return beijingTime.toISOString().replace('Z', '+08:00');
+    // 正确计算北京时间：先转为 UTC 时间戳，再加 8 小时
+    const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+    const beijingMs = utcMs + 8 * 60 * 60000;
+    const beijingDate = new Date(beijingMs);
+    
+    // 手动构建 ISO 格式字符串（使用 UTC 方法获取北京时间数值）
+    const year = beijingDate.getUTCFullYear();
+    const month = String(beijingDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(beijingDate.getUTCDate()).padStart(2, '0');
+    const hours = String(beijingDate.getUTCHours()).padStart(2, '0');
+    const minutes = String(beijingDate.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(beijingDate.getUTCSeconds()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+08:00`;
   };
 
   const log: SearchLog = {
