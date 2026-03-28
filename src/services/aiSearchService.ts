@@ -1054,12 +1054,11 @@ export async function searchArticles(
   // 获取北京时间字符串（ISO 格式带时区信息）
   const getBeijingTime = () => {
     const now = new Date();
-    // 正确计算北京时间：先转为 UTC 时间戳，再加 8 小时
-    const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
-    const beijingMs = utcMs + 8 * 60 * 60000;
+    // getTime() 返回的是 UTC 时间戳，直接加 8 小时得到北京时间
+    const beijingMs = now.getTime() + 8 * 60 * 60 * 1000;
     const beijingDate = new Date(beijingMs);
     
-    // 手动构建 ISO 格式字符串（使用 UTC 方法获取北京时间数值）
+    // 使用 UTC 方法获取北京时间数值
     const year = beijingDate.getUTCFullYear();
     const month = String(beijingDate.getUTCMonth() + 1).padStart(2, '0');
     const day = String(beijingDate.getUTCDate()).padStart(2, '0');
