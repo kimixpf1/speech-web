@@ -1055,8 +1055,21 @@ export async function searchArticles(
   const usedBaidu = searchDetails['baidu_search'] && (searchDetails['baidu_search'] as any).status === 'success';
   const finalApiUsed: 'kimi' | 'deepseek' | 'kimi+baidu' = usedBaidu && apiUsed === 'kimi' ? 'kimi+baidu' : apiUsed;
   
+  // 生成带北京时间时区的 ISO 字符串（与 Python 自动搜索格式一致）
+  const getBeijingTimeISO = () => {
+    const now = new Date();
+    const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    const year = beijingTime.getUTCFullYear();
+    const month = String(beijingTime.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(beijingTime.getUTCDate()).padStart(2, '0');
+    const hours = String(beijingTime.getUTCHours()).padStart(2, '0');
+    const minutes = String(beijingTime.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(beijingTime.getUTCSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+08:00`;
+  };
+
   const log: SearchLog = {
-    executed_at: new Date().toISOString(),  // 使用 UTC 时间，前端显示时会正确转换为北京时间
+    executed_at: getBeijingTimeISO(),  // 带时区的北京时间，与 Python 自动搜索格式一致
     search_type: searchType,
     api_used: finalApiUsed,
     queries: SEARCH_QUERIES,

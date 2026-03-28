@@ -760,6 +760,13 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
           await saveArticleDetail(detail);
         }
 
+        // 如果是从审批流程进来的，自动审批
+        const wasApproval = !!pendingToApprove;
+        if (pendingToApprove) {
+          await approveArticle(pendingToApprove);
+          setPendingToApprove(null);
+        }
+
         setAddDialogOpen(false);
         setNewArticle({
           category: 'speech',
@@ -780,7 +787,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         if (result.error) {
           setSuccessMessage(`添加成功（警告：${result.error}）`);
         } else {
-          setSuccessMessage('添加成功！');
+          setSuccessMessage(wasApproval ? '已发布！' : '添加成功！');
         }
         setTimeout(() => setSuccessMessage(''), 5000);
       } else {
@@ -793,12 +800,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   };
 
   const handleApprovePending = async (pending: PendingArticle) => {
-    // 先显示处理中提示
-    setSuccessMessage('正在处理，AI识别中...');
-    
-    const articleId = generateArticleId(pending.year || new Date().getFullYear());
-    const article: Speech = {
-      id: articleId,
+    // 打开新增文章对话框，自动填入URL并触发AI提取
+    setNewArticle({
       title: pending.title,
       date: pending.date,
       year: pending.year || new Date().getFullYear(),
@@ -812,53 +815,76 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       summary: pending.summary || '',
       url: pending.url || '',
       location: pending.location,
-    };
+    });
     
-    // 如果有 URL 且配置了 API Key，自动调用 AI 识别
-    let aiSummary = pending.summary || '';
-    let aiAnalysis = '';
+    // 记录当前审批的 pending 文章 ID，以便添加后自动审批
+    setPendingToApprove(pending.id);
     
-    if (pending.url && isApiKeyConfigured()) {
-      try {
-        setSuccessMessage('正在调用 AI 识别摘要和解读...');
-        const aiContent = await generateSummaryAndAnalysis(
-          articleId,
-          pending.url,
-          pending.title,
-          pending.summary
-        );
-        aiSummary = aiContent.summary || aiSummary;
-        aiAnalysis = aiContent.analysis || '';
-        
-        // 更新文章摘要
-        article.summary = aiSummary;
-      } catch (error) {
-        console.error('AI 识别失败:', error);
-        // AI 识别失败不影响发布流程
-        setSuccessMessage('AI 识别失败，使用原有摘要...');
-      }
+    // 打开对话框
+    setAddDialogOpen(true);
+    
+    // 如果有 URL，自动填入并触发 AI 提取
+    if (pending.url) {
+      // 延迟一点确保对话框已打开
+      setTimeout(() => {
+        setFetchUrl(pending.url || '');
+        // 自动触发 AI 提取
+        setTimeout(() => {
+          handleFetchFromUrlAuto(pending.url || '', pending.title, pending.summary);
+        }, 100);
+      }, 100);
+    }
+  };
+
+  // 待审批文章 ID（用于添加后自动审批）
+  const [pendingToApprove, setPendingToApprove] = useState<string | null>(null);
+
+  // 自动触发 AI 提取（审批时调用）
+  const handleFetchFromUrlAuto = async (url: string, title?: string, summary?: string) => {
+    if (!url.trim()) {
+      return;
     }
     
-    const result = await addArticle(article);
-    if (result.success) {
-      // 如果有 AI 生成的解读，保存到详情表
-      if (aiAnalysis) {
-        const detail: ArticleDetailContent = {
-          id: articleId,
-          abstract: aiSummary,
-          fullText: '',
-          analysis: aiAnalysis,
-        };
-        await saveArticleDetail(detail);
+    setFetchingArticle(true);
+    setFetchError('');
+    
+    try {
+      const kimiKey = getKimiApiKey();
+      const deepSeekKey = getDeepSeekApiKey();
+      
+      if (!kimiKey && !deepSeekKey) {
+        setFetchError('请先配置 API Key');
+        setFetchingArticle(false);
+        return;
       }
       
-      await approveArticle(pending.id);
-      await loadData();
-      setSuccessMessage('已发布！' + (aiAnalysis ? '（含AI解读）' : ''));
-      setTimeout(() => setSuccessMessage(''), 3000);
-    } else {
-      setSuccessMessage('发布失败');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      const article = await extractArticleWithKimi(url, kimiKey || '');
+      
+      setNewArticle(prev => ({
+        ...prev,
+        title: article.title || title || prev.title,
+        date: article.date || prev.date,
+        year: article.date ? parseInt(article.date.split('-')[0]) : prev.year,
+        month: article.date ? parseInt(article.date.split('-')[1]) : prev.month,
+        day: article.date ? parseInt(article.date.split('-')[2]) : prev.day,
+        source: article.source || prev.source,
+        summary: article.summary || summary || prev.summary,
+        url: article.url || url,
+        category: (article.category as Speech['category']) || prev.category,
+        categoryName: article.categoryName || prev.categoryName,
+        location: article.location || prev.location,
+      }));
+      
+      setFetchedContent(article.fullText || '');
+      setFetchedAnalysis(article.analysis || '');
+      
+      setSuccessMessage(`内容提取成功！标题: ${article.title}`);
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (error) {
+      console.error('Fetch article error:', error);
+      setFetchError(error instanceof Error ? error.message : '提取文章失败，请手动填写');
+    } finally {
+      setFetchingArticle(false);
     }
   };
 
