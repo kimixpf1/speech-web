@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-AI scheduled search script - Kimi API + Baidu search
+AI scheduled search script - Kimi API + Baidu search + People.cn direct crawl
 Morning 8:00: search yesterday's articles (catch up)
 Evening 8:00: search today's articles
 """
@@ -31,7 +31,7 @@ LOG_TABLE = 'search_logs'
 
 # 官方来源域名白名单
 OFFICIAL_DOMAINS = [
-    'people.com.cn', 'www.people.com.cn',  # 人民网
+    'people.com.cn', 'www.people.com.cn', 'jhsjk.people.cn',  # 人民网
     'xinhuanet.com', 'www.xinhuanet.com', 'news.cn', 'www.news.cn',  # 新华网
     'qstheory.cn', 'www.qstheory.cn',  # 求是网
     'cctv.com', 'www.cctv.com', 'cntv.cn',  # 央视网
@@ -289,11 +289,95 @@ def search_with_baidu(query: str) -> List[Dict]:
     return articles
 
 
-def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict]) -> List[Dict]:
+def search_people_jhsjk() -> List[Dict]:
+    """直接从人民网习近平系列重要讲话数据库抓取最新文章"""
+    print('[People JHSJK] Starting direct crawl...')
+    articles = []
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        print('[People JHSJK] BeautifulSoup not installed')
+        return []
+    
+    try:
+        # 抓取人民网讲话数据库首页
+        resp = requests.get('http://jhsjk.people.cn/article', headers=headers, timeout=30)
+        if resp.status_code != 200:
+            print(f'[People JHSJK] HTTP error: {resp.status_code}')
+            return []
+        
+        resp.encoding = 'utf-8'
+        soup = BeautifulSoup(resp.text, 'html.parser')
+        
+        # 查找所有文章链接 - 国内和国际部分
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+        valid_dates = [today.strftime('%Y-%m-%d'), yesterday.strftime('%Y-%m-%d')]
+        
+        # 查找所有 li 元素中的链接
+        for li in soup.select('li'):
+            link = li.find('a')
+            if not link:
+                continue
+            
+            title = link.get_text(strip=True)
+            href = link.get('href', '')
+            
+            # 跳过非文章链接
+            if not title or not href or 'article' not in href:
+                continue
+            
+            # 跳过非习近平相关
+            if '习近平' not in title and '总书记' not in title and '主席' not in title:
+                continue
+            
+            # 提取日期 [2026-03-28 来源：...]
+            date_match = re.search(r'\[(\d{4}-\d{2}-\d{2})', li.get_text())
+            if date_match:
+                article_date = date_match.group(1)
+                # 只要最近2天的
+                if article_date not in valid_dates:
+                    print(f'[People JHSJK] 跳过旧文章: {title[:30]}... ({article_date})')
+                    continue
+            else:
+                # 没有日期的默认今天
+                article_date = today.strftime('%Y-%m-%d')
+            
+            # 构建完整URL
+            if href.startswith('/'):
+                full_url = f'http://jhsjk.people.cn{href}'
+            elif href.startswith('http'):
+                full_url = href
+            else:
+                full_url = f'http://jhsjk.people.cn/{href}'
+            
+            articles.append({
+                'title': title,
+                'url': full_url,
+                'source': '人民网',
+                'date': article_date,
+                'summary': title,
+            })
+            print(f'[People JHSJK] 发现: {title[:40]}... ({article_date})')
+        
+        print(f'[People JHSJK] Found {len(articles)} recent articles')
+        return articles
+        
+    except Exception as e:
+        print(f'[People JHSJK] Error: {e}')
+        return []
+
+
+def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], people_articles: List[Dict] = None) -> List[Dict]:
     all_articles = []
     seen_titles = set()
     seen_urls = set()
     rejected = []
+    
+    if people_articles is None:
+        people_articles = []
     
     def simplify(t): return re.sub(r'[《》""「」『』【】\s]', '', t)
     
@@ -336,6 +420,9 @@ def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict]) -> L
         add(a, 'kimi')
     for a in baidu_articles:
         add(a, 'baidu')
+    # 人民网讲话数据库直接抓取 - 最可靠的来源
+    for a in people_articles:
+        add(a, 'people')
     
     return all_articles
 
@@ -384,7 +471,7 @@ def save_log(kimi_count, baidu_count, new_count, status, details):
             'search_count': kimi_count + baidu_count,
             'new_count': new_count,
             'status': status,
-            'details': {**details, 'search_type': 'auto', 'api_used': 'kimi+baidu'},
+            'details': {**details, 'search_type': 'auto', 'api_used': 'kimi+baidu+people'},
             'duration_seconds': 0,
         }
         print(f'[Log] Saving to {LOG_TABLE}: {json.dumps(log_data, ensure_ascii=False)}')
@@ -413,10 +500,16 @@ def main():
     # Get search query based on time
     search_query, search_date, target_date = get_search_query()
     
+    # 1. 直接抓取人民网讲话数据库（最可靠）
+    people_articles = search_people_jhsjk()
+    
+    # 2. Kimi AI 联网搜索
     kimi_articles = search_with_kimi(search_query)
+    
+    # 3. 百度搜索（备用）
     baidu_articles = search_with_baidu(search_query)
     
-    merged = merge_and_dedupe(kimi_articles, baidu_articles)
+    merged = merge_and_dedupe(kimi_articles, baidu_articles, people_articles)
     print(f'[Merge] After dedup: {len(merged)} articles')
     
     existing = get_existing_urls()
@@ -433,9 +526,10 @@ def main():
     
     save_log(len(kimi_articles), len(baidu_articles), saved, status,
              {'kimi': len(kimi_articles), 'baidu': len(baidu_articles), 
+              'people': len(people_articles),
               'search_date': search_date, 'target_date': target_date})
     
-    print(f'=== Done: Kimi {len(kimi_articles)}, Baidu {len(baidu_articles)}, New {saved} ===')
+    print(f'=== Done: People {len(people_articles)}, Kimi {len(kimi_articles)}, Baidu {len(baidu_articles)}, New {saved} ===')
 
 
 if __name__ == '__main__':
