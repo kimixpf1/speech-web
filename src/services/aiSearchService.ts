@@ -231,38 +231,37 @@ function validateArticle(article: SearchedArticle): { valid: boolean; reason: st
     return { valid: false, reason: 'URL解析失败' };
   }
   
-  // 3. 检查日期 - 只保留前一天或当天的文章
-  // 早上搜索应只保留前一天，晚上搜索应只保留当天
+  // 3. 检查日期 - 允许最近3天的文章
+  // 放宽限制：只要是最近3天内的文章都接受，避免因时区问题漏掉有效文章
   if (article.date) {
     try {
-      const articleDate = new Date(article.date);
+      // 正确计算北京时间
       const now = new Date();
-      const beijingNow = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-      const beijingHour = beijingNow.getHours();
+      const beijingTimeMs = now.getTime() + 8 * 60 * 60 * 1000;
+      const beijingDate = new Date(beijingTimeMs);
       
-      // 计算允许的日期范围
-      const todayStr = beijingNow.toISOString().split('T')[0];
-      const yesterday = new Date(beijingNow.getTime() - 24 * 60 * 60 * 1000);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      // 使用 UTC 方法获取北京时间的年月日
+      const beijingYear = beijingDate.getUTCFullYear();
+      const beijingMonth = beijingDate.getUTCMonth();
+      const beijingDay = beijingDate.getUTCDate();
       
-      const articleDateStr = articleDate.toISOString().split('T')[0];
+      // 今天（北京时间）
+      const todayBeijing = new Date(Date.UTC(beijingYear, beijingMonth, beijingDay));
       
-      // 根据北京时间决定允许的日期
-      let allowedDates: string[];
-      if (beijingHour < 12) {
-        // 早上(0-12点): 只允许前一天的文章
-        allowedDates = [yesterdayStr];
-      } else {
-        // 晚上(12-24点): 只允许当天的文章
-        allowedDates = [todayStr];
-      }
+      // 解析文章日期
+      const articleDateStr = article.date.split('T')[0]; // 取 YYYY-MM-DD 部分
+      const [aYear, aMonth, aDay] = articleDateStr.split('-').map(Number);
+      const articleDate = new Date(Date.UTC(aYear, aMonth - 1, aDay));
       
-      if (!allowedDates.includes(articleDateStr)) {
-        const daysDiff = Math.floor((beijingNow.getTime() - articleDate.getTime()) / (1000 * 60 * 60 * 24));
-        return { valid: false, reason: `日期不在范围内: ${article.date}（需要${beijingHour < 12 ? '前一天' : '当天'}的文章，距今${daysDiff}天）` };
+      // 计算天数差
+      const daysDiff = Math.floor((todayBeijing.getTime() - articleDate.getTime()) / (24 * 60 * 60 * 1000));
+      
+      // 允许最近3天的文章（今天、昨天、前天）
+      if (daysDiff > 3 || daysDiff < -1) {
+        return { valid: false, reason: `日期超出范围: ${article.date}（只接受最近3天的文章）` };
       }
     } catch {
-      // 日期解析失败，继续处理
+      // 日期解析失败，继续处理（不因日期问题拒绝文章）
     }
   }
   
@@ -1051,26 +1050,16 @@ export async function searchArticles(
   const usedBaidu = searchDetails['baidu_search'] && (searchDetails['baidu_search'] as any).status === 'success';
   const finalApiUsed: 'kimi' | 'deepseek' | 'kimi+baidu' = usedBaidu && apiUsed === 'kimi' ? 'kimi+baidu' : apiUsed;
   
-  // 获取北京时间字符串（ISO 格式带时区信息）
-  const getBeijingTime = () => {
-    const now = new Date();
-    // getTime() 返回的是 UTC 时间戳，直接加 8 小时得到北京时间
-    const beijingMs = now.getTime() + 8 * 60 * 60 * 1000;
-    const beijingDate = new Date(beijingMs);
-    
-    // 使用 UTC 方法获取北京时间数值
-    const year = beijingDate.getUTCFullYear();
-    const month = String(beijingDate.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(beijingDate.getUTCDate()).padStart(2, '0');
-    const hours = String(beijingDate.getUTCHours()).padStart(2, '0');
-    const minutes = String(beijingDate.getUTCMinutes()).padStart(2, '0');
-    const seconds = String(beijingDate.getUTCSeconds()).padStart(2, '0');
-    
-    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+08:00`;
+  // 获取当前时间的 ISO 字符串（使用 UTC 格式，前端显示时会正确转换为北京时间）
+  const getCurrentUtcTime = () => {
+    // 直接返回 UTC 时间字符串，带 Z 后缀
+    // 这样前端 new Date() 解析时会识别为 UTC 时间
+    // 然后 toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) 会正确转换为北京时间
+    return new Date().toISOString();
   };
 
   const log: SearchLog = {
-    executed_at: getBeijingTime(),
+    executed_at: getCurrentUtcTime(),
     search_type: searchType,
     api_used: finalApiUsed,
     queries: SEARCH_QUERIES,
