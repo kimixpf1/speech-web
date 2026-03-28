@@ -447,13 +447,6 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
           monthVisits: 0,
           uniqueVisitors: 0,
           onlineUsers: 0,
-          browsers: {},
-          os: {},
-          devices: {},
-          pages: {},
-          hourlyStats: new Array(24).fill(0),
-          dailyStats: [],
-          recentVisits: [],
         });
         setVisitRecords(records);
         

@@ -1055,16 +1055,8 @@ export async function searchArticles(
   const usedBaidu = searchDetails['baidu_search'] && (searchDetails['baidu_search'] as any).status === 'success';
   const finalApiUsed: 'kimi' | 'deepseek' | 'kimi+baidu' = usedBaidu && apiUsed === 'kimi' ? 'kimi+baidu' : apiUsed;
   
-  // 获取当前北京时间的 ISO 字符串
-  const getCurrentBeijingTime = () => {
-    const now = new Date();
-    // 获取北京时间（UTC+8）
-    const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-    return beijingTime.toISOString();
-  };
-
   const log: SearchLog = {
-    executed_at: getCurrentBeijingTime(),
+    executed_at: new Date().toISOString(),  // 使用 UTC 时间，前端显示时会正确转换为北京时间
     search_type: searchType,
     api_used: finalApiUsed,
     queries: SEARCH_QUERIES,
