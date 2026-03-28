@@ -118,12 +118,19 @@ export async function triggerSearchWorkflow(): Promise<WorkflowTriggerResult> {
         success: false,
         message: '工作流文件不存在，请检查仓库配置',
       };
+    } else if (response.status === 422) {
+      const error = await response.text();
+      console.error('触发工作流422错误(参数错误):', error);
+      return {
+        success: false,
+        message: `触发失败: 工作流参数错误(422) - ${error}`,
+      };
     } else {
       const error = await response.text();
       console.error('触发工作流失败:', response.status, error);
       return {
         success: false,
-        message: `触发失败: ${response.status}`,
+        message: `触发失败: ${response.status} - ${error}`,
       };
     }
   } catch (error) {

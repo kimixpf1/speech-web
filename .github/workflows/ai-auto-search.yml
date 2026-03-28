@@ -5,7 +5,12 @@ on:
     # 每天北京时间 8:00 (UTC 0:00) 和 20:00 (UTC 12:00)
     - cron: '0 0 * * *'
     - cron: '0 12 * * *'
-  workflow_dispatch:  # 允许手动触发测试
+  workflow_dispatch:  # 允许手动触发
+    inputs:
+      triggered_from:
+        description: '触发来源'
+        required: false
+        default: 'manual'
 
 env:
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
