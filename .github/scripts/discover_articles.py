@@ -23,9 +23,14 @@ except ImportError:
 
 # ============ 配置 ============
 SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
-SUPABASE_KEY = os.environ.get('SUPABASE_ANON_KEY', '')
+# 优先使用 service_role_key，回退到 anon_key
+SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY') or os.environ.get('SUPABASE_ANON_KEY', '')
 TABLE = 'pending_articles'
 LOG_TABLE = 'search_logs'
+
+# 调试输出
+print(f'[Config] SUPABASE_URL: {"已配置" if SUPABASE_URL else "未配置"}')
+print(f'[Config] SUPABASE_KEY: {"已配置" if SUPABASE_KEY else "未配置"} (service_role={"是" if os.environ.get("SUPABASE_SERVICE_ROLE_KEY") else "否"})')
 
 REQUEST_DELAY = 2.0
 MAX_RETRIES = 3
@@ -812,19 +817,33 @@ def main():
     print(f'  合并前: {len(all_raw)} 条')
     print(f'  去重后新增: {len(new_articles)} 条')
 
-    # 只保留最近30天的文章
-    cutoff = today - timedelta(days=30)
+    # 根据时间决定搜索范围：早上搜前一天，晚上搜当天
+    utc_now = datetime.utcnow()
+    beijing_hour = (utc_now.hour + 8) % 24
+    
+    if beijing_hour < 12:
+        # 早上 (0-12点): 只保留前一天的文章
+        target_date = (utc_now + timedelta(hours=8) - timedelta(days=1)).date()
+        date_filter_desc = '前一天'
+    else:
+        # 晚上 (12-24点): 只保留当天的文章
+        target_date = (utc_now + timedelta(hours=8)).date()
+        date_filter_desc = '当天'
+    
+    print(f'  北京时间 {beijing_hour}:00，只保留{date_filter_desc}({target_date})的文章')
+    
     recent_articles = []
     for a in new_articles:
         try:
             article_date = datetime.strptime(a['date'], '%Y-%m-%d').date()
-            if article_date >= cutoff:
+            if article_date == target_date:
                 recent_articles.append(a)
         except (ValueError, TypeError):
+            # 没有日期的默认保留（可能是最新文章）
             recent_articles.append(a)
 
     if len(recent_articles) < len(new_articles):
-        print(f'  过滤30天外文章后: {len(recent_articles)} 条')
+        print(f'  过滤非{date_filter_desc}文章后: {len(recent_articles)} 条')
         new_articles = recent_articles
 
     # 写入 Supabase
