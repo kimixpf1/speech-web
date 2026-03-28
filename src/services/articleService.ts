@@ -9,6 +9,7 @@ const DELETED_KEY = 'site_deleted_articles';
 const SUPABASE_URL = 'https://ejeiuqcmkznfbglvbkbe.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqZWl1cWNta3puZmJnbHZia2JlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI2NjgxMTQsImV4cCI6MjA1ODI0NDExNH0.3EqqmzP5fXHF0sYVFNbVKWwLPqOYqOlK2JlFPZLf3Sk';
 const ARTICLES_TABLE = 'articles';
+const DETAILS_TABLE = 'article_details';
 
 async function supabaseRequest(
   endpoint: string,
@@ -171,8 +172,20 @@ export async function updateArticle(updatedArticle: Speech): Promise<boolean> {
 
 export async function deleteArticle(id: string): Promise<boolean> {
   try {
+    // 删除 articles 表记录
     await supabaseRequest(
       `${ARTICLES_TABLE}?id=eq.${id}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Prefer': 'return=minimal',
+        },
+      }
+    );
+
+    // 同步删除 article_details 表记录（防止孤儿记录）
+    await supabaseRequest(
+      `${DETAILS_TABLE}?id=eq.${id}`,
       {
         method: 'DELETE',
         headers: {
