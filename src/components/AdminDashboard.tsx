@@ -93,6 +93,11 @@ import {
   type WorkflowRun
 } from '@/services/githubActionsService';
 import {
+  triggerSearchWorkflow as triggerBackendSearch,
+  waitForWorkflowCompletion,
+  hasGitHubToken,
+} from '@/services/githubActionsTrigger';
+import {
   extractArticleWithKimi,
   extractArticleFromText,
   saveKimiApiKey,
@@ -1016,6 +1021,53 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     }
   };
 
+  // 后台搜索（使用 GitHub Actions 工作流，最可靠）
+  const handleBackendSearch = async () => {
+    if (!hasGitHubToken()) {
+      setShowTokenDialog(true);
+      return;
+    }
+
+    setSearching(true);
+    setSearchStage('running');
+    setSearchMessage('正在触发后台搜索任务...');
+    setShowAutoSearchPrompt(false);
+
+    try {
+      // 触发工作流
+      const triggerResult = await triggerBackendSearch();
+      
+      if (!triggerResult.success) {
+        setSearchStage('failed');
+        setSearchMessage(triggerResult.message);
+        setSearching(false);
+        return;
+      }
+
+      // 等待工作流完成
+      const result = await waitForWorkflowCompletion(
+        (progress) => setSearchMessage(progress),
+        180000 // 最多等待3分钟
+      );
+
+      if (result.success) {
+        setSearchStage('completed');
+        setSearchMessage(`后台搜索完成！新增 ${result.newCount} 篇待审核文章`);
+        
+        // 刷新数据
+        await loadData();
+      } else {
+        setSearchStage('failed');
+        setSearchMessage('后台搜索超时或失败，请稍后在待审核列表查看结果');
+      }
+    } catch (error) {
+      setSearchStage('failed');
+      setSearchMessage(error instanceof Error ? error.message : '后台搜索出错');
+    } finally {
+      setSearching(false);
+    }
+  };
+
   // 保存 DeepSeek API Key
   const handleSaveDeepSeekKey = async () => {
     if (!deepSeekKeyInput.trim()) return;
@@ -1350,6 +1402,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     size="sm"
                     onClick={() => handleAISearch('manual')}
                     disabled={searching}
+                    title="使用 Kimi/DeepSeek API 在前端搜索"
                   >
                     {searching ? (
                       <>
@@ -1359,7 +1412,26 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     ) : (
                       <>
                         <Sparkles className="w-4 h-4 mr-1" />
-                        立即搜索
+                        AI搜索
+                      </>
+                    )}
+                  </Button>
+                  <Button 
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    size="sm"
+                    onClick={handleBackendSearch}
+                    disabled={searching}
+                    title="使用后台工作流搜索（最可靠，需要 GitHub Token）"
+                  >
+                    {searching ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                        搜索中...
+                      </>
+                    ) : (
+                      <>
+                        <Cloud className="w-4 h-4 mr-1" />
+                        后台搜索
                       </>
                     )}
                   </Button>
