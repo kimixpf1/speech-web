@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 
 // API 端点
 const KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions';
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
+const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
 // 本地存储键
 const DEEPSEEK_API_KEY_STORAGE = 'deepseek_api_key';
@@ -22,6 +22,11 @@ const SEARCH_QUERIES = [
 
 // 官方网站列表页 - 直接爬取获取真实文章
 const OFFICIAL_LIST_PAGES = [
+  {
+    name: '人民网-讲话数据库',
+    url: 'http://jhsjk.people.cn/article',
+    source: '人民网',
+  },
   {
     name: '人民网-时政',
     url: 'http://politics.people.com.cn/GB/1024/index.html',
@@ -50,7 +55,7 @@ const BAIDU_SEARCH_QUERY = '习近平 最新 site:people.com.cn OR site:xinhuane
 
 // 官方来源域名白名单
 const OFFICIAL_DOMAINS = [
-  'people.com.cn', 'www.people.com.cn',
+  'people.com.cn', 'www.people.com.cn', 'jhsjk.people.cn',
   'xinhuanet.com', 'www.xinhuanet.com', 'news.cn', 'www.news.cn',
   'qstheory.cn', 'www.qstheory.cn',
   'cctv.com', 'www.cctv.com', 'cntv.cn',
@@ -260,7 +265,17 @@ function validateArticle(article: SearchedArticle): { valid: boolean; reason: st
     }
   }
   
-  // 6. 人民网URL验证：检查格式和日期
+  // 6. jhsjk.people.cn 特殊处理：讲话数据库URL格式
+  if (domain.includes('jhsjk.people.cn')) {
+    // 讲话数据库URL格式：/article/或直接包含article
+    if (!url.includes('article')) {
+      return { valid: false, reason: 'URL格式不符合讲话数据库格式' };
+    }
+    // 通过验证
+    return { valid: true, reason: '' };
+  }
+  
+  // 7. 人民网URL验证：检查格式和日期
   if (domain.includes('people.com.cn')) {
     // 人民网URL应该包含 /n1/YYYY/MMDD/ 或 /n1/YYYY/M/DD/ 格式
     const peopleMatch = url.match(/\/n1\/(\d{4})\/(\d{2,4})\/c\d+-(\d+)/);
@@ -279,14 +294,14 @@ function validateArticle(article: SearchedArticle): { valid: boolean; reason: st
     }
   }
   
-  // 7. 新华网URL验证
+  // 8. 新华网URL验证
   if (domain.includes('xinhuanet.com') || domain.includes('news.cn')) {
     if (!/c_\d{8,}/.test(url) && !/\/\d{4}-\d{2}\/\d{2}\//.test(url)) {
       return { valid: false, reason: 'URL格式不符合新华网真实文章格式' };
     }
   }
   
-  // 8. 求是网URL验证
+  // 9. 求是网URL验证
   if (domain.includes('qstheory.cn')) {
     if (!/c_\d{8,}/.test(url) && !/\/\d{4}-\d{2}\/\d{2}\//.test(url)) {
       return { valid: false, reason: 'URL格式不符合求是网真实文章格式' };
@@ -894,7 +909,7 @@ export async function searchArticles(
 
   // ========== 步骤1: 直接爬取官方网站列表页（最可靠） ==========
   if (kimiApiKey) {
-    onProgress?.('正在爬取官方网站列表页（人民网/新华网/求是网）...');
+    onProgress?.('正在爬取官方网站列表页（人民网讲话数据库/时政/新华网/求是网）...');
     try {
       const officialResults = await crawlOfficialListPages(kimiApiKey);
       searchDetails['official_crawl'] = {
