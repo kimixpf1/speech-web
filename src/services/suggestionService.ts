@@ -10,7 +10,10 @@ export interface Suggestion {
   name: string;
   email: string;
   message: string;
+  content: string;  // 兼容前端显示
   status: 'read' | 'unread';
+  date?: string;    // 前端显示日期
+  time?: string;    // 前端显示时间
 }
 
 /**
@@ -27,7 +30,16 @@ export async function getSuggestions(): Promise<Suggestion[]> {
     return [];
   }
   
-  return data || [];
+  // 处理数据，添加 date, time, content 字段
+  return (data || []).map(item => {
+    const createdAt = new Date(item.created_at);
+    return {
+      ...item,
+      content: item.message || item.content || '',
+      date: createdAt.toLocaleDateString('zh-CN'),
+      time: createdAt.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+    };
+  });
 }
 
 /**

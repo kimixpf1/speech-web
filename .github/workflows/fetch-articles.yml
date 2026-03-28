@@ -1,11 +1,11 @@
-name: Discover New Articles
+name: Discover New Articles (DISABLED)
 
 on:
-  schedule:
-    # 每天北京时间 8:00 (UTC 0:00) 和 20:00 (UTC 12:00)
-    - cron: '0 0 * * *'
-    - cron: '0 12 * * *'
-  workflow_dispatch:  # 允许手动触发
+  # 已暂停定时触发，避免与 ai-auto-search.yml 冲突
+  # schedule:
+  #   - cron: '0 0 * * *'
+  #   - cron: '0 12 * * *'
+  workflow_dispatch:  # 仅允许手动触发
 
 env:
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

@@ -128,6 +128,11 @@ import {
   type SearchResult,
   type SearchLog as AISearchLog,
 } from '@/services/aiSearchService';
+import {
+  generateSummaryAndAnalysis,
+  isApiKeyConfigured,
+  getCurrentAIProvider,
+} from '@/services/aiSummaryService';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -795,8 +800,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   };
 
   const handleApprovePending = async (pending: PendingArticle) => {
+    // 先显示处理中提示
+    setSuccessMessage('正在处理，AI识别中...');
+    
+    const articleId = generateArticleId(pending.year || new Date().getFullYear());
     const article: Speech = {
-      id: generateArticleId(pending.year || new Date().getFullYear()),
+      id: articleId,
       title: pending.title,
       date: pending.date,
       year: pending.year || new Date().getFullYear(),
@@ -811,11 +820,51 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       url: pending.url || '',
       location: pending.location,
     };
+    
+    // 如果有 URL 且配置了 API Key，自动调用 AI 识别
+    let aiSummary = pending.summary || '';
+    let aiAnalysis = '';
+    
+    if (pending.url && isApiKeyConfigured()) {
+      try {
+        setSuccessMessage('正在调用 AI 识别摘要和解读...');
+        const aiContent = await generateSummaryAndAnalysis(
+          articleId,
+          pending.url,
+          pending.title,
+          pending.summary
+        );
+        aiSummary = aiContent.summary || aiSummary;
+        aiAnalysis = aiContent.analysis || '';
+        
+        // 更新文章摘要
+        article.summary = aiSummary;
+      } catch (error) {
+        console.error('AI 识别失败:', error);
+        // AI 识别失败不影响发布流程
+        setSuccessMessage('AI 识别失败，使用原有摘要...');
+      }
+    }
+    
     const result = await addArticle(article);
     if (result.success) {
+      // 如果有 AI 生成的解读，保存到详情表
+      if (aiAnalysis) {
+        const detail: ArticleDetailContent = {
+          id: articleId,
+          abstract: aiSummary,
+          fullText: '',
+          analysis: aiAnalysis,
+        };
+        await saveArticleDetail(detail);
+      }
+      
       await approveArticle(pending.id);
       await loadData();
-      setSuccessMessage('已发布！');
+      setSuccessMessage('已发布！' + (aiAnalysis ? '（含AI解读）' : ''));
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } else {
+      setSuccessMessage('发布失败');
       setTimeout(() => setSuccessMessage(''), 3000);
     }
   };

@@ -68,7 +68,12 @@ function getTodayDatePrompt(): string {
   const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
   const today = beijingTime.toISOString().split('T')[0];
   const todayCN = `${beijingTime.getFullYear()}年${beijingTime.getMonth() + 1}月${beijingTime.getDate()}日`;
-  return `今天是${todayCN}（${today}）。\n\n重要：只返回${today}及之后发布的新闻，更早的新闻直接丢弃，不要返回！`;
+  
+  // 计算7天前的日期
+  const sevenDaysAgo = new Date(beijingTime.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+  
+  return `今天是${todayCN}（${today}）。\n\n重要：请搜索并返回 ${sevenDaysAgoStr} 至 ${today} 期间发布的新闻（最近7天内）。`;
 }
 
 // 系统提示词 - 动态生成
@@ -102,8 +107,8 @@ function getSearchSystemPrompt(): string {
 }
 
 要求：
-1. 只返回最近3天的新闻
-2. 最多5条
+1. 只返回最近7天的新闻
+2. 最多10条
 3. URL必须是搜索结果中真实存在的
 4. 只返回JSON数组，无其他文字
 5. 如果没找到或不确定URL真实性，返回空数组 []`;
@@ -655,9 +660,9 @@ async function crawlOfficialListPages(apiKey: string): Promise<SearchedArticle[]
 
 提取要求：
 1. 只提取标题中包含"习近平"的文章
-2. 只提取最近3天内的文章
+2. 只提取最近7天内的文章
 3. 必须提取文章的真实完整URL（从页面链接中获取）
-4. 最多提取5篇
+4. 最多提取10篇
 
 返回JSON数组格式：
 [
@@ -1050,16 +1055,16 @@ export async function searchArticles(
   const usedBaidu = searchDetails['baidu_search'] && (searchDetails['baidu_search'] as any).status === 'success';
   const finalApiUsed: 'kimi' | 'deepseek' | 'kimi+baidu' = usedBaidu && apiUsed === 'kimi' ? 'kimi+baidu' : apiUsed;
   
-  // 获取当前时间的 ISO 字符串（使用 UTC 格式，前端显示时会正确转换为北京时间）
-  const getCurrentUtcTime = () => {
-    // 直接返回 UTC 时间字符串，带 Z 后缀
-    // 这样前端 new Date() 解析时会识别为 UTC 时间
-    // 然后 toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) 会正确转换为北京时间
-    return new Date().toISOString();
+  // 获取当前北京时间的 ISO 字符串
+  const getCurrentBeijingTime = () => {
+    const now = new Date();
+    // 获取北京时间（UTC+8）
+    const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    return beijingTime.toISOString();
   };
 
   const log: SearchLog = {
-    executed_at: getCurrentUtcTime(),
+    executed_at: getCurrentBeijingTime(),
     search_type: searchType,
     api_used: finalApiUsed,
     queries: SEARCH_QUERIES,
