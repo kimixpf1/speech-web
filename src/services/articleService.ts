@@ -133,6 +133,8 @@ export async function updateArticle(updatedArticle: Speech): Promise<boolean> {
       }
     );
 
+    let cloudSuccess = response.ok;
+    
     if (!response.ok) {
       const insertResponse = await supabaseRequest(ARTICLES_TABLE, {
         method: 'POST',
@@ -141,28 +143,26 @@ export async function updateArticle(updatedArticle: Speech): Promise<boolean> {
           'Prefer': 'return=minimal',
         },
       });
-      
+      cloudSuccess = insertResponse.ok;
       if (!insertResponse.ok) {
-        console.error('Failed to update or insert article in cloud');
+        console.error('云端更新和插入都失败:', insertResponse.status);
       }
     }
 
-    const stored = localStorage.getItem(ARTICLES_KEY);
-    let storedArticles: Speech[] = [];
-    
-    if (stored) {
-      storedArticles = JSON.parse(stored);
+    if (cloudSuccess) {
+      const stored = localStorage.getItem(ARTICLES_KEY);
+      let storedArticles: Speech[] = stored ? JSON.parse(stored) : [];
+      const index = storedArticles.findIndex(a => a.id === updatedArticle.id);
+      if (index !== -1) {
+        storedArticles[index] = updatedArticle;
+      } else {
+        storedArticles.unshift(updatedArticle);
+      }
+      localStorage.setItem(ARTICLES_KEY, JSON.stringify(storedArticles));
+      return true;
     }
-    
-    const index = storedArticles.findIndex(a => a.id === updatedArticle.id);
-    if (index !== -1) {
-      storedArticles[index] = updatedArticle;
-    } else {
-      storedArticles.unshift(updatedArticle);
-    }
-    
-    localStorage.setItem(ARTICLES_KEY, JSON.stringify(storedArticles));
-    return true;
+    console.error('云端更新失败，不更新本地缓存');
+    return false;
   } catch (error) {
     console.error('更新文章失败:', error);
     return false;
