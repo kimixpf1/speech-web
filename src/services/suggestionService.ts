@@ -43,6 +43,29 @@ export async function getSuggestions(): Promise<Suggestion[]> {
 }
 
 /**
+ * 提交新建议
+ */
+export async function submitSuggestion(name: string, message: string): Promise<boolean> {
+  const { error } = await supabase
+    .from('suggestions')
+    .insert({
+      id: crypto.randomUUID(),
+      name,
+      message,
+      email: '',
+      status: 'unread',
+      created_at: new Date().toISOString(),
+    });
+  
+  if (error) {
+    console.error('提交建议失败:', error);
+    return false;
+  }
+  
+  return true;
+}
+
+/**
  * 获取未读建议数量
  */
 export async function getUnreadCount(): Promise<number> {

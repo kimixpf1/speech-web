@@ -1047,8 +1047,14 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   // ========== AI 搜索功能 ==========
   
-  // AI 搜索文章
+  // AI 搜索文章 - 优先使用 GitHub Actions 工作流（更可靠）
   const handleAISearch = async (type: 'manual' | 'auto' = 'manual') => {
+    // 优先使用 GitHub Actions 后台搜索（更可靠，与自动搜索一致）
+    if (hasGitHubToken()) {
+      return handleBackendSearch();
+    }
+    
+    // 如果没有 GitHub Token，使用前端搜索
     if (!kimiApiKey && !deepSeekApiKey) {
       setShowApiConfigDialog(true);
       return;
