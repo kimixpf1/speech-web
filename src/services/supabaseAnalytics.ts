@@ -74,28 +74,13 @@ export async function getSupabaseStats(): Promise<RealtimeStats | null> {
     
     // 使用北京时间（UTC+8）计算今日开始
     const now = new Date();
-    const beijingOffset = 8 * 60; // 北京时间UTC+8（分钟）
-    const localOffset = now.getTimezoneOffset(); // 本地时间与UTC的偏移（分钟）
-    // 计算北京时间今天的0点
-    const beijingTodayStart = new Date(now.getTime() + (beijingOffset + localOffset) * 60000);
-    beijingTodayStart.setHours(0, 0, 0, 0);
-    // 转回UTC时间用于查询
-    const todayStartUTC = new Date(beijingTodayStart.getTime() - beijingOffset * 60000);
-    const todayStartStr = todayStartUTC.toISOString();
-    
-    console.log(`[Analytics] 开始查询表: ${tableName}`);
-    console.log(`[Analytics] 北京时间今日开始: ${beijingTodayStart.toISOString()}`);
-    console.log(`[Analytics] 查询用UTC时间: ${todayStartStr}`);
+    // 使用中国时区强制格式化当前日期，例如 "2024/05/16"
+    const beijingDateString = now.toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
     
     // 获取总访问量
     const totalResult = await supabase
       .from(tableName)
       .select('*', { count: 'exact', head: true });
-    
-    console.log(`[Analytics] 总访问量查询结果:`, { 
-      count: totalResult.count, 
-      error: totalResult.error?.message 
-    });
     
     if (totalResult.error) {
       console.error(`[Analytics] 查询失败:`, totalResult.error);
@@ -104,19 +89,17 @@ export async function getSupabaseStats(): Promise<RealtimeStats | null> {
     
     const totalVisits = totalResult.count || 0;
     
-    // 获取今日访问量（使用北京时间今日开始）
+    // 获取今日访问量（直接使用前端存入的 date 字段精确匹配）
     const todayResult = await supabase
       .from(tableName)
       .select('*', { count: 'exact', head: true })
-      .gte('timestamp', todayStartStr);
+      .eq('date', beijingDateString);
     
-    console.log(`[Analytics] 今日访问量(PV):`, todayResult.count, '错误:', todayResult.error?.message);
-    
-    // 获取今日独立访客数 - 使用 ip_hash 字段
+    // 获取今日独立访客数
     const uniqueResult = await supabase
       .from(tableName)
       .select('ip_hash')
-      .gte('timestamp', todayStartStr);
+      .eq('date', beijingDateString);
     
     const todayRecords = uniqueResult.data;
     
