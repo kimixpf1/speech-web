@@ -10,6 +10,7 @@ import { ZhengjiguanPage } from '@/components/ZhengjiguanPage';
 import { getArticles, getLocalArticlesSync, setupRealtimeSubscription, type Speech } from '@/services/articleServiceEnhanced';
 import { initAnalytics } from '@/services/analytics';
 import { isAdminLoggedInSync, isAdminLoggedIn } from '@/services/adminAuth';
+import { useDebounce } from '@/hooks/useDebounce';
 import './App.css';
 
 // 懒加载页面组件
@@ -30,6 +31,8 @@ function PageLoader() {
 function HomePage() {
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300); // 300ms 防抖延迟
+
   const [selectedDomain, setSelectedDomain] = useState(
     () => sessionStorage.getItem('selectedDomain') || 'economy'
   );
@@ -173,9 +176,9 @@ function HomePage() {
         return false;
       }
 
-      // Search filter
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim();
+      // Search filter using debounced query
+      if (debouncedSearchQuery.trim()) {
+        const query = debouncedSearchQuery.toLowerCase().trim();
         const matchTitle = speech.title.toLowerCase().includes(query);
         const matchSummary = speech.summary.toLowerCase().includes(query);
         const matchLocation = speech.location?.toLowerCase().includes(query) || false;
@@ -196,7 +199,7 @@ function HomePage() {
     }
 
     return result;
-  }, [searchQuery, selectedDomain, selectedCategory, selectedYear, articles]);
+  }, [debouncedSearchQuery, selectedDomain, selectedCategory, selectedYear, articles]);
 
   return (
     <div style={{ visibility: isScrollRestoring ? 'hidden' : 'visible' }}>
