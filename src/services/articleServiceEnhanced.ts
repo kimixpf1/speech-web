@@ -367,12 +367,26 @@ export async function updateArticle(article: Speech): Promise<{ success: boolean
   }
 }
 
-// 删除文章（同步云端）
+// 删除文章（同步云端，同时删除 article_details 防止孤儿记录）
 export async function deleteArticle(id: string): Promise<boolean> {
   try {
     console.log('删除文章，同步云端:', id);
     
     if (navigator.onLine) {
+      // 1. 先删除 article_details 表记录（防止孤儿记录）
+      const { error: detailError } = await supabase
+        .from('article_details')
+        .delete()
+        .eq('id', id);
+      
+      if (detailError) {
+        console.error('删除文章详情失败:', detailError);
+        // 继续尝试删除主表，不因为详情删除失败而中断
+      } else {
+        console.log('文章详情删除成功:', id);
+      }
+      
+      // 2. 再删除 articles 表记录
       const { error } = await supabase
         .from(ARTICLES_TABLE)
         .delete()
