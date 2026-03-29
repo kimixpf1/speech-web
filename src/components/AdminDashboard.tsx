@@ -247,21 +247,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     });
 
     // 每30秒刷新一次数据
-    const interval = setInterval(async () => {
-      // 从云端刷新文章列表
-      const articles = await getArticles();
-      setArticles(articles);
-
-      // 刷新建议
-      const suggestions = await getSuggestions();
-      const unread = await getUnreadCount();
-      setSuggestions(suggestions);
-      setUnreadCount(unread);
-    }, 30000);
+    // 定期刷新已移除，避免冗余网络请求，通过手动刷新或实时订阅获取最新数据
 
     return () => {
       cleanup();
-      clearInterval(interval);
     };
   }, [navigate]);
 

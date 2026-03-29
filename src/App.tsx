@@ -137,14 +137,10 @@ function HomePage() {
       }
     );
 
-    // 定期刷新
-    const interval = setInterval(() => {
-      loadArticles();
-    }, 30000);
+    // 定期刷新已移除，由 setupRealtimeSubscription 负责实时更新
 
     return () => {
       unsubscribe();
-      clearInterval(interval);
     };
   }, [])
 
