@@ -1075,11 +1075,18 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   
   // AI 搜索文章 - 优先使用 GitHub Actions 工作流（更可靠）
   const handleAISearch = async (type: 'manual' | 'auto' = 'manual') => {
+    console.log('handleAISearch 被调用，检查 GitHub Token:', hasGitHubToken());
+    
     // 优先使用 GitHub Actions 后台搜索（更可靠，与自动搜索一致）
     if (hasGitHubToken()) {
+      console.log('有 GitHub Token，触发后台搜索');
+      setSuccessMessage('正在使用 GitHub Actions 后台搜索...');
+      setTimeout(() => setSuccessMessage(''), 2000);
       await handleBackendSearch();
       return;
     }
+    
+    console.log('没有 GitHub Token，检查 API Key');
     
     // 如果没有 GitHub Token，使用前端搜索
     if (!kimiApiKey && !deepSeekApiKey) {
