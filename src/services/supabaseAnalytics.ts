@@ -212,16 +212,13 @@ export async function clearVisitRecords(ids?: string[]): Promise<boolean> {
 }
 
 /**
- * 记录访问
+ * 记录访问 - 增强版（收集更多信息）
  */
 export async function logVisit(path: string, referrer?: string): Promise<void> {
   try {
     const tableName = await findCorrectTableName();
-<<<<<<< 615ae44fce50a79571a1527b6947b5e07f3c4139
+    
     // 生成 ip_hash
-=======
-    // 生成 ip_hash（用现有的 visitor_id 或新建）
->>>>>>> fix: 修正字段名为ip_hash，修复独立访客数统计
     const ipHash = localStorage.getItem('ip_hash') || 
       `hash_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     
