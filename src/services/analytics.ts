@@ -36,7 +36,7 @@ export interface VisitRecord {
   path: string;
   referrer: string;
   timestamp: string;
-  visitor_id: string;
+  ip_hash: string;  // 数据库实际字段名是 ip_hash
   date?: string;
   time?: string;
 }
@@ -62,17 +62,17 @@ export function initAnalytics(): void {
 async function recordVisit(): Promise<void> {
   try {
     const tableName = await findCorrectTableName();
-    const visitorId = localStorage.getItem('visitor_id') || 
-      `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const ipHash = localStorage.getItem('ip_hash') || 
+      `hash_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    localStorage.setItem('visitor_id', visitorId);
+    localStorage.setItem('ip_hash', ipHash);
     
     await supabase.from(tableName).insert({
       id: crypto.randomUUID(),
       path: window.location.pathname,
       referrer: document.referrer || '',
       timestamp: new Date().toISOString(),
-      visitor_id: visitorId,
+      ip_hash: ipHash,
     });
   } catch (error) {
     console.error('记录访问失败:', error);
@@ -140,13 +140,13 @@ export async function getVisitStats(): Promise<VisitStats> {
       .select('*', { count: 'exact', head: true })
       .gte('timestamp', todayStartUTC.toISOString());
     
-    // 获取今日独立访客数（只查询今天的记录）
+    // 获取今日独立访客数（只查询今天的记录，使用 ip_hash 字段）
     const { data: todayRecords } = await supabase
       .from(tableName)
-      .select('visitor_id')
+      .select('ip_hash')
       .gte('timestamp', todayStartUTC.toISOString());
     
-    const uniqueCount = new Set(todayRecords?.filter(v => v.visitor_id).map(v => v.visitor_id) || []).size;
+    const uniqueCount = new Set(todayRecords?.filter(v => v.ip_hash).map(v => v.ip_hash) || []).size;
     
     return {
       totalVisits: totalVisits || 0,
