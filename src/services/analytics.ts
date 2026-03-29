@@ -63,19 +63,51 @@ async function recordVisit(): Promise<void> {
   try {
     const tableName = await findCorrectTableName();
     const ipHash = localStorage.getItem('ip_hash') || 
-      `hash_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      `hash_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     
     localStorage.setItem('ip_hash', ipHash);
     
-    await supabase.from(tableName).insert({
-      id: crypto.randomUUID(),
-      path: window.location.pathname,
-      referrer: document.referrer || '',
-      timestamp: new Date().toISOString(),
+    const now = new Date();
+    
+    // 解析 user agent
+    const ua = navigator.userAgent;
+    let browser = 'Unknown';
+    if (ua.includes('Firefox/')) browser = 'Firefox';
+    else if (ua.includes('Edg/')) browser = 'Edge';
+    else if (ua.includes('Chrome/')) browser = 'Chrome';
+    else if (ua.includes('Safari/')) browser = 'Safari';
+    
+    let os = 'Unknown';
+    if (ua.includes('Win')) os = 'Windows';
+    else if (ua.includes('Mac')) os = 'MacOS';
+    else if (ua.includes('Linux')) os = 'Linux';
+    else if (ua.includes('Android')) os = 'Android';
+    else if (ua.includes('iOS')) os = 'iOS';
+    
+    let device = 'Desktop';
+    if (/Mobi|Android/i.test(ua)) device = 'Mobile';
+    
+    const insertData = {
+      path: window.location.pathname || '/',
+      referrer: document.referrer || '直接访问',
+      timestamp: now.toISOString(),
       ip_hash: ipHash,
-    });
+      date: now.toLocaleDateString('zh-CN'),
+      time: now.toLocaleTimeString('zh-CN'),
+      page: document.title || '首页',
+      browser,
+      os,
+      device,
+      screen_size: `${window.innerWidth}x${window.innerHeight}`
+    };
+    
+    const { error } = await supabase.from(tableName).insert(insertData);
+    
+    if (error) {
+      console.error('记录访问失败:', error);
+    }
   } catch (error) {
-    console.error('记录访问失败:', error);
+    console.error('记录访问异常:', error);
   }
 }
 
