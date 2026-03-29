@@ -81,10 +81,11 @@ export async function getSupabaseStats(): Promise<RealtimeStats | null> {
     beijingTodayStart.setHours(0, 0, 0, 0);
     // 转回UTC时间用于查询
     const todayStartUTC = new Date(beijingTodayStart.getTime() - beijingOffset * 60000);
+    const todayStartStr = todayStartUTC.toISOString();
     
     console.log(`[Analytics] 开始查询表: ${tableName}`);
     console.log(`[Analytics] 北京时间今日开始: ${beijingTodayStart.toISOString()}`);
-    console.log(`[Analytics] 查询用UTC时间: ${todayStartUTC.toISOString()}`);
+    console.log(`[Analytics] 查询用UTC时间: ${todayStartStr}`);
     
     // 获取总访问量
     const totalResult = await supabase
@@ -107,23 +108,33 @@ export async function getSupabaseStats(): Promise<RealtimeStats | null> {
     const todayResult = await supabase
       .from(tableName)
       .select('*', { count: 'exact', head: true })
-      .gte('timestamp', todayStartUTC.toISOString());
+      .gte('timestamp', todayStartStr);
     
     console.log(`[Analytics] 今日访问量(PV):`, todayResult.count, '错误:', todayResult.error?.message);
     
-    // 获取今日独立访客数 - 只查询今天的记录
-    const { data: todayRecords, error: uniqueError } = await supabase
+    // 获取今日独立访客数 - 查询今天的所有字段来调试
+    const uniqueResult = await supabase
       .from(tableName)
-      .select('visitor_id')
-      .gte('timestamp', todayStartUTC.toISOString());
+      .select('*')  // 查询所有字段方便调试
+      .gte('timestamp', todayStartStr);
     
-    if (uniqueError) {
-      console.error(`[Analytics] 独立访客查询失败:`, uniqueError);
+    console.log(`[Analytics] 今日独立访客查询详情:`, {
+      记录数: uniqueResult.data?.length || 0,
+      错误: uniqueResult.error,
+      原始数据: uniqueResult.data
+    });
+    
+    const todayRecords = uniqueResult.data;
+    
+    if (uniqueResult.error) {
+      console.error(`[Analytics] 独立访客查询失败:`, uniqueResult.error);
     }
     
-    console.log(`[Analytics] 今日记录数: ${todayRecords?.length || 0}`);
+    // 检查字段名是否存在
     if (todayRecords && todayRecords.length > 0) {
-      console.log(`[Analytics] 前3条今日记录:`, todayRecords.slice(0, 3));
+      const firstRecord = todayRecords[0];
+      console.log(`[Analytics] 第一条记录的所有字段:`, Object.keys(firstRecord));
+      console.log(`[Analytics] 第一条记录完整内容:`, firstRecord);
     }
     
     // 过滤掉空的visitor_id后计算唯一数（今日独立访客UV）
