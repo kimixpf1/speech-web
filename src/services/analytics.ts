@@ -49,13 +49,20 @@ export function getBaiduStatsUrl(): string {
 export async function clearVisitRecords(ids?: string[]): Promise<boolean> {
   try {
     if (ids && ids.length > 0) {
+      // 删除指定ID的记录
       const { error } = await supabase
         .from('visit_logs')
         .delete()
         .in('id', ids);
       return !error;
+    } else {
+      // 删除所有记录（用 neq 不可能存在的值来匹配所有记录）
+      const { error } = await supabase
+        .from('visit_logs')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      return !error;
     }
-    return true;
   } catch (error) {
     console.error('清除访问记录失败:', error);
     return false;
