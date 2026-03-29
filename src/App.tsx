@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useLayoutEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useLayoutEffect, useRef, Suspense, lazy } from 'react';
 import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Hero } from '@/components/Hero';
@@ -6,15 +6,26 @@ import { FilterBar } from '@/components/FilterBar';
 import { ContentList } from '@/components/ContentList';
 import { About } from '@/components/About';
 import { Footer } from '@/components/Footer';
-import { DetailPage } from '@/components/DetailPage';
-import { AdminLogin } from '@/components/AdminLogin';
-import { AdminDashboard } from '@/components/AdminDashboard';
-import { SuggestionBox } from '@/components/SuggestionBox';
 import { ZhengjiguanPage } from '@/components/ZhengjiguanPage';
 import { getArticles, getLocalArticlesSync, setupRealtimeSubscription, type Speech } from '@/services/articleServiceEnhanced';
 import { initAnalytics } from '@/services/analytics';
 import { isAdminLoggedInSync, isAdminLoggedIn } from '@/services/adminAuth';
 import './App.css';
+
+// 懒加载页面组件
+const DetailPage = lazy(() => import('@/components/DetailPage').then(m => ({ default: m.DetailPage })));
+const AdminLogin = lazy(() => import('@/components/AdminLogin').then(m => ({ default: m.AdminLogin })));
+const AdminDashboard = lazy(() => import('@/components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const SuggestionBox = lazy(() => import('@/components/SuggestionBox').then(m => ({ default: m.SuggestionBox })));
+
+// 全局加载指示器
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-[50vh]">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+    </div>
+  );
+}
 
 function HomePage() {
   const location = useLocation();
@@ -294,16 +305,18 @@ function MainLayout() {
   return (
     <div className="min-h-screen bg-gray-50">
       {!hideHeaderFooter && <Header currentView={currentView} onViewChange={handleViewChange} />}
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/suggestion" element={<SuggestionWrapper />} />
-        <Route path="/admin/login" element={<AdminLoginWrapper />} />
-        <Route path="/admin/dashboard" element={<AdminDashboardWrapper />} />
-        <Route path="/detail/:id" element={<DetailPage />} />
-        <Route path="/zhengjiguan" element={<ZhengjiguanPage />} />
-        <Route path="/zhengjiguan/:id" element={<DetailPage />} />
-      </Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/suggestion" element={<SuggestionWrapper />} />
+          <Route path="/admin/login" element={<AdminLoginWrapper />} />
+          <Route path="/admin/dashboard" element={<AdminDashboardWrapper />} />
+          <Route path="/detail/:id" element={<DetailPage />} />
+          <Route path="/zhengjiguan" element={<ZhengjiguanPage />} />
+          <Route path="/zhengjiguan/:id" element={<DetailPage />} />
+        </Routes>
+      </Suspense>
       {!hideHeaderFooter && <Footer />}
     </div>
   );
