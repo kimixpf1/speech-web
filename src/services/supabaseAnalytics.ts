@@ -3,6 +3,9 @@
 
 import { supabase } from '@/lib/supabase';
 
+// Supabase表名：PostgreSQL会将 "New table" 转为 new_table
+const TABLE_NAME = 'new_table';
+
 // 统计数据类型
 export interface RealtimeStats {
   totalVisits: number;
@@ -44,14 +47,11 @@ export async function getSupabaseStats(): Promise<RealtimeStats | null> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // 用户确认表名是 "New table"
-    const tableName = 'New table';
-    
-    console.log(`[Analytics] 开始查询表: ${tableName}`);
+    console.log(`[Analytics] 开始查询表: ${TABLE_NAME}`);
     
     // 获取总访问量
     const totalResult = await supabase
-      .from(tableName)
+      .from(TABLE_NAME)
       .select('*', { count: 'exact', head: true });
     
     console.log(`[Analytics] 总访问量查询结果:`, { 
@@ -68,7 +68,7 @@ export async function getSupabaseStats(): Promise<RealtimeStats | null> {
     
     // 获取今日访问量
     const todayResult = await supabase
-      .from(tableName)
+      .from(TABLE_NAME)
       .select('*', { count: 'exact', head: true })
       .gte('timestamp', today.toISOString());
     
@@ -76,7 +76,7 @@ export async function getSupabaseStats(): Promise<RealtimeStats | null> {
     
     // 获取独立访客数
     const { data: uniqueVisitors, error: uniqueError } = await supabase
-      .from(tableName)
+      .from(TABLE_NAME)
       .select('visitor_id');
     
     if (uniqueError) {
@@ -105,12 +105,10 @@ export async function getSupabaseStats(): Promise<RealtimeStats | null> {
  */
 export async function getSupabaseRecentVisits(limit = 50): Promise<VisitRecord[]> {
   try {
-    const tableName = 'New table';
-    
-    console.log(`[Analytics] 获取最近访问记录，表: ${tableName}`);
+    console.log(`[Analytics] 获取最近访问记录，表: ${TABLE_NAME}`);
     
     const { data, error } = await supabase
-      .from(tableName)
+      .from(TABLE_NAME)
       .select('*')
       .order('timestamp', { ascending: false })
       .limit(limit);
@@ -147,14 +145,14 @@ export async function clearVisitRecords(ids?: string[]): Promise<boolean> {
     if (ids && ids.length > 0) {
       // 删除指定ID的记录
       const { error } = await supabase
-        .from('New table')
+        .from(TABLE_NAME)
         .delete()
         .in('id', ids);
       return !error;
     } else {
       // 删除所有记录
       const { error } = await supabase
-        .from('New table')
+        .from(TABLE_NAME)
         .delete()
         .neq('id', '00000000-0000-0000-0000-000000000000');
       return !error;
@@ -175,7 +173,7 @@ export async function logVisit(path: string, referrer?: string): Promise<void> {
     
     localStorage.setItem('visitor_id', visitorId);
     
-    await supabase.from('New table').insert({
+    await supabase.from(TABLE_NAME).insert({
       id: crypto.randomUUID(),
       path,
       referrer: referrer || document.referrer || '',

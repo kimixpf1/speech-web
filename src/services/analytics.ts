@@ -6,6 +6,9 @@ import { supabase } from '@/lib/supabase';
 // 百度统计 Tracking ID
 const BAIDU_TRACKING_ID = 'fde2c5ee85e02a961caa756c4a6e2c88';
 
+// Supabase表名（PostgreSQL将"New table"转为new_table）
+const TABLE_NAME = 'new_table';
+
 // 访问记录类型
 export interface VisitRecord {
   id: string;
@@ -42,7 +45,7 @@ async function recordVisit(): Promise<void> {
     
     localStorage.setItem('visitor_id', visitorId);
     
-    await supabase.from('New table').insert({
+    await supabase.from(TABLE_NAME).insert({
       id: crypto.randomUUID(),
       path: window.location.pathname,
       referrer: document.referrer || '',
@@ -67,7 +70,7 @@ export function getBaiduStatsUrl(): string {
 export async function getVisitRecords(): Promise<VisitRecord[]> {
   try {
     const { data, error } = await supabase
-      .from('New table')
+      .from(TABLE_NAME)
       .select('*')
       .order('timestamp', { ascending: false })
       .limit(100);
@@ -98,18 +101,18 @@ export async function getVisitStats(): Promise<VisitStats> {
     
     // 获取总访问量
     const { count: totalVisits } = await supabase
-      .from('New table')
+      .from(TABLE_NAME)
       .select('*', { count: 'exact', head: true });
     
     // 获取今日访问量
     const { count: todayVisits } = await supabase
-      .from('New table')
+      .from(TABLE_NAME)
       .select('*', { count: 'exact', head: true })
       .gte('timestamp', today.toISOString());
     
     // 获取独立访客数
     const { data: uniqueVisitors } = await supabase
-      .from('New table')
+      .from(TABLE_NAME)
       .select('visitor_id');
     
     const uniqueCount = new Set(uniqueVisitors?.map(v => v.visitor_id) || []).size;
@@ -133,14 +136,14 @@ export async function clearVisitRecords(ids?: string[]): Promise<boolean> {
     if (ids && ids.length > 0) {
       // 删除指定ID的记录
       const { error } = await supabase
-        .from('New table')
+        .from(TABLE_NAME)
         .delete()
         .in('id', ids);
       return !error;
     } else {
       // 删除所有记录（用 neq 不可能存在的值来匹配所有记录）
       const { error } = await supabase
-        .from('New table')
+        .from(TABLE_NAME)
         .delete()
         .neq('id', '00000000-0000-0000-0000-000000000000');
       return !error;

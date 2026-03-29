@@ -37,21 +37,21 @@ export interface SearchStatus {
  * 保存GitHub Token到localStorage
  */
 export function saveGitHubToken(token: string): void {
-  localStorage.setItem('github_token', token);
+  localStorage.setItem('github_workflow_token', token);
 }
 
 /**
  * 获取保存的GitHub Token
  */
 export function getGitHubToken(): string | null {
-  return localStorage.getItem('github_token');
+  return localStorage.getItem('github_workflow_token');
 }
 
 /**
  * 清除GitHub Token
  */
 export function clearGitHubToken(): void {
-  localStorage.removeItem('github_token');
+  localStorage.removeItem('github_workflow_token');
 }
 
 /**
