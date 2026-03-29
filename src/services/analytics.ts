@@ -24,7 +24,7 @@ async function recordVisit(): Promise<void> {
     
     localStorage.setItem('visitor_id', visitorId);
     
-    await supabase.from('visit_logs').insert({
+    await supabase.from('new_table').insert({
       id: crypto.randomUUID(),
       path: window.location.pathname,
       referrer: document.referrer || '',
@@ -51,14 +51,14 @@ export async function clearVisitRecords(ids?: string[]): Promise<boolean> {
     if (ids && ids.length > 0) {
       // 删除指定ID的记录
       const { error } = await supabase
-        .from('visit_logs')
+        .from('new_table')
         .delete()
         .in('id', ids);
       return !error;
     } else {
       // 删除所有记录（用 neq 不可能存在的值来匹配所有记录）
       const { error } = await supabase
-        .from('visit_logs')
+        .from('new_table')
         .delete()
         .neq('id', '00000000-0000-0000-0000-000000000000');
       return !error;

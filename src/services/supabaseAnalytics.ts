@@ -46,18 +46,18 @@ export async function getSupabaseStats(): Promise<RealtimeStats | null> {
     
     // 获取总访问量
     const { count: totalVisits } = await supabase
-      .from('visit_logs')
+      .from('new_table')
       .select('*', { count: 'exact', head: true });
     
     // 获取今日访问量
     const { count: todayVisits } = await supabase
-      .from('visit_logs')
+      .from('new_table')
       .select('*', { count: 'exact', head: true })
       .gte('timestamp', today.toISOString());
     
     // 获取独立访客数
     const { data: uniqueVisitors } = await supabase
-      .from('visit_logs')
+      .from('new_table')
       .select('visitor_id');
     
     const uniqueCount = new Set(uniqueVisitors?.map(v => v.visitor_id) || []).size;
@@ -82,7 +82,7 @@ export async function getSupabaseStats(): Promise<RealtimeStats | null> {
 export async function getSupabaseRecentVisits(limit = 50): Promise<VisitRecord[]> {
   try {
     const { data, error } = await supabase
-      .from('visit_logs')
+      .from('new_table')
       .select('*')
       .order('timestamp', { ascending: false })
       .limit(limit);
@@ -118,14 +118,14 @@ export async function clearVisitRecords(ids?: string[]): Promise<boolean> {
     if (ids && ids.length > 0) {
       // 删除指定ID的记录
       const { error } = await supabase
-        .from('visit_logs')
+        .from('new_table')
         .delete()
         .in('id', ids);
       return !error;
     } else {
       // 删除所有记录
       const { error } = await supabase
-        .from('visit_logs')
+        .from('new_table')
         .delete()
         .neq('id', '00000000-0000-0000-0000-000000000000');
       return !error;
@@ -146,7 +146,7 @@ export async function logVisit(path: string, referrer?: string): Promise<void> {
     
     localStorage.setItem('visitor_id', visitorId);
     
-    await supabase.from('visit_logs').insert({
+    await supabase.from('new_table').insert({
       id: crypto.randomUUID(),
       path,
       referrer: referrer || document.referrer || '',
