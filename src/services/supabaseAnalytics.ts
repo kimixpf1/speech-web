@@ -28,7 +28,6 @@ async function findCorrectTableName(): Promise<string> {
     }
   }
   
-  // 如果都找不到有数据的表，默认用 new_table
   console.log(`[Analytics] 未找到有数据的表，默认使用 new_table`);
   return 'new_table';
 }
@@ -72,10 +71,20 @@ export function isSupabaseConfigured(): boolean {
 export async function getSupabaseStats(): Promise<RealtimeStats | null> {
   try {
     const tableName = await findCorrectTableName();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    
+    // 使用北京时间（UTC+8）计算今日开始
+    const now = new Date();
+    const beijingOffset = 8 * 60; // 北京时间UTC+8（分钟）
+    const localOffset = now.getTimezoneOffset(); // 本地时间与UTC的偏移（分钟）
+    // 计算北京时间今天的0点
+    const beijingTodayStart = new Date(now.getTime() + (beijingOffset + localOffset) * 60000);
+    beijingTodayStart.setHours(0, 0, 0, 0);
+    // 转回UTC时间用于查询
+    const todayStartUTC = new Date(beijingTodayStart.getTime() - beijingOffset * 60000);
     
     console.log(`[Analytics] 开始查询表: ${tableName}`);
+    console.log(`[Analytics] 北京时间今日开始: ${beijingTodayStart.toISOString()}`);
+    console.log(`[Analytics] 查询用UTC时间: ${todayStartUTC.toISOString()}`);
     
     // 获取总访问量
     const totalResult = await supabase
@@ -94,16 +103,16 @@ export async function getSupabaseStats(): Promise<RealtimeStats | null> {
     
     const totalVisits = totalResult.count || 0;
     
-    // 获取今日访问量
+    // 获取今日访问量（使用北京时间今日开始）
     const todayResult = await supabase
       .from(tableName)
       .select('*', { count: 'exact', head: true })
-      .gte('timestamp', today.toISOString());
+      .gte('timestamp', todayStartUTC.toISOString());
     
-    console.log(`[Analytics] 今日访问量:`, todayResult.count);
+    console.log(`[Analytics] 今日访问量:`, todayResult.count, '错误:', todayResult.error?.message);
     
-    // 获取独立访客数
-    const { data: uniqueVisitors, error: uniqueError } = await supabase
+    // 获取独立访客数 - 查询所有记录的visitor_id
+    const { data: allRecords, error: uniqueError } = await supabase
       .from(tableName)
       .select('visitor_id');
     
@@ -111,8 +120,15 @@ export async function getSupabaseStats(): Promise<RealtimeStats | null> {
       console.error(`[Analytics] 独立访客查询失败:`, uniqueError);
     }
     
-    const uniqueCount = new Set(uniqueVisitors?.map(v => v.visitor_id) || []).size;
-    console.log(`[Analytics] 独立访客数:`, uniqueCount);
+    console.log(`[Analytics] 查询到记录数: ${allRecords?.length || 0}`);
+    if (allRecords && allRecords.length > 0) {
+      console.log(`[Analytics] 前3条记录:`, allRecords.slice(0, 3));
+    }
+    
+    // 过滤掉空的visitor_id后计算唯一数
+    const validVisitorIds = allRecords?.filter(v => v.visitor_id).map(v => v.visitor_id) || [];
+    const uniqueCount = new Set(validVisitorIds).size;
+    console.log(`[Analytics] 有效visitor_id数: ${validVisitorIds.length}, 独立访客数: ${uniqueCount}`);
     
     return {
       totalVisits,
@@ -173,14 +189,12 @@ export async function clearVisitRecords(ids?: string[]): Promise<boolean> {
   try {
     const tableName = await findCorrectTableName();
     if (ids && ids.length > 0) {
-      // 删除指定ID的记录
       const { error } = await supabase
         .from(tableName)
         .delete()
         .in('id', ids);
       return !error;
     } else {
-      // 删除所有记录
       const { error } = await supabase
         .from(tableName)
         .delete()
