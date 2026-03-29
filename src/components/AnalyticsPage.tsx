@@ -188,6 +188,15 @@ export function AnalyticsPage({ onBack }: AnalyticsPageProps) {
             </div>
             <div className="flex items-center gap-2">
               <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open('https://tongji.baidu.com/main/overview/10000713217/overview/index?siteId=22905415', '_blank')}
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              >
+                <ExternalLink className="w-4 h-4 mr-1" />
+                百度统计
+              </Button>
+              <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleRefresh}

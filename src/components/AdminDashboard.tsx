@@ -1122,9 +1122,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   // 后台搜索（使用 GitHub Actions 工作流，最可靠）
   const handleBackendSearch = async () => {
-    console.log('handleBackendSearch 被调用');
+    // 同时检查 localStorage 和组件状态（避免状态不同步）
+    const token = getGitHubToken() || githubToken;
+    console.log('handleBackendSearch 被调用，Token状态:', !!token);
     
-    if (!hasGitHubToken()) {
+    if (!token) {
       console.log('没有 GitHub Token，显示配置对话框');
       setShowTokenDialog(true);
       return;
