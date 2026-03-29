@@ -109,26 +109,27 @@ export async function getSupabaseStats(): Promise<RealtimeStats | null> {
       .select('*', { count: 'exact', head: true })
       .gte('timestamp', todayStartUTC.toISOString());
     
-    console.log(`[Analytics] 今日访问量:`, todayResult.count, '错误:', todayResult.error?.message);
+    console.log(`[Analytics] 今日访问量(PV):`, todayResult.count, '错误:', todayResult.error?.message);
     
-    // 获取独立访客数 - 查询所有记录的visitor_id
-    const { data: allRecords, error: uniqueError } = await supabase
+    // 获取今日独立访客数 - 只查询今天的记录
+    const { data: todayRecords, error: uniqueError } = await supabase
       .from(tableName)
-      .select('visitor_id');
+      .select('visitor_id')
+      .gte('timestamp', todayStartUTC.toISOString());
     
     if (uniqueError) {
       console.error(`[Analytics] 独立访客查询失败:`, uniqueError);
     }
     
-    console.log(`[Analytics] 查询到记录数: ${allRecords?.length || 0}`);
-    if (allRecords && allRecords.length > 0) {
-      console.log(`[Analytics] 前3条记录:`, allRecords.slice(0, 3));
+    console.log(`[Analytics] 今日记录数: ${todayRecords?.length || 0}`);
+    if (todayRecords && todayRecords.length > 0) {
+      console.log(`[Analytics] 前3条今日记录:`, todayRecords.slice(0, 3));
     }
     
-    // 过滤掉空的visitor_id后计算唯一数
-    const validVisitorIds = allRecords?.filter(v => v.visitor_id).map(v => v.visitor_id) || [];
+    // 过滤掉空的visitor_id后计算唯一数（今日独立访客UV）
+    const validVisitorIds = todayRecords?.filter(v => v.visitor_id).map(v => v.visitor_id) || [];
     const uniqueCount = new Set(validVisitorIds).size;
-    console.log(`[Analytics] 有效visitor_id数: ${validVisitorIds.length}, 独立访客数: ${uniqueCount}`);
+    console.log(`[Analytics] 今日有效visitor_id数: ${validVisitorIds.length}, 今日独立访客数(UV): ${uniqueCount}`);
     
     return {
       totalVisits,

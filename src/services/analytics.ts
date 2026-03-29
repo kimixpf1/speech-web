@@ -120,8 +120,14 @@ export async function getVisitRecords(): Promise<VisitRecord[]> {
 export async function getVisitStats(): Promise<VisitStats> {
   try {
     const tableName = await findCorrectTableName();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    
+    // 使用北京时间（UTC+8）计算今日开始
+    const now = new Date();
+    const beijingOffset = 8 * 60;
+    const localOffset = now.getTimezoneOffset();
+    const beijingTodayStart = new Date(now.getTime() + (beijingOffset + localOffset) * 60000);
+    beijingTodayStart.setHours(0, 0, 0, 0);
+    const todayStartUTC = new Date(beijingTodayStart.getTime() - beijingOffset * 60000);
     
     // 获取总访问量
     const { count: totalVisits } = await supabase
@@ -132,14 +138,15 @@ export async function getVisitStats(): Promise<VisitStats> {
     const { count: todayVisits } = await supabase
       .from(tableName)
       .select('*', { count: 'exact', head: true })
-      .gte('timestamp', today.toISOString());
+      .gte('timestamp', todayStartUTC.toISOString());
     
-    // 获取独立访客数
-    const { data: uniqueVisitors } = await supabase
+    // 获取今日独立访客数（只查询今天的记录）
+    const { data: todayRecords } = await supabase
       .from(tableName)
-      .select('visitor_id');
+      .select('visitor_id')
+      .gte('timestamp', todayStartUTC.toISOString());
     
-    const uniqueCount = new Set(uniqueVisitors?.map(v => v.visitor_id) || []).size;
+    const uniqueCount = new Set(todayRecords?.filter(v => v.visitor_id).map(v => v.visitor_id) || []).size;
     
     return {
       totalVisits: totalVisits || 0,
@@ -159,14 +166,12 @@ export async function clearVisitRecords(ids?: string[]): Promise<boolean> {
   try {
     const tableName = await findCorrectTableName();
     if (ids && ids.length > 0) {
-      // 删除指定ID的记录
       const { error } = await supabase
         .from(tableName)
         .delete()
         .in('id', ids);
       return !error;
     } else {
-      // 删除所有记录（用 neq 不可能存在的值来匹配所有记录）
       const { error } = await supabase
         .from(tableName)
         .delete()
