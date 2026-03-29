@@ -44,31 +44,61 @@ export async function getSupabaseStats(): Promise<RealtimeStats | null> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // 获取总访问量
-    const { count: totalVisits } = await supabase
-      .from('New table')
-      .select('*', { count: 'exact', head: true });
+    // 尝试多种可能的表名格式
+    const tableNames = ['New table', 'new_table', 'newtable'];
+    let totalVisits = 0;
+    let todayVisits = 0;
+    let uniqueCount = 0;
+    let foundTable = false;
     
-    // 获取今日访问量
-    const { count: todayVisits } = await supabase
-      .from('New table')
-      .select('*', { count: 'exact', head: true })
-      .gte('timestamp', today.toISOString());
+    for (const tableName of tableNames) {
+      try {
+        console.log(`[Analytics] 尝试表名: ${tableName}`);
+        
+        // 获取总访问量
+        const { count, error } = await supabase
+          .from(tableName)
+          .select('*', { count: 'exact', head: true });
+        
+        if (error) {
+          console.log(`[Analytics] 表 ${tableName} 查询失败:`, error.message);
+          continue;
+        }
+        
+        console.log(`[Analytics] 表 ${tableName} 成功! 总记录: ${count}`);
+        foundTable = true;
+        totalVisits = count || 0;
+        
+        // 获取今日访问量
+        const { count: todayCount } = await supabase
+          .from(tableName)
+          .select('*', { count: 'exact', head: true })
+          .gte('timestamp', today.toISOString());
+        todayVisits = todayCount || 0;
+        
+        // 获取独立访客数
+        const { data: uniqueVisitors } = await supabase
+          .from(tableName)
+          .select('visitor_id');
+        uniqueCount = new Set(uniqueVisitors?.map(v => v.visitor_id) || []).size;
+        
+        break; // 成功则跳出循环
+      } catch (e) {
+        console.log(`[Analytics] 表 ${tableName} 异常:`, e);
+      }
+    }
     
-    // 获取独立访客数
-    const { data: uniqueVisitors } = await supabase
-      .from('New table')
-      .select('visitor_id');
-    
-    const uniqueCount = new Set(uniqueVisitors?.map(v => v.visitor_id) || []).size;
+    if (!foundTable) {
+      console.error('[Analytics] 所有表名都失败了，请检查 Supabase 表名');
+    }
     
     return {
-      totalVisits: totalVisits || 0,
-      todayVisits: todayVisits || 0,
-      weekVisits: Math.round((totalVisits || 0) / 4),
-      monthVisits: totalVisits || 0,
+      totalVisits,
+      todayVisits,
+      weekVisits: Math.round(totalVisits / 4),
+      monthVisits: totalVisits,
       uniqueVisitors: uniqueCount,
-      avgVisitsPerDay: Math.round((totalVisits || 0) / 30),
+      avgVisitsPerDay: Math.round(totalVisits / 30),
     };
   } catch (error) {
     console.error('获取统计失败:', error);
@@ -81,29 +111,43 @@ export async function getSupabaseStats(): Promise<RealtimeStats | null> {
  */
 export async function getSupabaseRecentVisits(limit = 50): Promise<VisitRecord[]> {
   try {
-    const { data, error } = await supabase
-      .from('New table')
-      .select('*')
-      .order('timestamp', { ascending: false })
-      .limit(limit);
+    // 尝试多种可能的表名格式
+    const tableNames = ['New table', 'new_table', 'newtable'];
     
-    if (error) {
-      console.error('获取访问记录失败:', error);
-      return [];
+    for (const tableName of tableNames) {
+      try {
+        const { data, error } = await supabase
+          .from(tableName)
+          .select('*')
+          .order('timestamp', { ascending: false })
+          .limit(limit);
+        
+        if (error) {
+          console.log(`[Analytics] 表 ${tableName} 查询失败:`, error.message);
+          continue;
+        }
+        
+        console.log(`[Analytics] 表 ${tableName} 获取记录成功: ${data?.length || 0} 条`);
+        
+        // 处理数据，添加 date, time 等字段
+        return (data || []).map(item => {
+          const ts = new Date(item.timestamp);
+          return {
+            ...item,
+            date: ts.toLocaleDateString('zh-CN'),
+            time: ts.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+            device: 'Desktop',
+            browser: 'Chrome',
+            os: 'Windows',
+          };
+        });
+      } catch (e) {
+        console.log(`[Analytics] 表 ${tableName} 异常:`, e);
+      }
     }
     
-    // 处理数据，添加 date, time 等字段
-    return (data || []).map(item => {
-      const ts = new Date(item.timestamp);
-      return {
-        ...item,
-        date: ts.toLocaleDateString('zh-CN'),
-        time: ts.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-        device: 'Desktop',
-        browser: 'Chrome',
-        os: 'Windows',
-      };
-    });
+    console.error('[Analytics] 所有表名都失败了');
+    return [];
   } catch (error) {
     console.error('获取访问记录失败:', error);
     return [];

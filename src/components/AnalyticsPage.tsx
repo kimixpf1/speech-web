@@ -28,7 +28,6 @@ import {
   getVisitRecords, 
   getVisitStats, 
   clearVisitRecords,
-  getBaiduStatsUrl,
   type VisitRecord as LocalVisitRecord,
   type VisitStats as LocalVisitStats 
 } from '@/services/analytics';
@@ -291,25 +290,6 @@ export function AnalyticsPage({ onBack }: AnalyticsPageProps) {
               </div>
             </Alert>
           )}
-
-          {/* 百度统计入口 */}
-          <Card 
-            className="mb-6 hover:shadow-md transition-shadow cursor-pointer" 
-            onClick={() => window.open(getBaiduStatsUrl(), '_blank')}
-          >
-            <CardContent className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <BarChart3 className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">百度统计后台</p>
-                  <p className="text-sm text-gray-500">查看更详细的访问数据和分析报告</p>
-                </div>
-              </div>
-              <ExternalLink className="w-5 h-5 text-gray-400" />
-            </CardContent>
-          </Card>
 
           {activeTab === 'overview' && displayStats && (
             <>
