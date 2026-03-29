@@ -12,6 +12,8 @@ import { getArticles, setupRealtimeSubscription, type Speech } from '@/services/
 import { initAnalytics } from '@/services/analytics';
 import { isAdminLoggedInSync, isAdminLoggedIn } from '@/services/adminAuth';
 import { useDebounce } from '@/hooks/useDebounce';
+import { NotFoundPage } from '@/components/NotFoundPage';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import './App.css';
 
 // 懒加载页面组件
@@ -20,19 +22,56 @@ const AdminLogin = lazy(() => import('@/components/AdminLogin').then(m => ({ def
 const AdminDashboard = lazy(() => import('@/components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const SuggestionBox = lazy(() => import('@/components/SuggestionBox').then(m => ({ default: m.SuggestionBox })));
 
-// 全局加载指示器
+// 全局加载指示器 (骨架屏)
 function PageLoader() {
   return (
-    <div className="flex items-center justify-center min-h-[50vh]">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+    <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+      {/* 顶部标题骨架 */}
+      <div className="space-y-4 mb-8">
+        <div className="h-8 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+        <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+      </div>
+      
+      {/* 内容卡片骨架 */}
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 space-y-4">
+          <div className="flex gap-4">
+            <div className="w-12 h-12 bg-gray-200 rounded-lg animate-pulse"></div>
+            <div className="flex-1 space-y-3">
+              <div className="h-6 bg-gray-200 rounded w-5/6 animate-pulse"></div>
+              <div className="flex gap-2">
+                <div className="h-4 bg-gray-200 rounded w-16 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+              </div>
+              <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-4/5 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
+}
+
+// 获取上次的滚动位置以避免返回时白屏等待
+function getInitialScrollPosition() {
+  const saved = sessionStorage.getItem('lastScrollY');
+  return saved ? parseInt(saved, 10) : 0;
 }
 
 function HomePage() {
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300); // 300ms 防抖延迟
+
+  // 记录滚动位置
+  useEffect(() => {
+    const handleScroll = () => {
+      sessionStorage.setItem('lastScrollY', window.scrollY.toString());
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const [selectedDomain, setSelectedDomain] = useState(
     () => sessionStorage.getItem('selectedDomain') || 'economy'
@@ -144,6 +183,16 @@ function HomePage() {
     return result;
   }, [debouncedSearchQuery, selectedDomain, selectedCategory, selectedYear, articles]);
 
+  // 当文章列表加载完成后，恢复滚动位置
+  useLayoutEffect(() => {
+    if (articles.length > 0) {
+      const savedScrollY = getInitialScrollPosition();
+      if (savedScrollY > 0) {
+        window.scrollTo(0, savedScrollY);
+      }
+    }
+  }, [articles.length]);
+
   return (
     <div>
       <Hero
@@ -248,18 +297,21 @@ function MainLayout() {
     <div className="min-h-screen bg-gray-50">
       {!hideHeaderFooter && <Header currentView={currentView} onViewChange={handleViewChange} />}
       <ScrollRestoration />
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/suggestion" element={<SuggestionWrapper />} />
-          <Route path="/admin/login" element={<AdminLoginWrapper />} />
-          <Route path="/admin/dashboard" element={<AdminDashboardWrapper />} />
-          <Route path="/detail/:id" element={<DetailPage />} />
-          <Route path="/zhengjiguan" element={<ZhengjiguanPage />} />
-          <Route path="/zhengjiguan/:id" element={<DetailPage />} />
-        </Routes>
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/suggestion" element={<SuggestionWrapper />} />
+            <Route path="/admin/login" element={<AdminLoginWrapper />} />
+            <Route path="/admin/dashboard" element={<AdminDashboardWrapper />} />
+            <Route path="/detail/:id" element={<DetailPage />} />
+            <Route path="/zhengjiguan" element={<ZhengjiguanPage />} />
+            <Route path="/zhengjiguan/:id" element={<DetailPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
       {!hideHeaderFooter && <Footer />}
     </div>
   );
