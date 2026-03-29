@@ -207,9 +207,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [searchLogs, setSearchLogs] = useState<SearchLog[]>([]);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
 
-  // GitHub搜索功能状态（保留但不再使用）
+  // GitHub搜索功能状态
   const [githubToken, setGithubTokenState] = useState(getGitHubToken() || '');
-  const [showTokenDialog, setShowTokenDialog] = useState(false);
   const [tokenInput, setTokenInput] = useState('');
   const [tokenValidating, setTokenValidating] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -967,7 +966,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     if (result.valid) {
       saveGitHubToken(tokenInput.trim());
       setGithubTokenState(tokenInput.trim());
-      setShowTokenDialog(false);
+      setTokenInput('');  // 清空输入框
       setSuccessMessage(`Token验证成功，用户: ${result.username}，正在触发搜索...`);
       setTimeout(() => setSuccessMessage(''), 3000);
       // 保存成功后自动触发搜索
@@ -1031,8 +1030,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   // 触发搜索
   const handleTriggerSearch = async () => {
-    if (!githubToken) {
-      setShowTokenDialog(true);
+    const storedToken = localStorage.getItem('github_workflow_token');
+    const token = storedToken || githubToken;
+    
+    if (!token) {
+      setShowApiConfigDialog(true);  // 打开API配置对话框
       return;
     }
     
@@ -1132,8 +1134,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     const token = storedToken || githubToken;
     
     if (!token) {
-      console.log('没有 GitHub Token，显示配置对话框');
-      setShowTokenDialog(true);
+      console.log('没有 GitHub Token，打开API配置对话框');
+      setShowApiConfigDialog(true);  // 打开API配置对话框让用户填写
       return;
     }
 
@@ -2490,59 +2492,6 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         </DialogContent>
       </Dialog>
 
-      {/* GitHub Token 配置对话框 */}
-      <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>配置 GitHub Token</DialogTitle>
-            <DialogDescription>
-              输入您的 GitHub Personal Access Token 以使用 AI 搜索功能
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Personal Access Token</label>
-              <Input
-                type="password"
-                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                value={tokenInput}
-                onChange={(e) => setTokenInput(e.target.value)}
-              />
-              <p className="text-xs text-gray-500">
-                Token需要有 repo 权限。在 GitHub Settings → Developer settings → Personal access tokens 中创建
-              </p>
-            </div>
-            {githubToken && (
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                <span className="text-sm text-green-700">已配置Token</span>
-                <Button variant="outline" size="sm" onClick={handleClearToken}>
-                  清除
-                </Button>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTokenDialog(false)}>
-              取消
-            </Button>
-            <Button 
-              onClick={handleSaveToken} 
-              disabled={!tokenInput.trim() || tokenValidating}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {tokenValidating ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                  验证中...
-                </>
-              ) : (
-                '保存并验证'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* AI API 配置对话框 */}
       <Dialog open={showApiConfigDialog} onOpenChange={setShowApiConfigDialog}>
         <DialogContent className="sm:max-w-lg">
@@ -2616,6 +2565,41 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               </div>
               <p className="text-xs text-gray-500">
                 在 <a href="https://platform.deepseek.com/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">DeepSeek平台</a> 获取
+              </p>
+            </div>
+
+            {/* GitHub Token - 用于触发AI搜索工作流 */}
+            <div className="space-y-2 pt-4 border-t">
+              <label className="text-sm font-medium flex items-center gap-2">
+                GitHub Token
+                <span className="text-xs text-gray-500">(用于AI搜索)</span>
+                {githubToken && <span className="text-xs text-green-600">已配置</span>}
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  type="password"
+                  placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                  value={tokenInput}
+                  onChange={(e) => setTokenInput(e.target.value)}
+                  className="flex-1"
+                />
+                {githubToken ? (
+                  <Button variant="outline" size="sm" onClick={handleClearToken}>
+                    清除
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={handleSaveToken}
+                    disabled={!tokenInput.trim() || tokenValidating}
+                  >
+                    {tokenValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : '保存'}
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">
+                需要 <code>repo</code> 和 <code>workflow</code> 权限。
+                在 <a href="https://github.com/settings/tokens/new?scopes=repo,workflow" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">GitHub</a> 创建
               </p>
             </div>
 
