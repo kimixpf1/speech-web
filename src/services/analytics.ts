@@ -128,6 +128,7 @@ export async function getVisitStats(): Promise<VisitStats> {
     const beijingTodayStart = new Date(now.getTime() + (beijingOffset + localOffset) * 60000);
     beijingTodayStart.setHours(0, 0, 0, 0);
     const todayStartUTC = new Date(beijingTodayStart.getTime() - beijingOffset * 60000);
+    const todayStartStr = todayStartUTC.toISOString();
     
     // 获取总访问量
     const { count: totalVisits } = await supabase
@@ -138,13 +139,13 @@ export async function getVisitStats(): Promise<VisitStats> {
     const { count: todayVisits } = await supabase
       .from(tableName)
       .select('*', { count: 'exact', head: true })
-      .gte('timestamp', todayStartUTC.toISOString());
+      .gte('timestamp', todayStartStr);
     
     // 获取今日独立访客数（只查询今天的记录，使用 ip_hash 字段）
     const { data: todayRecords } = await supabase
       .from(tableName)
       .select('ip_hash')
-      .gte('timestamp', todayStartUTC.toISOString());
+      .gte('timestamp', todayStartStr);
     
     const uniqueCount = new Set(todayRecords?.filter(v => v.ip_hash).map(v => v.ip_hash) || []).size;
     
