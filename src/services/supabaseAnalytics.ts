@@ -65,65 +65,110 @@ export function isSupabaseConfigured(): boolean {
   return true;
 }
 
+function getBeijingDateParts(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const parts = formatter.formatToParts(date);
+  const year = Number(parts.find(part => part.type === 'year')?.value);
+  const month = Number(parts.find(part => part.type === 'month')?.value);
+  const day = Number(parts.find(part => part.type === 'day')?.value);
+  return { year, month, day };
+}
+
+function getBeijingDateString(date = new Date()) {
+  const { year, month, day } = getBeijingDateParts(date);
+  return `${year}/${month}/${day}`;
+}
+
+function getBeijingBoundaryIso(type: 'day' | 'week' | 'month', date = new Date()) {
+  const { year, month, day } = getBeijingDateParts(date);
+  const beijingDate = new Date(Date.UTC(year, month - 1, day));
+
+  if (type === 'week') {
+    const dayOfWeek = beijingDate.getUTCDay() || 7;
+    beijingDate.setUTCDate(beijingDate.getUTCDate() - (dayOfWeek - 1));
+  }
+
+  if (type === 'month') {
+    beijingDate.setUTCDate(1);
+  }
+
+  return new Date(Date.UTC(
+    beijingDate.getUTCFullYear(),
+    beijingDate.getUTCMonth(),
+    beijingDate.getUTCDate(),
+    -8,
+    0,
+    0,
+    0
+  )).toISOString();
+}
+
 /**
  * 获取统计信息
  */
 export async function getSupabaseStats(): Promise<RealtimeStats | null> {
   try {
     const tableName = await findCorrectTableName();
-    
-    // 使用北京时间（UTC+8）计算今日开始
-    const now = new Date();
-    // 使用中国时区强制格式化当前日期，例如 "2024/05/16"
-    const beijingDateString = now.toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' });
-    
-    // 获取总访问量
+
+    const beijingDateString = getBeijingDateString();
+    const weekStartIso = getBeijingBoundaryIso('week');
+    const monthStartIso = getBeijingBoundaryIso('month');
+
     const totalResult = await supabase
       .from(tableName)
       .select('*', { count: 'exact', head: true });
-    
+
     if (totalResult.error) {
       console.error(`[Analytics] 查询失败:`, totalResult.error);
       return null;
     }
-    
+
     const totalVisits = totalResult.count || 0;
-    
-    // 获取今日访问量（直接使用前端存入的 date 字段精确匹配）
+
     const todayResult = await supabase
       .from(tableName)
       .select('*', { count: 'exact', head: true })
       .eq('date', beijingDateString);
-    
-    // 获取今日独立访客数
+
     const uniqueResult = await supabase
       .from(tableName)
       .select('ip_hash')
       .eq('date', beijingDateString);
-    
+
+    const weekResult = await supabase
+      .from(tableName)
+      .select('*', { count: 'exact', head: true })
+      .gte('timestamp', weekStartIso);
+
+    const monthResult = await supabase
+      .from(tableName)
+      .select('*', { count: 'exact', head: true })
+      .gte('timestamp', monthStartIso);
+
     const todayRecords = uniqueResult.data;
-    
+
     if (uniqueResult.error) {
       console.error(`[Analytics] 独立访客查询失败:`, uniqueResult.error);
     }
-    
-    console.log(`[Analytics] 今日记录数: ${todayRecords?.length || 0}`);
-    if (todayRecords && todayRecords.length > 0) {
-      console.log(`[Analytics] 第一条记录:`, todayRecords[0]);
-    }
-    
-    // 使用 ip_hash 计算独立访客数
+
     const validIpHashes = todayRecords?.filter(v => v.ip_hash).map(v => v.ip_hash) || [];
     const uniqueCount = new Set(validIpHashes).size;
-    console.log(`[Analytics] 今日有效ip_hash数: ${validIpHashes.length}, 今日独立访客数(UV): ${uniqueCount}`);
-    
+
+    const monthVisits = monthResult.count || 0;
+    const currentDayOfMonth = getBeijingDateParts().day;
+
     return {
       totalVisits,
       todayVisits: todayResult.count || 0,
-      weekVisits: Math.round(totalVisits / 4),
-      monthVisits: totalVisits,
+      weekVisits: weekResult.count || 0,
+      monthVisits,
       uniqueVisitors: uniqueCount,
-      avgVisitsPerDay: Math.round(totalVisits / 30),
+      avgVisitsPerDay: currentDayOfMonth > 0 ? Math.round(monthVisits / currentDayOfMonth) : 0,
     };
   } catch (error) {
     console.error('获取统计失败:', error);
@@ -151,16 +196,16 @@ export async function getSupabaseRecentVisits(limit = 50): Promise<VisitRecord[]
     }
     
     console.log(`[Analytics] 获取到 ${data?.length || 0} 条记录`);
-    
+
     return (data || []).map(item => {
       const ts = new Date(item.timestamp);
       return {
         ...item,
-        date: ts.toLocaleDateString('zh-CN'),
-        time: ts.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-        device: 'Desktop',
-        browser: 'Chrome',
-        os: 'Windows',
+        date: item.date || ts.toLocaleDateString('zh-CN'),
+        time: item.time || ts.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+        device: item.device || 'Unknown',
+        browser: item.browser || 'Unknown',
+        os: item.os || 'Unknown',
       };
     });
   } catch (error) {
