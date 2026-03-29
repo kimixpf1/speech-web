@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useLayoutEffect, useRef, Suspense, lazy } from 'react';
-import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, useNavigate, useLocation, ScrollRestoration } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Hero } from '@/components/Hero';
 import { FilterBar } from '@/components/FilterBar';
@@ -7,7 +7,8 @@ import { ContentList } from '@/components/ContentList';
 import { About } from '@/components/About';
 import { Footer } from '@/components/Footer';
 import { ZhengjiguanPage } from '@/components/ZhengjiguanPage';
-import { getArticles, getLocalArticlesSync, setupRealtimeSubscription, type Speech } from '@/services/articleServiceEnhanced';
+import useSWR from 'swr';
+import { getArticles, setupRealtimeSubscription, type Speech } from '@/services/articleServiceEnhanced';
 import { initAnalytics } from '@/services/analytics';
 import { isAdminLoggedInSync, isAdminLoggedIn } from '@/services/adminAuth';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -42,54 +43,12 @@ function HomePage() {
   const [selectedYear, setSelectedYear] = useState(
     () => sessionStorage.getItem('selectedYear') || 'all'
   );
-  const [articles, setArticles] = useState<Speech[]>(() => getLocalArticlesSync());
-  // 滚动恢复：有保存位置时需要等数据加载完
-  const targetScrollRef = useRef<number | null>(null);
-  const [isScrollRestoring, setIsScrollRestoring] = useState(
-    () => localStorage.getItem('scrollPosition') !== null
-  );
 
-  // 禁用浏览器自动滚动恢复
-  useEffect(() => {
-    if ('scrollRestoration' in window.history) {
-      window.history.scrollRestoration = 'manual';
-    }
-  }, []);
-
-  // 读取保存的滚动位置
-  useLayoutEffect(() => {
-    const savedPosition = localStorage.getItem('scrollPosition');
-    if (savedPosition) {
-      targetScrollRef.current = parseInt(savedPosition, 10);
-    }
-  }, [location.key]);
-
-  // 等数据加载完成后再恢复滚动位置
-  useLayoutEffect(() => {
-    if (targetScrollRef.current === null) return;
-    if (articles.length === 0) return;
-
-    // 数据已加载，恢复滚动位置
-    const targetPosition = targetScrollRef.current;
-    window.scrollTo(0, targetPosition);
-    localStorage.removeItem('scrollPosition');
-    targetScrollRef.current = null;
-    setIsScrollRestoring(false);
-  }, [articles]);
-
-  // 安全超时：最多等5秒
-  useEffect(() => {
-    if (!isScrollRestoring) return;
-    const timer = setTimeout(() => {
-      if (targetScrollRef.current !== null) {
-        window.scrollTo(0, targetScrollRef.current);
-        localStorage.removeItem('scrollPosition');
-        targetScrollRef.current = null;
-      }
-      setIsScrollRestoring(false);
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, [isScrollRestoring]);
+  // 使用 SWR 获取数据并处理缓存，替代手写的 useState 和 useEffect 获取逻辑
+  const { data: articles = [], mutate } = useSWR<Speech[]>('articles', getArticles, {
+    fallbackData: [],
+    revalidateOnFocus: false, // 避免切换标签页时频繁拉取
+  });
 
   // 持久化筛选状态到sessionStorage（返回时恢复，关闭标签页后重置为economy默认）
   useEffect(() => {
@@ -104,48 +63,32 @@ function HomePage() {
     sessionStorage.setItem('selectedYear', selectedYear);
   }, [selectedYear]);
 
-  // 初始化访问统计并加载文章
+  // 初始化访问统计并设置实时订阅
   useEffect(() => {
     initAnalytics();
-    // 注意：不再调用 initSupabaseAnalytics()，因为 initAnalytics() 已经会写入 Supabase
-    // 之前两个都调用导致每次访问被记录两次，独立访客数虚高
 
-    // 从云端获取最新数据
-    const loadArticles = async () => {
-      try {
-        const fetchedArticles = await getArticles();
-        setArticles(fetchedArticles);
-      } catch (e) {
-        console.error('加载文章失败:', e);
-      }
-    };
-    
-    loadArticles();
-
-    // 设置实时订阅
+    // 设置实时订阅，通过 SWR 的 mutate 方法更新本地缓存
     const unsubscribe = setupRealtimeSubscription(
       (updatedArticle) => {
-        setArticles(prev => {
-          const index = prev.findIndex(a => a.id === updatedArticle.id);
+        mutate((prevArticles = []) => {
+          const index = prevArticles.findIndex(a => a.id === updatedArticle.id);
           if (index !== -1) {
-            const updated = [...prev];
+            const updated = [...prevArticles];
             updated[index] = updatedArticle;
             return updated;
           }
-          return [updatedArticle, ...prev];
-        });
+          return [updatedArticle, ...prevArticles];
+        }, false); // 设置为 false 避免不必要的重新验证请求
       },
       (deletedId) => {
-        setArticles(prev => prev.filter(a => a.id !== deletedId));
+        mutate((prevArticles = []) => prevArticles.filter(a => a.id !== deletedId), false);
       }
     );
-
-    // 定期刷新已移除，由 setupRealtimeSubscription 负责实时更新
 
     return () => {
       unsubscribe();
     };
-  }, [])
+  }, [mutate]);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -202,7 +145,7 @@ function HomePage() {
   }, [debouncedSearchQuery, selectedDomain, selectedCategory, selectedYear, articles]);
 
   return (
-    <div style={{ visibility: isScrollRestoring ? 'hidden' : 'visible' }}>
+    <div>
       <Hero
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -304,6 +247,7 @@ function MainLayout() {
   return (
     <div className="min-h-screen bg-gray-50">
       {!hideHeaderFooter && <Header currentView={currentView} onViewChange={handleViewChange} />}
+      <ScrollRestoration />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<HomePage />} />
