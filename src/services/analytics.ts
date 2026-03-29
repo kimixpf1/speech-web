@@ -58,7 +58,7 @@ async function recordVisit(): Promise<void> {
  * 获取百度统计 URL
  */
 export function getBaiduStatsUrl(): string {
-  return `https://tongji.baidu.com/web/10000404390/homepage/index/index.html`;
+  return `https://tongji.baidu.com/main/overview/10000713217/overview/index?siteId=22905415`;
 }
 
 /**

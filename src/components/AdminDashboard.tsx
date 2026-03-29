@@ -1122,9 +1122,14 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   // 后台搜索（使用 GitHub Actions 工作流，最可靠）
   const handleBackendSearch = async () => {
-    // 同时检查 localStorage 和组件状态（避免状态不同步）
-    const token = getGitHubToken() || githubToken;
-    console.log('handleBackendSearch 被调用，Token状态:', !!token);
+    // 直接从 localStorage 读取，确保获取最新值
+    const storedToken = localStorage.getItem('github_workflow_token');
+    console.log('handleBackendSearch 被调用');
+    console.log('localStorage github_workflow_token:', storedToken ? '已配置' : '未配置');
+    console.log('组件状态 githubToken:', githubToken ? '已配置' : '未配置');
+    
+    // 优先使用 localStorage 的值
+    const token = storedToken || githubToken;
     
     if (!token) {
       console.log('没有 GitHub Token，显示配置对话框');
