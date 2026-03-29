@@ -1874,7 +1874,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             <Button
                               size="sm"
                               className="bg-purple-600 hover:bg-purple-700 text-white text-xs"
-                              onClick={() => handleQuickAdd(article)}
+                              onClick={() => handleApprovePending(article)}
                             >
                               <ArrowRight className="w-3 h-3 mr-1" />
                               新增到系统
