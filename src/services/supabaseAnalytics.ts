@@ -212,17 +212,55 @@ export async function clearVisitRecords(ids?: string[]): Promise<boolean> {
 }
 
 /**
+ * 简单的浏览器指纹生成器，用于替代真实的 IP，更准确地统计独立访客
+ */
+function generateBrowserFingerprint(): string {
+  if (typeof window === 'undefined') return `hash_${Date.now()}`;
+  
+  const screen = window.screen;
+  const nav = navigator;
+  
+  const components = [
+    nav.userAgent,
+    nav.language,
+    screen.colorDepth,
+    screen.width,
+    screen.height,
+    new Date().getTimezoneOffset(),
+    nav.hardwareConcurrency || 'unknown',
+    nav.deviceMemory || 'unknown',
+  ];
+  
+  const fingerprintString = components.join('|||');
+  
+  let hash = 5381;
+  for (let i = 0; i < fingerprintString.length; i++) {
+    hash = ((hash << 5) + hash) + fingerprintString.charCodeAt(i);
+  }
+  
+  return `fp_${Math.abs(hash).toString(16)}`;
+}
+
+/**
  * 记录访问 - 增强版（收集更多信息）
  */
 export async function logVisit(path: string, referrer?: string): Promise<void> {
   try {
     const tableName = await findCorrectTableName();
     
-    // 生成 ip_hash
-    const ipHash = localStorage.getItem('ip_hash') || 
-      `hash_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    // 优先使用长期存储的 localStorage，其次使用指纹，如果都不行再生成随机数
+    let ipHash = localStorage.getItem('visitor_id');
     
-    localStorage.setItem('ip_hash', ipHash);
+    if (!ipHash) {
+      const oldHash = localStorage.getItem('ip_hash');
+      if (oldHash && oldHash.startsWith('fp_')) {
+        ipHash = oldHash;
+      } else {
+        ipHash = generateBrowserFingerprint();
+      }
+      localStorage.setItem('visitor_id', ipHash);
+      localStorage.setItem('ip_hash', ipHash);
+    }
     
     const now = new Date();
     

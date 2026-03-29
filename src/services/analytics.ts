@@ -49,6 +49,39 @@ export interface VisitStats {
 }
 
 /**
+ * 简单的浏览器指纹生成器，用于替代真实的 IP，更准确地统计独立访客
+ */
+function generateBrowserFingerprint(): string {
+  if (typeof window === 'undefined') return `hash_${Date.now()}`;
+  
+  const screen = window.screen;
+  const nav = navigator;
+  
+  // 收集相对稳定的浏览器特征
+  const components = [
+    nav.userAgent,
+    nav.language,
+    screen.colorDepth,
+    screen.width,
+    screen.height,
+    new Date().getTimezoneOffset(),
+    nav.hardwareConcurrency || 'unknown',
+    nav.deviceMemory || 'unknown',
+  ];
+  
+  const fingerprintString = components.join('|||');
+  
+  // 简单的字符串哈希函数 (djb2)
+  let hash = 5381;
+  for (let i = 0; i < fingerprintString.length; i++) {
+    hash = ((hash << 5) + hash) + fingerprintString.charCodeAt(i);
+  }
+  
+  // 返回正整数的十六进制字符串
+  return `fp_${Math.abs(hash).toString(16)}`;
+}
+
+/**
  * 初始化访问统计
  */
 export function initAnalytics(): void {
@@ -62,10 +95,23 @@ export function initAnalytics(): void {
 async function recordVisit(): Promise<void> {
   try {
     const tableName = await findCorrectTableName();
-    const ipHash = localStorage.getItem('ip_hash') || 
-      `hash_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     
-    localStorage.setItem('ip_hash', ipHash);
+    // 优先使用长期存储的 localStorage，其次使用指纹，如果都不行再生成随机数
+    let ipHash = localStorage.getItem('visitor_id');
+    
+    if (!ipHash) {
+      // 尝试获取旧版本的 ip_hash
+      const oldHash = localStorage.getItem('ip_hash');
+      if (oldHash && oldHash.startsWith('fp_')) {
+        ipHash = oldHash;
+      } else {
+        // 生成基于浏览器特征的伪指纹
+        ipHash = generateBrowserFingerprint();
+      }
+      localStorage.setItem('visitor_id', ipHash);
+      // 同步更新旧的 key，防止其他地方依赖
+      localStorage.setItem('ip_hash', ipHash);
+    }
     
     const now = new Date();
     
