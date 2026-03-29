@@ -7,7 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { speechesData } from '@/data/speeches';
 import { zhengjiguanArticles } from '@/data/zhengjiguanArticles';
-import { getSpeechDetail, type SpeechDetail } from '@/data/speechesDetail';
+export interface SpeechDetail extends Speech {
+  abstract?: string;
+  fullText?: string;
+  analysis?: string;
+}
 import { getArticles, getLocalArticlesSync, getZhengjiguanArticles, type Speech } from '@/services/articleServiceEnhanced';
 import { getArticleDetail } from '@/services/articleDetailService';
 import {
@@ -147,18 +151,16 @@ export function DetailPage() {
     if (id) {
       // 异步加载详情数据的辅助函数
       const loadDetailAndSet = async (baseSpeech: Speech) => {
-        // 优先从云端获取最新数据（云端有最新的摘要和解读）
+        // 获取云端详情数据
         try {
           const cloudDetail = await getArticleDetail(id, true); // 强制刷新，获取最新数据
-          if (cloudDetail && (cloudDetail.abstract || cloudDetail.analysis)) {
-            // 云端有摘要或解读数据，优先使用云端数据
-            const staticDetail = getSpeechDetail(id);
+          if (cloudDetail && (cloudDetail.abstract || cloudDetail.analysis || cloudDetail.fullText)) {
             // 一次性更新状态，避免中间状态
             setSpeech({
               ...baseSpeech,
-              abstract: cloudDetail.abstract || staticDetail?.abstract || '摘要正在整理中...',
-              fullText: cloudDetail.fullText || staticDetail?.fullText || '原文加载中...',
-              analysis: cloudDetail.analysis || staticDetail?.analysis || '解读分析正在整理中...',
+              abstract: cloudDetail.abstract || '摘要正在整理中...',
+              fullText: cloudDetail.fullText || '原文加载中...',
+              analysis: cloudDetail.analysis || '解读分析正在整理中...',
             } as SpeechDetail);
             setIsLoading(false);
             return;
@@ -167,28 +169,13 @@ export function DetailPage() {
           console.error('获取云端详情失败:', err);
         }
         
-        // 云端没有数据，使用静态数据
-        const staticDetail = getSpeechDetail(id);
-        const isStaticComplete = staticDetail 
-          && staticDetail.fullText 
-          && staticDetail.fullText.length > 100
-          && !staticDetail.fullText.includes('正在整理中');
-        
-        if (isStaticComplete) {
-          setSpeech({
-            ...baseSpeech,
-            abstract: staticDetail!.abstract,
-            fullText: staticDetail!.fullText,
-            analysis: staticDetail!.analysis,
-          } as SpeechDetail);
-        } else {
-          setSpeech({
-            ...baseSpeech,
-            abstract: staticDetail?.abstract || '摘要正在整理中...',
-            fullText: staticDetail?.fullText || '原文加载中...',
-            analysis: staticDetail?.analysis || '解读分析正在整理中...',
-          } as SpeechDetail);
-        }
+        // 云端没有数据，显示占位符
+        setSpeech({
+          ...baseSpeech,
+          abstract: '摘要正在整理中...',
+          fullText: '原文加载中...',
+          analysis: '解读分析正在整理中...',
+        } as SpeechDetail);
         setIsLoading(false);
       };
 
