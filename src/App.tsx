@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useLayoutEffect, useRef, Suspense, lazy } from 'react';
-import { HashRouter, Routes, Route, useNavigate, useLocation, ScrollRestoration } from 'react-router-dom';
+import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Hero } from '@/components/Hero';
 import { FilterBar } from '@/components/FilterBar';
@@ -296,7 +296,6 @@ function MainLayout() {
   return (
     <div className="min-h-screen bg-gray-50">
       {!hideHeaderFooter && <Header currentView={currentView} onViewChange={handleViewChange} />}
-      <ScrollRestoration />
       <ErrorBoundary>
         <Suspense fallback={<PageLoader />}>
           <Routes>

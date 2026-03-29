@@ -36,7 +36,7 @@ function SpeechCard({ speech }: { speech: Speech }) {
 
   const handleNavigateToDetail = (e: React.MouseEvent) => {
     e.preventDefault();
-    localStorage.setItem('scrollPosition', window.scrollY.toString());
+    sessionStorage.setItem('lastScrollY', window.scrollY.toString());
     navigate(`/detail/${speech.id}`);
   };
 

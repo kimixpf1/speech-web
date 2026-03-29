@@ -278,26 +278,11 @@ export function DetailPage() {
     alert('请使用微信扫一扫功能分享此页面');
   };
 
-  const handleBack = async () => {
-    // 显示返回进度条
-    setIsReturning(true);
-
-    // 判断来源页面：如果是政绩观详情页，返回政绩观列表；否则返回首页
+  const handleBack = () => {
+    // 移除手动预加载和进度条逻辑，直接返回
+    // 这样能够最快速度触发 App.tsx 里的 useLayoutEffect 恢复滚动位置
     const isZhengjiguanDetail = window.location.hash.includes('/zhengjiguan/');
     const targetPath = isZhengjiguanDetail ? '/zhengjiguan' : '/';
-
-    // 预加载数据
-    try {
-      if (isZhengjiguanDetail) {
-        await getZhengjiguanArticles();
-      } else {
-        await getArticles();
-      }
-    } catch (e) {
-      console.error('预加载数据失败:', e);
-    }
-
-    // 数据准备好后，跳转到目标页面
     navigate(targetPath, { replace: true });
   };
 
@@ -642,13 +627,42 @@ export function DetailPage() {
     saveAs(blob, `${speech.title}.docx`);
   };
 
-  // 加载中时显示加载动画，不要显示"内容未找到"
+  // 加载中时显示骨架屏
   if (isLoading && !speech) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-gray-200 border-t-red-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">加载中...</p>
+      <div className="min-h-screen bg-gray-50 pt-20 pb-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* 返回按钮骨架 */}
+          <div className="w-24 h-6 bg-gray-200 rounded animate-pulse mb-8"></div>
+          
+          {/* 标题区骨架 */}
+          <div className="bg-white rounded-xl shadow-sm p-6 sm:p-8 space-y-4">
+            <div className="w-16 h-6 bg-gray-200 rounded-full animate-pulse mb-4"></div>
+            <div className="h-10 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+            <div className="h-10 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+            
+            <div className="flex gap-4 pt-4 border-t border-gray-100 mt-6">
+              <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-32 animate-pulse"></div>
+            </div>
+          </div>
+          
+          {/* 内容区骨架 */}
+          <div className="bg-white rounded-xl shadow-sm p-6 sm:p-8 space-y-8">
+            <div className="space-y-3">
+              <div className="h-6 bg-gray-200 rounded w-32 animate-pulse mb-4"></div>
+              <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
+            </div>
+            
+            <div className="space-y-3 pt-6 border-t border-gray-100">
+              <div className="h-6 bg-gray-200 rounded w-32 animate-pulse mb-4"></div>
+              <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-4/5 animate-pulse"></div>
+            </div>
+          </div>
         </div>
       </div>
     );
