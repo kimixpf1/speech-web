@@ -41,7 +41,7 @@ export function clearGitHubToken(): void {
 /**
  * 验证 GitHub Token 是否有效
  */
-export async function validateGitHubToken(token: string): Promise<{ valid: boolean; error?: string }> {
+export async function validateGitHubToken(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
   try {
     const response = await fetch('https://api.github.com/user', {
       headers: {
@@ -53,7 +53,7 @@ export async function validateGitHubToken(token: string): Promise<{ valid: boole
     if (response.ok) {
       const user = await response.json();
       console.log('GitHub Token 验证成功，用户:', user.login);
-      return { valid: true };
+      return { valid: true, username: user.login };
     } else {
       const error = await response.json();
       return { valid: false, error: error.message || 'Token 无效' };

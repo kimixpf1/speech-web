@@ -968,8 +968,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       saveGitHubToken(tokenInput.trim());
       setGithubTokenState(tokenInput.trim());
       setShowTokenDialog(false);
-      setSuccessMessage(`Token验证成功，用户: ${result.username}`);
+      setSuccessMessage(`Token验证成功，用户: ${result.username}，正在触发搜索...`);
       setTimeout(() => setSuccessMessage(''), 3000);
+      // 保存成功后自动触发搜索
+      await handleBackendSearch();
     } else {
       setSuccessMessage(result.error || 'Token验证失败');
       setTimeout(() => setSuccessMessage(''), 3000);
@@ -1479,7 +1481,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <Button size="sm" variant="outline" onClick={() => setShowAutoSearchPrompt(false)}>
                           稍后
                         </Button>
-                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => handleAISearch('auto')}>
+                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={handleBackendSearch}>
                           立即搜索
                         </Button>
                       </div>
@@ -1512,9 +1514,9 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <Button 
                     className="bg-purple-600 hover:bg-purple-700 text-white"
                     size="sm"
-                    onClick={() => handleAISearch('manual')}
+                    onClick={handleBackendSearch}
                     disabled={searching}
-                    title="使用 Kimi/DeepSeek API 在前端搜索"
+                    title="触发 GitHub Actions 工作流搜索最新文章"
                   >
                     {searching ? (
                       <>
@@ -1525,25 +1527,6 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       <>
                         <Sparkles className="w-4 h-4 mr-1" />
                         AI搜索
-                      </>
-                    )}
-                  </Button>
-                  <Button 
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                    size="sm"
-                    onClick={handleBackendSearch}
-                    disabled={searching}
-                    title="使用后台工作流搜索（最可靠，需要 GitHub Token）"
-                  >
-                    {searching ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                        搜索中...
-                      </>
-                    ) : (
-                      <>
-                        <Cloud className="w-4 h-4 mr-1" />
-                        后台搜索
                       </>
                     )}
                   </Button>
