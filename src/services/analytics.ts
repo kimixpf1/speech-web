@@ -57,7 +57,7 @@ export function initAnalytics(): void {
 }
 
 /**
- * 记录访问
+ * 记录访问 - 增强版（收集更多信息）
  */
 async function recordVisit(): Promise<void> {
   try {
