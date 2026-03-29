@@ -1075,25 +1075,14 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   
   // AI 搜索文章 - 优先使用 GitHub Actions 工作流（更可靠）
   const handleAISearch = async (type: 'manual' | 'auto' = 'manual') => {
-    console.log('handleAISearch 被调用，检查 GitHub Token:', hasGitHubToken());
+    console.log('handleAISearch 被调用，统一使用 GitHub Actions');
     
-    // 优先使用 GitHub Actions 后台搜索（更可靠，与自动搜索一致）
-    if (hasGitHubToken()) {
-      console.log('有 GitHub Token，触发后台搜索');
-      setSuccessMessage('正在使用 GitHub Actions 后台搜索...');
-      setTimeout(() => setSuccessMessage(''), 2000);
-      await handleBackendSearch();
-      return;
-    }
-    
-    console.log('没有 GitHub Token，检查 API Key');
-    
-    // 如果没有 GitHub Token，使用前端搜索
-    if (!kimiApiKey && !deepSeekApiKey) {
-      setShowApiConfigDialog(true);
-      return;
-    }
+    // 统一使用 GitHub Actions 后台搜索（与自动搜索完全一致）
+    // 如果没有 Token，引导配置，不再 fallback 到前端搜索
+    await handleBackendSearch();
+    return;
 
+    // 以下代码保留但不会执行（前端搜索已废弃，统一用 GitHub Actions）
     setSearching(true);
     setSearchStage('running');
     setSearchMessage('正在使用 AI 搜索最新文章...');
