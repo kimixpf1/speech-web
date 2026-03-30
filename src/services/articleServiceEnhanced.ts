@@ -409,7 +409,21 @@ export async function deleteArticle(id: string): Promise<boolean> {
         .select('id');
 
       const hadDetailBackup = Boolean(detailBackup);
-      const detailDeleteSucceeded = !detailDeleteError && (!hadDetailBackup || Boolean(deletedDetails?.length));
+      let detailDeleteSucceeded = !detailDeleteError;
+
+      if (detailDeleteSucceeded && hadDetailBackup && !deletedDetails?.length) {
+        const { data: remainingDetails, error: remainingDetailError } = await supabase
+          .from('article_details')
+          .select('id')
+          .eq('id', id)
+          .limit(1);
+
+        detailDeleteSucceeded = !remainingDetailError && !remainingDetails?.length;
+
+        if (remainingDetailError) {
+          console.error('校验文章详情删除状态失败:', remainingDetailError);
+        }
+      }
 
       if (!detailDeleteSucceeded) {
         console.error('删除文章详情失败，准备回滚主记录:', detailDeleteError || new Error('未删除任何详情记录'));
