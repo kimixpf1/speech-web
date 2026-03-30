@@ -1,6 +1,8 @@
 // Kimi API 服务 - 用于精准提取文章内容
+import { getDeepSeekApiKey, getPreferredApi } from '@/services/aiSearchService';
 
 const KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions';
+const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
 // 本地存储键
 const KIMI_API_KEY_STORAGE = 'kimi_api_key';
@@ -19,6 +21,15 @@ export interface ExtractedArticle {
   categoryName?: string;
   domain?: 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy';
   domainName?: string;
+}
+
+type ArticleExtractionProvider = 'kimi' | 'deepseek';
+
+interface ArticleExtractionApiConfig {
+  apiKey: string;
+  provider: ArticleExtractionProvider;
+  apiUrl: string;
+  model: string;
 }
 
 /**
@@ -215,15 +226,263 @@ function cleanHtmlContent(html: string): string {
     .trim();
 }
 
+function extractJsonCandidate(content: string): string {
+  const normalized = content
+    .trim()
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+
+  if (normalized.startsWith('{') && normalized.endsWith('}')) {
+    return normalized;
+  }
+
+  const firstBraceIndex = normalized.indexOf('{');
+  if (firstBraceIndex === -1) {
+    throw new Error('无法解析返回的JSON');
+  }
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let index = firstBraceIndex; index < normalized.length; index += 1) {
+    const char = normalized[index];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (char === '\\') {
+      escaped = true;
+      continue;
+    }
+
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) {
+      continue;
+    }
+
+    if (char === '{') {
+      depth += 1;
+    } else if (char === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        return normalized.slice(firstBraceIndex, index + 1);
+      }
+    }
+  }
+
+  throw new Error('无法解析返回的JSON');
+}
+
+function normalizeJsonStringLiterals(candidate: string): string {
+  let normalized = '';
+  let inString = false;
+  let escaped = false;
+
+  for (const char of candidate) {
+    if (escaped) {
+      normalized += char;
+      escaped = false;
+      continue;
+    }
+
+    if (char === '\\') {
+      normalized += char;
+      escaped = true;
+      continue;
+    }
+
+    if (char === '"') {
+      normalized += char;
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) {
+      if (char === '\n') {
+        normalized += '\\n';
+        continue;
+      }
+
+      if (char === '\r') {
+        normalized += '\\r';
+        continue;
+      }
+
+      if (char === '\t') {
+        normalized += '\\t';
+        continue;
+      }
+    }
+
+    normalized += char;
+  }
+
+  return normalized;
+}
+
+function parseExtractedArticleResponse(content: string): ExtractedArticle {
+  const candidate = normalizeJsonStringLiterals(extractJsonCandidate(content))
+    .replace(/,\s*([}\]])/g, '$1')
+    .trim();
+
+  return JSON.parse(candidate) as ExtractedArticle;
+}
+
+function buildArticleExtractionApiConfig(
+  apiKey: string,
+  provider: ArticleExtractionProvider
+): ArticleExtractionApiConfig {
+  return {
+    apiKey,
+    provider,
+    apiUrl: provider === 'deepseek' ? DEEPSEEK_API_URL : KIMI_API_URL,
+    model: provider === 'deepseek' ? 'deepseek-chat' : 'moonshot-v1-8k',
+  };
+}
+
+function resolveArticleExtractionApiConfigs(
+  apiKey?: string,
+  provider?: ArticleExtractionProvider
+): ArticleExtractionApiConfig[] {
+  if (apiKey) {
+    return [buildArticleExtractionApiConfig(apiKey, provider || 'kimi')];
+  }
+
+  const kimiApiKey = getKimiApiKey();
+  const deepSeekApiKey = getDeepSeekApiKey();
+  const preferredProvider = getPreferredApi();
+  const configs: ArticleExtractionApiConfig[] = [];
+  const seenProviders = new Set<ArticleExtractionProvider>();
+
+  const appendConfig = (nextProvider: ArticleExtractionProvider, nextApiKey: string | null) => {
+    if (!nextApiKey || seenProviders.has(nextProvider)) {
+      return;
+    }
+
+    seenProviders.add(nextProvider);
+    configs.push(buildArticleExtractionApiConfig(nextApiKey, nextProvider));
+  };
+
+  if (preferredProvider === 'deepseek') {
+    appendConfig('deepseek', deepSeekApiKey);
+    appendConfig('kimi', kimiApiKey);
+  } else {
+    appendConfig('kimi', kimiApiKey);
+    appendConfig('deepseek', deepSeekApiKey);
+  }
+
+  if (!configs.length) {
+    throw new Error('请先配置 Kimi 或 DeepSeek API Key');
+  }
+
+  return configs;
+}
+
+function getProviderDisplayName(provider: ArticleExtractionProvider): string {
+  return provider === 'deepseek' ? 'DeepSeek' : 'Kimi';
+}
+
+function isAuthenticationErrorMessage(message: string): boolean {
+  return /authentication|api key|unauthorized|invalid key|token|余额不足|insufficient/i.test(message);
+}
+
+function normalizeArticleExtractionError(error: unknown, provider: ArticleExtractionProvider): Error {
+  const message = error instanceof Error ? error.message : '未知错误';
+  if (!isAuthenticationErrorMessage(message)) {
+    return error instanceof Error ? error : new Error(message);
+  }
+
+  return new Error(`${getProviderDisplayName(provider)} API Key 无效或不可用，请在“管理 API”中重新配置`);
+}
+
+function shouldTryNextProvider(error: Error): boolean {
+  return isAuthenticationErrorMessage(error.message);
+}
+
+async function requestArticleExtraction(
+  prompt: string,
+  url: string,
+  apiConfig: ArticleExtractionApiConfig
+): Promise<ExtractedArticle> {
+  console.log(`Calling ${getProviderDisplayName(apiConfig.provider)} API...`);
+
+  const response = await fetch(apiConfig.apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiConfig.apiKey}`,
+    },
+    body: JSON.stringify({
+      model: apiConfig.model,
+      messages: [
+        {
+          role: 'system',
+          content: '你是一个专业的内容提取助手，擅长从网页内容中精确提取文章信息。请严格按照JSON格式输出，不要输出任何其他内容。'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.3,
+      max_tokens: 8000,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw normalizeArticleExtractionError(
+      new Error(errorData.error?.message || `API请求失败: ${response.status}`),
+      apiConfig.provider
+    );
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+
+  if (!content) {
+    throw new Error('API返回内容为空');
+  }
+
+  console.log('API response received, parsing...');
+
+  let article: ExtractedArticle;
+  try {
+    article = parseExtractedArticleResponse(content);
+  } catch (parseError) {
+    console.error('JSON解析错误:', content.substring(0, 500));
+    throw new Error('解析文章内容失败，请重试');
+  }
+
+  article.url = url;
+
+  if (!article.title || !article.fullText) {
+    throw new Error('提取的内容不完整，请重试');
+  }
+
+  console.log('Article extracted successfully:', article.title);
+  return article;
+}
+
 /**
  * 使用Kimi API从网页内容提取文章
  */
-export async function extractArticleWithKimi(url: string, apiKey?: string): Promise<ExtractedArticle> {
-  const key = apiKey || getKimiApiKey();
-  
-  if (!key) {
-    throw new Error('请先配置Kimi API Key');
-  }
+export async function extractArticleWithKimi(
+  url: string,
+  apiKey?: string,
+  provider?: ArticleExtractionProvider
+): Promise<ExtractedArticle> {
+  const apiConfigs = resolveArticleExtractionApiConfigs(apiKey, provider);
 
   // 获取网页内容
   let pageContent = '';
@@ -324,84 +583,37 @@ ${truncatedContent}
 - 考察内容涉及"生态环境/污染治理/绿色发展" → ecology（生态）
 - 考察内容涉及"文化遗产/文物保护/文化教育" → culture（文化）`;
 
+  let lastError: Error | null = null;
 
-  try {
-    console.log('Calling Kimi API...');
-    
-    const response = await fetch(KIMI_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        model: 'moonshot-v1-8k',
-        messages: [
-          {
-            role: 'system',
-            content: '你是一个专业的内容提取助手，擅长从网页内容中精确提取文章信息。请严格按照JSON格式输出，不要输出任何其他内容。'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.3,
-        max_tokens: 8000,
-      }),
-    });
+  for (let index = 0; index < apiConfigs.length; index += 1) {
+    const apiConfig = apiConfigs[index];
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error?.message || `API请求失败: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-
-    if (!content) {
-      throw new Error('API返回内容为空');
-    }
-
-    console.log('API response received, parsing...');
-
-    // 解析JSON
-    let article: ExtractedArticle;
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        article = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('无法解析返回的JSON');
+      return await requestArticleExtraction(prompt, url, apiConfig);
+    } catch (error) {
+      const normalizedError = normalizeArticleExtractionError(error, apiConfig.provider);
+      console.error(`${getProviderDisplayName(apiConfig.provider)} API error:`, normalizedError);
+      lastError = normalizedError;
+
+      if (!shouldTryNextProvider(normalizedError) || index === apiConfigs.length - 1) {
+        throw normalizedError;
       }
-    } catch (parseError) {
-      console.error('JSON解析错误:', content.substring(0, 500));
-      throw new Error('解析文章内容失败，请重试');
     }
-
-    article.url = url;
-
-    if (!article.title || !article.fullText) {
-      throw new Error('提取的内容不完整，请重试');
-    }
-
-    console.log('Article extracted successfully:', article.title);
-    return article;
-  } catch (error) {
-    console.error('Kimi API error:', error);
-    throw error;
   }
+
+  throw lastError || new Error('提取文章失败，请重试');
 }
 
 /**
  * 使用Kimi API从用户粘贴的内容提取文章（备用方案）
  */
-export async function extractArticleFromText(content: string, url: string, apiKey?: string): Promise<ExtractedArticle> {
-  const key = apiKey || getKimiApiKey();
-  
-  if (!key) {
-    throw new Error('请先配置Kimi API Key');
-  }
+export async function extractArticleFromText(
+  content: string,
+  url: string,
+  apiKey?: string,
+  provider?: ArticleExtractionProvider
+): Promise<ExtractedArticle> {
+  const apiConfigs = resolveArticleExtractionApiConfigs(apiKey, provider);
 
   if (!content || content.length < 50) {
     throw new Error('请粘贴更多内容');
@@ -486,55 +698,25 @@ ${truncatedContent}
 - 考察内容涉及"生态环境/污染治理/绿色发展" → ecology（生态）
 - 考察内容涉及"文化遗产/文物保护/文化教育" → culture（文化）`;
 
-  try {
-    const response = await fetch(KIMI_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        model: 'moonshot-v1-8k',
-        messages: [
-          {
-            role: 'system',
-            content: '你是一个专业的内容提取助手。请严格按照JSON格式输出。'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.3,
-        max_tokens: 8000,
-      }),
-    });
+  let lastError: Error | null = null;
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error?.message || `API请求失败`);
+  for (let index = 0; index < apiConfigs.length; index += 1) {
+    const apiConfig = apiConfigs[index];
+
+    try {
+      return await requestArticleExtraction(prompt, url, apiConfig);
+    } catch (error) {
+      const normalizedError = normalizeArticleExtractionError(error, apiConfig.provider);
+      console.error('Extract from text error:', normalizedError);
+      lastError = normalizedError;
+
+      if (!shouldTryNextProvider(normalizedError) || index === apiConfigs.length - 1) {
+        throw normalizedError;
+      }
     }
-
-    const data = await response.json();
-    const apiContent = data.choices?.[0]?.message?.content;
-
-    if (!apiContent) {
-      throw new Error('API返回内容为空');
-    }
-
-    const jsonMatch = apiContent.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('解析失败');
-    }
-
-    const article: ExtractedArticle = JSON.parse(jsonMatch[0]);
-    article.url = url;
-
-    return article;
-  } catch (error) {
-    console.error('Extract from text error:', error);
-    throw error;
   }
+
+  throw lastError || new Error('提取文章失败，请重试');
 }
 
 /**

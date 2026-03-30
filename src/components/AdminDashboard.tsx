@@ -8,12 +8,8 @@ import {
   Users,
   Eye,
   TrendingUp,
-  Trash2,
   Check,
   RefreshCw,
-  Plus,
-  Edit,
-  Search,
   MessageSquare,
   ExternalLink,
   CheckSquare,
@@ -63,20 +59,13 @@ import {
   type VisitRecord as SupabaseVisitRecord
 } from '@/services/supabaseAnalytics';
 import {
-  updateArticle,
-  deleteArticle,
-  addArticle,
-  generateArticleId,
   getArticles,
-  getLocalArticlesSync,
   syncArticles,
   type Speech
 } from '@/services/articleServiceEnhanced';
 import {
   getPendingArticles,
-  approveArticle,
   rejectArticle,
-  deletePendingArticle,
   getSearchLogs,
   type PendingArticle,
   type SearchLog
@@ -97,21 +86,6 @@ import {
   waitForWorkflowCompletion,
   hasGitHubToken,
 } from '@/services/githubActionsTrigger';
-import {
-  extractArticleWithKimi,
-  extractArticleFromText,
-  saveKimiApiKey,
-  getKimiApiKey,
-  clearKimiApiKey,
-  validateKimiApiKey,
-  isValidUrl,
-  type ExtractedArticle
-} from '@/services/kimiArticleService';
-import {
-  saveArticleDetail,
-  getArticleDetail,
-  type ArticleDetailContent
-} from '@/services/articleDetailService';
 import {
   searchArticles,
   saveDeepSeekApiKey,
@@ -135,8 +109,13 @@ import {
 } from '@/services/aiSummaryService';
 
 import { AdminAnalyticsTab } from './admin/AdminAnalyticsTab';
+import { AdminAddArticleDialog } from './admin/AdminAddArticleDialog';
+import { AdminApiConfigDialog } from './admin/AdminApiConfigDialog';
+import { AdminArticlesTab } from './admin/AdminArticlesTab';
+import { AdminEditArticleDialog } from './admin/AdminEditArticleDialog';
 import { AdminSuggestionsTab } from './admin/AdminSuggestionsTab';
 import { AdminPendingTab } from './admin/AdminPendingTab';
+import { useAdminArticleManagement } from '@/hooks/useAdminArticleManagement';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -150,49 +129,6 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [articles, setArticles] = useState<Speech[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  // 编辑文章对话框
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editingArticle, setEditingArticle] = useState<Speech | null>(null);
-  const [editingDetail, setEditingDetail] = useState<ArticleDetailContent | null>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
-  
-  // 新增文章对话框
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [newArticle, setNewArticle] = useState<Partial<Speech>>({
-    category: 'speech',
-    categoryName: '重要讲话',
-    domain: 'economy',
-    domainName: '经济',
-    isZhengjiguan: false,
-    year: new Date().getFullYear(),
-    month: new Date().getMonth() + 1,
-    day: new Date().getDate(),
-  });
-
-  // URL自动提取状态
-  const [fetchUrl, setFetchUrl] = useState('');
-  const [fetchingArticle, setFetchingArticle] = useState(false);
-  const [fetchError, setFetchError] = useState('');
-  const [fetchedContent, setFetchedContent] = useState('');
-  const [fetchedAnalysis, setFetchedAnalysis] = useState('');
-
-  // Kimi API Key 状态
-  const [kimiApiKey, setKimiApiKey] = useState(getKimiApiKey() || '');
-  const [showKimiKeyDialog, setShowKimiKeyDialog] = useState(false);
-  const [kimiKeyInput, setKimiKeyInput] = useState('');
-  const [kimiKeyValidating, setKimiKeyValidating] = useState(false);
-
-  // 手动粘贴内容状态
-  const [showManualInput, setShowManualInput] = useState(false);
-  const [manualContent, setManualContent] = useState('');
-  const [manualUrl, setManualUrl] = useState('');
-  const [processingManual, setProcessingManual] = useState(false);
-
-  // 删除确认对话框
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deletingArticle, setDeletingArticle] = useState<Speech | null>(null);
   
   // 操作成功提示
   const [successMessage, setSuccessMessage] = useState('');
@@ -321,6 +257,67 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
     setShowAutoSearchPrompt(shouldAutoSearch());
   };
+
+  const showTemporarySuccessMessage = (message: string, duration = 3000) => {
+    setSuccessMessage(message);
+    setTimeout(() => setSuccessMessage(''), duration);
+  };
+
+  const {
+    addDialogOpen,
+    confirmDeleteArticle,
+    deleteDialogOpen,
+    deletingArticle,
+    editDialogOpen,
+    editingArticle,
+    editingDetail,
+    fetchedAnalysis,
+    fetchedContent,
+    fetchError,
+    fetchUrl,
+    fetchingArticle,
+    filteredArticles,
+    hasConfiguredExtractionProvider,
+    handleAddArticle,
+    handleAddDialogOpenChange,
+    handleApprovePending,
+    handleClearKimiKey,
+    handleDeleteArticle,
+    handleEditArticle,
+    handleFetchFromUrl,
+    handleProcessManualContent,
+    handleSaveArticle,
+    handleSaveKimiKey,
+    kimiApiKey,
+    kimiKeyInput,
+    kimiKeyValidating,
+    loadingDetail,
+    manualContent,
+    manualUrl,
+    newArticle,
+    processingManual,
+    preferredExtractionProvider,
+    searchTerm,
+    setDeleteDialogOpen,
+    setEditingArticle,
+    setEditingDetail,
+    setEditDialogOpen,
+    setFetchUrl,
+    setKimiKeyInput,
+    setManualContent,
+    setManualUrl,
+    setNewArticle,
+    setShowKimiKeyDialog,
+    setShowManualInput,
+    showKimiKeyDialog,
+    showManualInput,
+    setSearchTerm,
+  } = useAdminArticleManagement({
+    articles,
+    loadData,
+    onSuccess: showTemporarySuccessMessage,
+    setActiveTab,
+  });
   
   // 手动刷新
   const handleManualSync = async () => {
@@ -476,462 +473,6 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     }
   };
 
-  const handleEditArticle = async (article: Speech) => {
-    // 创建深拷贝以避免引用问题
-    setEditingArticle(JSON.parse(JSON.stringify(article)));
-    setEditDialogOpen(true);
-    
-    // 加载文章详情
-    setLoadingDetail(true);
-    try {
-      const detail = await getArticleDetail(article.id);
-      if (detail) {
-        setEditingDetail(detail);
-      } else {
-        // 如果没有详情，创建空详情
-        setEditingDetail({
-          id: article.id,
-          abstract: article.summary || '',
-          fullText: '',
-          analysis: '',
-        });
-      }
-    } catch (error) {
-      console.error('Error loading article detail:', error);
-      setEditingDetail({
-        id: article.id,
-        abstract: article.summary || '',
-        fullText: '',
-        analysis: '',
-      });
-    } finally {
-      setLoadingDetail(false);
-    }
-  };
-
-  const handleSaveArticle = async () => {
-    if (!editingArticle) return;
-
-    try {
-      const result = await updateArticle(editingArticle);
-      if (result.success) {
-        // 保存文章详情
-        if (editingDetail) {
-          await saveArticleDetail(editingDetail);
-        }
-        setEditDialogOpen(false);
-        setEditingArticle(null);
-        setEditingDetail(null);
-        await loadData();
-        setSuccessMessage('保存成功');
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        alert('保存失败：' + (result.error || '请重试'));
-      }
-    } catch (error) {
-      console.error('Save article error:', error);
-      alert('保存失败：' + (error instanceof Error ? error.message : '未知错误'));
-    }
-  };
-
-  const handleDeleteArticle = (article: Speech) => {
-    // 创建深拷贝以避免引用问题
-    setDeletingArticle(JSON.parse(JSON.stringify(article)));
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDeleteArticle = async () => {
-    if (!deletingArticle) return;
-
-    try {
-      const success = await deleteArticle(deletingArticle.id);
-      if (success) {
-        setDeleteDialogOpen(false);
-        setDeletingArticle(null);
-        await loadData();
-        setSuccessMessage('删除成功');
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        alert('删除失败，请重试');
-      }
-    } catch (error) {
-      console.error('Delete article error:', error);
-      alert('删除失败：' + (error instanceof Error ? error.message : '未知错误'));
-    }
-  };
-
-  // 从URL自动提取文章内容（使用Kimi AI）
-  const handleFetchFromUrl = async () => {
-    if (!fetchUrl.trim()) {
-      setFetchError('请输入文章URL');
-      return;
-    }
-
-    if (!isValidUrl(fetchUrl.trim())) {
-      setFetchError('请输入有效的URL地址');
-      return;
-    }
-
-    if (!kimiApiKey) {
-      setShowKimiKeyDialog(true);
-      return;
-    }
-
-    setFetchingArticle(true);
-    setFetchError('');
-    setFetchedContent('');
-    setFetchedAnalysis('');
-
-    try {
-      const article = await extractArticleWithKimi(fetchUrl.trim());
-
-      // 从日期字符串中提取年月日
-      let year = new Date().getFullYear();
-      let month = new Date().getMonth() + 1;
-      let day = new Date().getDate();
-
-      if (article.date) {
-        // 支持多种日期格式：YYYY-MM-DD 或 YYYY年M月D日
-        const dateMatch = article.date.match(/(\d{4})[-年](\d{1,2})[-月](\d{1,2})/);
-        if (dateMatch) {
-          year = parseInt(dateMatch[1]);
-          month = parseInt(dateMatch[2]);
-          day = parseInt(dateMatch[3]);
-        } else {
-          // 尝试标准格式
-          const parts = article.date.split('-');
-          if (parts.length === 3) {
-            year = parseInt(parts[0]);
-            month = parseInt(parts[1]);
-            day = parseInt(parts[2]);
-          }
-        }
-      }
-
-      // 自动填充表单
-      setNewArticle({
-        ...newArticle,
-        title: article.title,
-        date: article.date,
-        year,
-        month,
-        day,
-        source: article.source,
-        summary: article.summary,
-        url: article.url,
-        category: article.category || 'speech',
-        categoryName: article.categoryName || '重要讲话',
-        domain: article.domain || 'politics',
-        domainName: article.domainName || '政治',
-        location: article.location,
-      });
-
-      // 保存全文内容和解读分析用于详情页
-      setFetchedContent(article.fullText);
-      setFetchedAnalysis(article.analysis);
-
-      setSuccessMessage(`文章内容已精准提取！标题: ${article.title}`);
-      setTimeout(() => setSuccessMessage(''), 5000);
-    } catch (error) {
-      console.error('Fetch article error:', error);
-      setFetchError(error instanceof Error ? error.message : '提取文章失败，请手动填写');
-    } finally {
-      setFetchingArticle(false);
-    }
-  };
-
-  // Kimi API Key 配置
-  const handleSaveKimiKey = async () => {
-    if (!kimiKeyInput.trim()) return;
-
-    setKimiKeyValidating(true);
-    const result = await validateKimiApiKey(kimiKeyInput.trim());
-    setKimiKeyValidating(false);
-
-    if (result.valid) {
-      saveKimiApiKey(kimiKeyInput.trim());
-      setKimiApiKey(kimiKeyInput.trim());
-      setShowKimiKeyDialog(false);
-      setSuccessMessage('Kimi API Key 配置成功！');
-      setTimeout(() => setSuccessMessage(''), 3000);
-    } else {
-      setFetchError(result.error || 'API Key验证失败');
-      setTimeout(() => setFetchError(''), 5000);
-    }
-  };
-
-  const handleClearKimiKey = () => {
-    clearKimiApiKey();
-    setKimiApiKey('');
-    setSuccessMessage('已清除Kimi API Key');
-    setTimeout(() => setSuccessMessage(''), 3000);
-  };
-
-  // 处理手动粘贴的内容
-  const handleProcessManualContent = async () => {
-    if (!manualContent.trim()) {
-      alert('请粘贴网页内容');
-      return;
-    }
-
-    if (!kimiApiKey) {
-      setShowKimiKeyDialog(true);
-      return;
-    }
-
-    setProcessingManual(true);
-    try {
-      const url = manualUrl.trim() || 'https://example.com/article';
-      const article = await extractArticleFromText(manualContent, url);
-
-      setNewArticle({
-        ...newArticle,
-        title: article.title,
-        date: article.date,
-        source: article.source,
-        summary: article.summary,
-        url: article.url,
-        category: article.category || 'speech',
-        categoryName: article.categoryName || '重要讲话',
-        location: article.location,
-      });
-
-      setFetchedContent(article.fullText);
-      setFetchedAnalysis(article.analysis);
-      setShowManualInput(false);
-      setManualContent('');
-      setManualUrl('');
-
-      setSuccessMessage(`内容提取成功！标题: ${article.title}`);
-      setTimeout(() => setSuccessMessage(''), 5000);
-    } catch (error) {
-      console.error('Process manual content error:', error);
-      alert('提取失败：' + (error instanceof Error ? error.message : '未知错误'));
-    } finally {
-      setProcessingManual(false);
-    }
-  };
-
-  const handleAddArticle = async () => {
-    if (!newArticle.title || !newArticle.date || !newArticle.source || !newArticle.summary) {
-      alert('请填写完整信息');
-      return;
-    }
-
-    try {
-      // 从日期字符串中提取年月日（防止为空或格式错误）
-      let year = newArticle.year;
-      let month = newArticle.month;
-      let day = newArticle.day;
-
-      if (newArticle.date) {
-        const dateMatch = newArticle.date.match(/(\d{4})[-年](\d{1,2})[-月](\d{1,2})/);
-        if (dateMatch) {
-          year = parseInt(dateMatch[1]);
-          month = parseInt(dateMatch[2]);
-          day = parseInt(dateMatch[3]);
-        } else {
-          const parts = newArticle.date.split('-');
-          if (parts.length === 3) {
-            year = parseInt(parts[0]);
-            month = parseInt(parts[1]);
-            day = parseInt(parts[2]);
-          }
-        }
-      }
-
-      // 确保year/month/day有效
-      if (!year || isNaN(year)) year = new Date().getFullYear();
-      if (!month || isNaN(month)) month = new Date().getMonth() + 1;
-      if (!day || isNaN(day)) day = new Date().getDate();
-
-      const articleId = generateArticleId(year);
-      const article: Speech = {
-        id: articleId,
-        title: newArticle.title,
-        date: newArticle.date,
-        year,
-        month,
-        day,
-        category: newArticle.category as 'speech' | 'article' | 'meeting' | 'inspection',
-        categoryName: newArticle.categoryName || '重要讲话',
-        domain: newArticle.domain || 'economy',
-        domainName: newArticle.domainName || '经济',
-        isZhengjiguan: newArticle.isZhengjiguan || false,
-        zhengjiguanLevel: newArticle.zhengjiguanLevel,
-        source: newArticle.source,
-        summary: newArticle.summary,
-        url: newArticle.url || '',
-        location: newArticle.location,
-      };
-
-      const result = await addArticle(article);
-      if (result.success) {
-        // 如果有抓取到的全文内容，保存到详情页
-        if (fetchedContent) {
-          const detail: ArticleDetailContent = {
-            id: articleId,
-            abstract: newArticle.summary,
-            fullText: fetchedContent,
-            analysis: fetchedAnalysis || '解读分析正在整理中...'
-          };
-          await saveArticleDetail(detail);
-        }
-
-        // 如果是从审批流程进来的，自动审批
-        const wasApproval = !!pendingToApprove;
-        if (pendingToApprove) {
-          await approveArticle(pendingToApprove);
-          setPendingToApprove(null);
-        }
-
-        setAddDialogOpen(false);
-        setNewArticle({
-          category: 'speech',
-          categoryName: '重要讲话',
-          domain: 'economy',
-          domainName: '经济',
-          isZhengjiguan: false,
-          year: new Date().getFullYear(),
-          month: new Date().getMonth() + 1,
-          day: new Date().getDate(),
-        });
-        setFetchUrl('');
-        setFetchError('');
-        setFetchedContent('');
-        setFetchedAnalysis('');
-        await loadData();
-        
-        if (result.error) {
-          setSuccessMessage(`添加成功（警告：${result.error}）`);
-        } else {
-          setSuccessMessage(wasApproval ? '已发布！' : '添加成功！');
-        }
-        setTimeout(() => setSuccessMessage(''), 5000);
-      } else {
-        alert('添加失败：' + (result.error || '未知错误'));
-      }
-    } catch (error) {
-      console.error('Add article error:', error);
-      alert('添加失败：' + (error instanceof Error ? error.message : '未知错误'));
-    }
-  };
-
-  const handleApprovePending = async (pending: PendingArticle) => {
-    // 记录当前审批的 pending 文章 ID，以便添加后自动审批
-    setPendingToApprove(pending.id);
-    
-    // 先设置 URL（用于 AI 提取框）
-    if (pending.url) {
-      setFetchUrl(pending.url);
-    }
-    
-    // 打开对话框
-    setAddDialogOpen(true);
-    
-    // 设置文章基本信息
-    const articleData = {
-      title: pending.title,
-      date: pending.date,
-      year: pending.year || new Date().getFullYear(),
-      month: pending.month || new Date().getMonth() + 1,
-      day: pending.day || new Date().getDate(),
-      category: (pending.category as Speech['category']) || 'speech',
-      categoryName: pending.categoryName || '重要讲话',
-      domain: (pending.domain as Speech['domain']) || 'politics',
-      domainName: pending.domainName || '政治',
-      source: pending.source || '',
-      summary: pending.summary || '',
-      url: pending.url || '',
-      location: pending.location,
-    };
-    setNewArticle(articleData);
-    
-    // 如果有 URL，自动触发 AI 提取
-    if (pending.url) {
-      // 延迟确保对话框已渲染
-      setTimeout(() => {
-        handleFetchFromUrlAuto(pending.url || '', pending.title, pending.summary);
-      }, 300);
-    }
-  };
-
-  // 待审批文章 ID（用于添加后自动审批）
-  const [pendingToApprove, setPendingToApprove] = useState<string | null>(null);
-
-  // 自动触发 AI 提取（审批时调用）
-  const handleFetchFromUrlAuto = async (url: string, title?: string, summary?: string) => {
-    console.log('handleFetchFromUrlAuto 被调用:', url);
-    
-    if (!url.trim()) {
-      console.log('URL 为空，跳过提取');
-      return;
-    }
-    
-    // 检查是否有 API Key
-    const kimiKey = getKimiApiKey();
-    const deepSeekKey = getDeepSeekApiKey();
-    
-    console.log('API Key 状态:', { kimi: !!kimiKey, deepseek: !!deepSeekKey });
-    
-    if (!kimiKey && !deepSeekKey) {
-      console.log('没有 API Key，只填入基本信息');
-      // 没有 API Key，只填入 URL，不自动提取
-      setFetchUrl(url);
-      setNewArticle(prev => ({
-        ...prev,
-        title: title || prev.title,
-        summary: summary || prev.summary,
-        url: url,
-      }));
-      setFetchError('未配置 Kimi/DeepSeek API Key，请手动填写或配置 API Key');
-      return;
-    }
-    
-    setFetchingArticle(true);
-    setFetchError('');
-    setFetchUrl(url);
-    
-    try {
-      console.log('开始 AI 提取...');
-      const article = await extractArticleWithKimi(url, kimiKey || deepSeekKey || '');
-      console.log('AI 提取成功:', article.title);
-      
-      setNewArticle(prev => ({
-        ...prev,
-        title: article.title || title || prev.title,
-        date: article.date || prev.date,
-        year: article.date ? parseInt(article.date.split('-')[0]) : prev.year,
-        month: article.date ? parseInt(article.date.split('-')[1]) : prev.month,
-        day: article.date ? parseInt(article.date.split('-')[2]) : prev.day,
-        source: article.source || prev.source,
-        summary: article.summary || summary || prev.summary,
-        url: article.url || url,
-        category: (article.category as Speech['category']) || prev.category,
-        categoryName: article.categoryName || prev.categoryName,
-        location: article.location || prev.location,
-      }));
-      
-      setFetchedContent(article.fullText || '');
-      setFetchedAnalysis(article.analysis || '');
-      
-      setSuccessMessage(`AI提取成功！标题: ${article.title}`);
-      setTimeout(() => setSuccessMessage(''), 5000);
-    } catch (error) {
-      console.error('Fetch article error:', error);
-      setFetchError(error instanceof Error ? error.message : '提取文章失败，请手动填写');
-      // 即使提取失败，也填入基本信息
-      setNewArticle(prev => ({
-        ...prev,
-        title: title || prev.title,
-        summary: summary || prev.summary,
-        url: url,
-      }));
-    } finally {
-      setFetchingArticle(false);
-    }
-  };
-
   const handleRejectPending = async (id: string) => {
     await rejectArticle(id);
     await loadData();
@@ -956,22 +497,6 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       setCopiedUrl(url);
       setTimeout(() => setCopiedUrl(null), 2000);
     }
-  };
-
-  // 快速新增到系统：预填数据并跳转到文章管理Tab
-  const handleQuickAdd = (article: PendingArticle) => {
-    setNewArticle({
-      title: article.title || '',
-      date: article.date || '',
-      category: (article.category as Speech['category']) || 'speech',
-      categoryName: article.categoryName || '重要讲话',
-      source: article.source || '',
-      summary: article.summary || '',
-      url: article.url || '',
-      location: article.location || '',
-    });
-    setActiveTab('articles');
-    setAddDialogOpen(true);
   };
 
   // GitHub Token 配置
@@ -1266,11 +791,6 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     };
   }, [pollInterval]);
 
-  const filteredArticles = articles.filter(a => 
-    a.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    a.summary.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   const formatNumber = (num: number) => num.toLocaleString('zh-CN');
 
   return (
@@ -1391,64 +911,15 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               />
             </TabsContent>
 
-            {/* 文章管理 */}
             <TabsContent value="articles" className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">文章管理</h2>
-                <div className="flex gap-2">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input
-                      placeholder="搜索文章..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 w-64"
-                    />
-                  </div>
-                  <Button className="bg-red-600 hover:bg-red-700" onClick={() => setAddDialogOpen(true)}>
-                    <Plus className="w-4 h-4 mr-1" />
-                    新增文章
-                  </Button>
-                </div>
-              </div>
-
-              <Card>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-gray-200 bg-gray-50">
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">标题</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">日期</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">分类</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">来源</th>
-                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">操作</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredArticles.map((article) => (
-                          <tr key={article.id} className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="py-3 px-4 text-sm font-medium max-w-md truncate">{article.title}</td>
-                            <td className="py-3 px-4 text-sm">{article.date}</td>
-                            <td className="py-3 px-4 text-sm">{article.categoryName}</td>
-                            <td className="py-3 px-4 text-sm">{article.source}</td>
-                            <td className="py-3 px-4 text-sm">
-                              <div className="flex gap-2">
-                                <Button variant="ghost" size="sm" onClick={() => handleEditArticle(article)}>
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                                <Button variant="ghost" size="sm" onClick={() => handleDeleteArticle(article)} className="text-red-600">
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
+              <AdminArticlesTab
+                articles={filteredArticles}
+                searchTerm={searchTerm}
+                onSearchTermChange={setSearchTerm}
+                onAddArticle={() => handleAddDialogOpenChange(true)}
+                onEditArticle={handleEditArticle}
+                onDeleteArticle={handleDeleteArticle}
+              />
             </TabsContent>
 
             {/* 建议信箱 */}
@@ -1470,154 +941,16 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         </div>
       </main>
 
-      {/* 编辑文章对话框 */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>编辑文章</DialogTitle>
-            <DialogDescription>修改文章信息</DialogDescription>
-          </DialogHeader>
-          {editingArticle && (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">标题</label>
-                <Input 
-                  value={editingArticle.title} 
-                  onChange={(e) => setEditingArticle({...editingArticle, title: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">日期</label>
-                <Input 
-                  value={editingArticle.date} 
-                  onChange={(e) => setEditingArticle({...editingArticle, date: e.target.value})}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">类型</label>
-                  <select 
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background"
-                    value={editingArticle.category}
-                    onChange={(e) => {
-                      const category = e.target.value as 'speech' | 'article' | 'meeting' | 'inspection';
-                      const categoryNames: Record<string, string> = {
-                        speech: '重要讲话',
-                        article: '发表文章',
-                        meeting: '重要会议',
-                        inspection: '考察调研'
-                      };
-                      setEditingArticle({...editingArticle, category, categoryName: categoryNames[category]});
-                    }}
-                  >
-                    <option value="speech">重要讲话</option>
-                    <option value="article">发表文章</option>
-                    <option value="meeting">重要会议</option>
-                    <option value="inspection">考察调研</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">领域</label>
-                  <select 
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background"
-                    value={editingArticle.domain || 'economy'}
-                    onChange={(e) => {
-                      const domain = e.target.value as 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy';
-                      const domainNames: Record<string, string> = {
-                        economy: '经济',
-                        politics: '政治',
-                        culture: '文化',
-                        society: '社会',
-                        ecology: '生态',
-                        party: '党建',
-                        defense: '国防',
-                        diplomacy: '外交'
-                      };
-                      setEditingArticle({...editingArticle, domain, domainName: domainNames[domain]});
-                    }}
-                  >
-                    <option value="economy">经济</option>
-                    <option value="politics">政治</option>
-                    <option value="culture">文化</option>
-                    <option value="society">社会</option>
-                    <option value="ecology">生态</option>
-                    <option value="party">党建</option>
-                    <option value="defense">国防</option>
-                    <option value="diplomacy">外交</option>
-                  </select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">来源</label>
-                <Input 
-                  value={editingArticle.source} 
-                  onChange={(e) => setEditingArticle({...editingArticle, source: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">原文链接</label>
-                <Input 
-                  value={editingArticle.url || ''} 
-                  onChange={(e) => setEditingArticle({...editingArticle, url: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">地点</label>
-                <Input 
-                  value={editingArticle.location || ''} 
-                  onChange={(e) => setEditingArticle({...editingArticle, location: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">摘要</label>
-                <Textarea 
-                  value={editingArticle.summary} 
-                  onChange={(e) => setEditingArticle({...editingArticle, summary: e.target.value})}
-                  rows={4}
-                />
-              </div>
-              
-              {/* 文章详情编辑 */}
-              <div className="border-t pt-4 mt-4">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">详情页内容</h4>
-                {loadingDetail ? (
-                  <div className="flex items-center justify-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600"></div>
-                    <span className="ml-2 text-sm text-gray-500">加载详情中...</span>
-                  </div>
-                ) : editingDetail && (
-                  <>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">原文内容</label>
-                      <Textarea 
-                        value={editingDetail.fullText} 
-                        onChange={(e) => setEditingDetail({...editingDetail, fullText: e.target.value})}
-                        rows={8}
-                        placeholder="输入或粘贴文章原文内容..."
-                        className="font-mono text-sm"
-                      />
-                      <p className="text-xs text-gray-400">当前字数：{editingDetail.fullText.length}</p>
-                    </div>
-                    <div className="space-y-2 mt-4">
-                      <label className="text-sm font-medium">解读</label>
-                      <Textarea 
-                        value={editingDetail.analysis} 
-                        onChange={(e) => setEditingDetail({...editingDetail, analysis: e.target.value})}
-                        rows={4}
-                        placeholder="输入文章解读..."
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>取消</Button>
-            <Button onClick={handleSaveArticle} className="bg-red-600 hover:bg-red-700">保存</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AdminEditArticleDialog
+        open={editDialogOpen}
+        editingArticle={editingArticle}
+        editingDetail={editingDetail}
+        loadingDetail={loadingDetail}
+        onOpenChange={setEditDialogOpen}
+        onEditingArticleChange={setEditingArticle}
+        onEditingDetailChange={setEditingDetail}
+        onSave={handleSaveArticle}
+      />
 
       {/* 删除确认对话框 */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -1633,426 +966,56 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         </DialogContent>
       </Dialog>
 
-      {/* 新增文章对话框 */}
-      <Dialog open={addDialogOpen} onOpenChange={(open) => {
-        setAddDialogOpen(open);
-        if (!open) {
-          // 关闭时重置URL提取状态
-          setFetchUrl('');
-          setFetchError('');
-          setFetchedContent('');
-          setFetchedAnalysis('');
-          setShowManualInput(false);
-          setManualContent('');
-          setManualUrl('');
-        }
-      }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>新增文章</DialogTitle>
-            <DialogDescription>添加新文章，或输入原文链接自动提取</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {/* URL自动提取区域 */}
-            <Card className="bg-blue-50 border-blue-200">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-800">AI智能提取</span>
-                    {kimiApiKey && (
-                      <Badge variant="outline" className="text-green-600 border-green-300">已配置API</Badge>
-                    )}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowKimiKeyDialog(true)}
-                    className="text-blue-600"
-                  >
-                    <Settings className="w-4 h-4 mr-1" />
-                    {kimiApiKey ? '更换Key' : '配置Kimi API'}
-                  </Button>
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="粘贴原文链接，AI将精准提取标题、日期、摘要、全文、解读等内容"
-                    value={fetchUrl}
-                    onChange={(e) => setFetchUrl(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button
-                    onClick={handleFetchFromUrl}
-                    disabled={fetchingArticle || !fetchUrl.trim()}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    {fetchingArticle ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                        提取中
-                      </>
-                    ) : (
-                      '提取'
-                    )}
-                  </Button>
-                </div>
-                {fetchError && (
-                  <p className="text-sm text-red-600 mt-2">{fetchError}</p>
-                )}
-                {fetchedContent && (
-                  <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                    <p className="text-sm text-green-700 font-medium mb-1">
-                      提取成功！已获取：
-                    </p>
-                    <ul className="text-sm text-green-600 space-y-1">
-                      <li>• 全文内容（{fetchedContent.length}字）</li>
-                      {fetchedAnalysis && <li>• 解读分析（{fetchedAnalysis.length}字）</li>}
-                    </ul>
-                  </div>
-                )}
-                {/* 手动粘贴入口 */}
-                <div className="mt-3 pt-3 border-t border-blue-200">
-                  <Button
-                    variant="link"
-                    size="sm"
-                    onClick={() => setShowManualInput(!showManualInput)}
-                    className="text-blue-600 p-0"
-                  >
-                    {showManualInput ? '隐藏手动输入' : '自动提取失败？点击手动粘贴内容'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+      <AdminAddArticleDialog
+        open={addDialogOpen}
+        newArticle={newArticle}
+        fetchUrl={fetchUrl}
+        fetchingArticle={fetchingArticle}
+        fetchError={fetchError}
+        fetchedContent={fetchedContent}
+        fetchedAnalysis={fetchedAnalysis}
+        hasConfiguredExtractionProvider={hasConfiguredExtractionProvider}
+        preferredExtractionProvider={preferredExtractionProvider}
+        showManualInput={showManualInput}
+        manualUrl={manualUrl}
+        manualContent={manualContent}
+        processingManual={processingManual}
+        onOpenChange={handleAddDialogOpenChange}
+        onNewArticleChange={setNewArticle}
+        onFetchUrlChange={setFetchUrl}
+        onFetchFromUrl={handleFetchFromUrl}
+        onOpenKimiKeyDialog={() => setShowApiConfigDialog(true)}
+        onToggleManualInput={() => setShowManualInput(!showManualInput)}
+        onManualUrlChange={setManualUrl}
+        onManualContentChange={setManualContent}
+        onProcessManualContent={handleProcessManualContent}
+        onAddArticle={handleAddArticle}
+      />
 
-            {/* 手动粘贴内容区域 */}
-            {showManualInput && (
-              <Card className="bg-yellow-50 border-yellow-200">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileText className="w-4 h-4 text-yellow-600" />
-                    <span className="text-sm font-medium text-yellow-800">手动粘贴内容</span>
-                  </div>
-                  <div className="space-y-3">
-                    <Input
-                      placeholder="原文链接（可选）"
-                      value={manualUrl}
-                      onChange={(e) => setManualUrl(e.target.value)}
-                    />
-                    <Textarea
-                      placeholder="请从网页复制粘贴文章内容到这里，AI将自动提取标题、日期、摘要等信息..."
-                      value={manualContent}
-                      onChange={(e) => setManualContent(e.target.value)}
-                      rows={8}
-                    />
-                    <Button
-                      onClick={handleProcessManualContent}
-                      disabled={processingManual || !manualContent.trim()}
-                      className="bg-yellow-600 hover:bg-yellow-700"
-                    >
-                      {processingManual ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                          处理中...
-                        </>
-                      ) : (
-                        'AI提取'
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-500">或手动填写</span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">标题 <span className="text-red-500">*</span></label>
-              <Input 
-                placeholder="请输入文章标题"
-                value={newArticle.title || ''} 
-                onChange={(e) => setNewArticle({...newArticle, title: e.target.value})}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">日期 <span className="text-red-500">*</span></label>
-                <Input 
-                  type="date"
-                  value={newArticle.date || ''} 
-                  onChange={(e) => setNewArticle({...newArticle, date: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">类型 <span className="text-red-500">*</span></label>
-                <select 
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background"
-                  value={newArticle.category}
-                  onChange={(e) => {
-                    const category = e.target.value as 'speech' | 'article' | 'meeting' | 'inspection';
-                    const categoryNames: Record<string, string> = {
-                      speech: '重要讲话',
-                      article: '发表文章',
-                      meeting: '重要会议',
-                      inspection: '考察调研'
-                    };
-                    setNewArticle({...newArticle, category, categoryName: categoryNames[category]});
-                  }}
-                >
-                  <option value="speech">重要讲话</option>
-                  <option value="article">发表文章</option>
-                  <option value="meeting">重要会议</option>
-                  <option value="inspection">考察调研</option>
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">领域 <span className="text-red-500">*</span></label>
-                <select 
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background"
-                  value={newArticle.domain || 'economy'}
-                  onChange={(e) => {
-                    const domain = e.target.value as 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy';
-                    const domainNames: Record<string, string> = {
-                      economy: '经济',
-                      politics: '政治',
-                      culture: '文化',
-                      society: '社会',
-                      ecology: '生态',
-                      party: '党建',
-                      defense: '国防',
-                      diplomacy: '外交'
-                    };
-                    setNewArticle({...newArticle, domain, domainName: domainNames[domain]});
-                  }}
-                >
-                  <option value="economy">经济</option>
-                  <option value="politics">政治</option>
-                  <option value="culture">文化</option>
-                  <option value="society">社会</option>
-                  <option value="ecology">生态</option>
-                  <option value="party">党建</option>
-                  <option value="defense">国防</option>
-                  <option value="diplomacy">外交</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">政绩观专题</label>
-                <div className="flex items-center gap-4 h-10">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={newArticle.isZhengjiguan || false}
-                      onChange={(e) => setNewArticle({...newArticle, isZhengjiguan: e.target.checked})}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-sm">是政绩观文章</span>
-                  </label>
-                  {newArticle.isZhengjiguan && (
-                    <select 
-                      className="flex-1 h-8 px-2 rounded-md border border-input bg-background text-sm"
-                      value={newArticle.zhengjiguanLevel || 'central'}
-                      onChange={(e) => setNewArticle({...newArticle, zhengjiguanLevel: e.target.value as 'central' | 'jiangsu' | 'suzhou'})}
-                    >
-                      <option value="central">中央</option>
-                      <option value="jiangsu">江苏省</option>
-                      <option value="suzhou">苏州市</option>
-                    </select>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">来源 <span className="text-red-500">*</span></label>
-              <Input 
-                placeholder="如：人民网、求是杂志等"
-                value={newArticle.source || ''} 
-                onChange={(e) => setNewArticle({...newArticle, source: e.target.value})}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">原文链接</label>
-              <Input 
-                placeholder="请输入原文链接"
-                value={newArticle.url || ''} 
-                onChange={(e) => setNewArticle({...newArticle, url: e.target.value})}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">地点（考察调研类请填写）</label>
-              <Input 
-                placeholder="如：北京、上海等"
-                value={newArticle.location || ''} 
-                onChange={(e) => setNewArticle({...newArticle, location: e.target.value})}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">摘要 <span className="text-red-500">*</span></label>
-              <Textarea 
-                placeholder="请输入文章摘要"
-                value={newArticle.summary || ''} 
-                onChange={(e) => setNewArticle({...newArticle, summary: e.target.value})}
-                rows={4}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddDialogOpen(false)}>取消</Button>
-            <Button onClick={handleAddArticle} className="bg-red-600 hover:bg-red-700">添加</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* AI API 配置对话框 */}
-      <Dialog open={showApiConfigDialog} onOpenChange={setShowApiConfigDialog}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>AI API 配置</DialogTitle>
-            <DialogDescription>
-              配置 Kimi 或 DeepSeek API Key 以使用 AI 搜索功能
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-6 py-4">
-            {/* Kimi API Key */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                Kimi API Key
-                {kimiApiKey && <span className="text-xs text-green-600">已配置</span>}
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  type="password"
-                  placeholder="sk-xxxxxxxxxxxxxxxxxxxx"
-                  value={kimiKeyInput}
-                  onChange={(e) => setKimiKeyInput(e.target.value)}
-                  className="flex-1"
-                />
-                {kimiApiKey ? (
-                  <Button variant="outline" size="sm" onClick={handleClearKimiKey}>
-                    清除
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    onClick={handleSaveKimiKey}
-                    disabled={!kimiKeyInput.trim() || kimiKeyValidating}
-                  >
-                    {kimiKeyValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : '保存'}
-                  </Button>
-                )}
-              </div>
-              <p className="text-xs text-gray-500">
-                在 <a href="https://platform.moonshot.cn/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Kimi开放平台</a> 获取
-              </p>
-            </div>
-
-            {/* DeepSeek API Key */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                DeepSeek API Key
-                {deepSeekApiKey && <span className="text-xs text-green-600">已配置</span>}
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  type="password"
-                  placeholder="sk-xxxxxxxxxxxxxxxxxxxx"
-                  value={deepSeekKeyInput}
-                  onChange={(e) => setDeepSeekKeyInput(e.target.value)}
-                  className="flex-1"
-                />
-                {deepSeekApiKey ? (
-                  <Button variant="outline" size="sm" onClick={handleClearDeepSeekKey}>
-                    清除
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    onClick={handleSaveDeepSeekKey}
-                    disabled={!deepSeekKeyInput.trim() || deepSeekKeyValidating}
-                  >
-                    {deepSeekKeyValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : '保存'}
-                  </Button>
-                )}
-              </div>
-              <p className="text-xs text-gray-500">
-                在 <a href="https://platform.deepseek.com/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">DeepSeek平台</a> 获取
-              </p>
-            </div>
-
-            {/* GitHub Token - 用于触发AI搜索工作流 */}
-            <div className="space-y-2 pt-4 border-t">
-              <label className="text-sm font-medium flex items-center gap-2">
-                GitHub Token
-                <span className="text-xs text-gray-500">(用于AI搜索)</span>
-                {githubToken && <span className="text-xs text-green-600">已配置</span>}
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  type="password"
-                  placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                  value={tokenInput}
-                  onChange={(e) => setTokenInput(e.target.value)}
-                  className="flex-1"
-                />
-                {githubToken ? (
-                  <Button variant="outline" size="sm" onClick={handleClearToken}>
-                    清除
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    onClick={handleSaveToken}
-                    disabled={!tokenInput.trim() || tokenValidating}
-                  >
-                    {tokenValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : '保存'}
-                  </Button>
-                )}
-              </div>
-              <p className="text-xs text-gray-500">
-                需要 <code>repo</code> 和 <code>workflow</code> 权限。
-                在 <a href="https://github.com/settings/tokens/new?scopes=repo,workflow" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">GitHub</a> 创建
-              </p>
-            </div>
-
-            {/* 优先使用 */}
-            {(kimiApiKey || deepSeekApiKey) && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">搜索时优先使用</label>
-                <div className="flex gap-2">
-                  <Button
-                    variant={preferredApi === 'kimi' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => handleSwitchPreferredApi('kimi')}
-                    disabled={!kimiApiKey}
-                  >
-                    Kimi
-                  </Button>
-                  <Button
-                    variant={preferredApi === 'deepseek' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => handleSwitchPreferredApi('deepseek')}
-                    disabled={!deepSeekApiKey}
-                  >
-                    DeepSeek
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowApiConfigDialog(false)}>
-              关闭
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AdminApiConfigDialog
+        open={showApiConfigDialog}
+        kimiApiKey={kimiApiKey}
+        kimiKeyInput={kimiKeyInput}
+        kimiKeyValidating={kimiKeyValidating}
+        deepSeekApiKey={deepSeekApiKey}
+        deepSeekKeyInput={deepSeekKeyInput}
+        deepSeekKeyValidating={deepSeekKeyValidating}
+        githubToken={githubToken}
+        tokenInput={tokenInput}
+        tokenValidating={tokenValidating}
+        preferredApi={preferredApi}
+        onOpenChange={setShowApiConfigDialog}
+        onKimiKeyInputChange={setKimiKeyInput}
+        onSaveKimiKey={handleSaveKimiKey}
+        onClearKimiKey={handleClearKimiKey}
+        onDeepSeekKeyInputChange={setDeepSeekKeyInput}
+        onSaveDeepSeekKey={handleSaveDeepSeekKey}
+        onClearDeepSeekKey={handleClearDeepSeekKey}
+        onTokenInputChange={setTokenInput}
+        onSaveToken={handleSaveToken}
+        onClearToken={handleClearToken}
+        onSwitchPreferredApi={handleSwitchPreferredApi}
+      />
 
       {/* Kimi API Key 配置对话框 */}
       <Dialog open={showKimiKeyDialog} onOpenChange={setShowKimiKeyDialog}>
