@@ -1,7 +1,21 @@
 // 建议信箱服务
 // 使用 Supabase 实现跨设备实时同步
 
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+
+// 创建一个专门用于公共提交的、不携带管理员登录状态的 Supabase 客户端
+// 这是为了防止管理员登录后（身份变为 authenticated）提交时，触发只允许 anon 身份插入的 RLS 策略而被拒绝
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ejeiuqcmkznfbglvbkbe.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqZWl1cWNta3puZmJnbHZia2JlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1ODU4NzIsImV4cCI6MjA4NzE2MTg3Mn0.NfmTSA9DhuP51XKF0qfTuPINtSc7i26u5yIbl69cdAg';
+
+const publicSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false
+  }
+});
 
 // Suggestion 类型定义
 export interface Suggestion {
@@ -83,7 +97,7 @@ export async function submitSuggestion(name: string, message: string): Promise<{
       user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
     };
 
-    const { error } = await supabase
+    const { error } = await publicSupabase
       .from('suggestions')
       .insert(payload);
 
