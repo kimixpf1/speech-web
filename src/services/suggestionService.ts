@@ -36,26 +36,10 @@ export interface Suggestion {
  * 获取所有建议
  */
 export async function getSuggestions(): Promise<Suggestion[]> {
-  let data: any[] | null = null;
-  let error: any = null;
-
-  const primaryResult = await supabase
+  const { data, error } = await publicSupabase
     .from('suggestions')
     .select('*')
     .order('timestamp', { ascending: false, nullsFirst: false });
-
-  data = primaryResult.data;
-  error = primaryResult.error;
-
-  if (error || !data || data.length === 0) {
-    const fallbackResult = await publicSupabase
-      .from('suggestions')
-      .select('*')
-      .order('timestamp', { ascending: false, nullsFirst: false });
-
-    data = fallbackResult.data;
-    error = fallbackResult.error;
-  }
   
   if (error) {
     console.error('获取建议失败:', error);
@@ -133,26 +117,10 @@ export async function submitSuggestion(name: string, message: string): Promise<{
  * 获取未读建议数量
  */
 export async function getUnreadCount(): Promise<number> {
-  let count: number | null = null;
-  let error: any = null;
-
-  const primaryResult = await supabase
+  const { count, error } = await publicSupabase
     .from('suggestions')
     .select('*', { count: 'exact', head: true })
     .eq('status', 'unread');
-
-  count = primaryResult.count;
-  error = primaryResult.error;
-
-  if (error || !count || count === 0) {
-    const fallbackResult = await publicSupabase
-      .from('suggestions')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'unread');
-
-    count = fallbackResult.count;
-    error = fallbackResult.error;
-  }
   
   if (error) {
     console.error('获取未读数量失败:', error);
