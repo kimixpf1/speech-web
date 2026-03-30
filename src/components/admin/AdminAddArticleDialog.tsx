@@ -23,6 +23,7 @@ interface AdminAddArticleDialogProps {
   processingManual: boolean;
   onOpenChange: (open: boolean) => void;
   onNewArticleChange: (article: Partial<Speech>) => void;
+  onFetchedAnalysisChange?: (value: string) => void;
   onFetchUrlChange: (value: string) => void;
   onFetchFromUrl: () => void;
   onOpenKimiKeyDialog: () => void;
@@ -67,6 +68,7 @@ export function AdminAddArticleDialog({
   processingManual,
   onOpenChange,
   onNewArticleChange,
+  onFetchedAnalysisChange,
   onFetchUrlChange,
   onFetchFromUrl,
   onOpenKimiKeyDialog,
@@ -325,6 +327,15 @@ export function AdminAddArticleDialog({
               value={newArticle.summary || ''}
               onChange={(e) => onNewArticleChange({ ...newArticle, summary: e.target.value })}
               rows={4}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">解读</label>
+            <Textarea
+              placeholder="AI 提取生成的解读会显示在这里，也可手动修改"
+              value={fetchedAnalysis}
+              onChange={(e) => onFetchedAnalysisChange?.(e.target.value)}
+              rows={8}
             />
           </div>
         </div>

@@ -13,6 +13,19 @@ export interface ArticleDetailContent {
   analysis: string;
 }
 
+function normalizeAnalysisContent(analysis: string): string {
+  return (analysis || '')
+    .replace(/^[ \t]*一[、，,.\s]*政治高度[：:]/m, '一、政治高度：')
+    .replace(/^[ \t]*二[、，,.\s]*理论深度[：:]/m, '二、理论深度：')
+    .replace(/^[ \t]*三[、，,.\s]*(历史贯通与实践|历史贯通|实践要求|实践指向)[：:]/m, '三、历史贯通与实践：')
+    .replace(/^(一、政治高度：)\s*结合习近平新时代中国特色社会主义思想，阐述讲话在党和国家事业全局中的重大意义。?\s*/m, '$1')
+    .replace(/^(二、理论深度：)\s*阐释核心要义、精神实质，分析其中蕴含的马克思主义立场观点方法。?\s*/m, '$1')
+    .replace(/^(三、历史贯通与实践：)\s*联系习近平总书记历次相关重要讲话，分析一脉相承的思想脉络，指出对推动中国式现代化的实践指导意义。?\s*/m, '$1')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 // 获取本地缓存的详情
 function getLocalDetails(): Record<string, ArticleDetailContent> {
   try {
@@ -40,7 +53,10 @@ export async function getArticleDetail(id: string, forceRefresh: boolean = false
     // 先检查本地缓存
     const localDetails = getLocalDetails();
     if (localDetails[id]) {
-      return localDetails[id];
+      return {
+        ...localDetails[id],
+        analysis: normalizeAnalysisContent(localDetails[id].analysis),
+      };
     }
   }
 
@@ -58,7 +74,7 @@ export async function getArticleDetail(id: string, forceRefresh: boolean = false
           id: data.id,
           abstract: data.abstract || '',
           fullText: data.full_text || '',
-          analysis: data.analysis || '',
+          analysis: normalizeAnalysisContent(data.analysis || ''),
         };
         
         // 更新本地缓存
@@ -100,15 +116,20 @@ export function clearArticleDetailCache(id: string): void {
 // 保存文章详情
 export async function saveArticleDetail(detail: ArticleDetailContent): Promise<boolean> {
   try {
+    const normalizedDetail: ArticleDetailContent = {
+      ...detail,
+      analysis: normalizeAnalysisContent(detail.analysis),
+    };
+
     // 保存到云端
     if (navigator.onLine) {
       const { error } = await supabase
         .from(ARTICLE_DETAILS_TABLE)
         .upsert({
-          id: detail.id,
-          abstract: detail.abstract,
-          full_text: detail.fullText,
-          analysis: detail.analysis,
+          id: normalizedDetail.id,
+          abstract: normalizedDetail.abstract,
+          full_text: normalizedDetail.fullText,
+          analysis: normalizedDetail.analysis,
         }, { onConflict: 'id' });
 
       if (error) {
@@ -119,7 +140,7 @@ export async function saveArticleDetail(detail: ArticleDetailContent): Promise<b
 
     // 更新本地缓存
     const localDetails = getLocalDetails();
-    localDetails[detail.id] = detail;
+    localDetails[normalizedDetail.id] = normalizedDetail;
     saveLocalDetails(localDetails);
 
     return true;
@@ -168,7 +189,7 @@ export async function syncArticleDetails(): Promise<void> {
           id: item.id,
           abstract: item.abstract || '',
           fullText: item.full_text || '',
-          analysis: item.analysis || '',
+          analysis: normalizeAnalysisContent(item.analysis || ''),
         };
       });
       saveLocalDetails(details);
@@ -181,5 +202,10 @@ export async function syncArticleDetails(): Promise<void> {
 // 获取本地详情（同步方法，用于详情页快速加载）
 export function getLocalArticleDetail(id: string): ArticleDetailContent | null {
   const localDetails = getLocalDetails();
-  return localDetails[id] || null;
+  return localDetails[id]
+    ? {
+        ...localDetails[id],
+        analysis: normalizeAnalysisContent(localDetails[id].analysis),
+      }
+    : null;
 }

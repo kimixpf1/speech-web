@@ -106,6 +106,19 @@ function getAvailableExtractionProvider() {
   return null;
 }
 
+function normalizeAnalysisPreview(analysis: string) {
+  return (analysis || '')
+    .replace(/^[ \t]*一[、，,.\s]*政治高度[：:]/m, '一、政治高度：')
+    .replace(/^[ \t]*二[、，,.\s]*理论深度[：:]/m, '二、理论深度：')
+    .replace(/^[ \t]*三[、，,.\s]*(历史贯通与实践|历史贯通|实践要求|实践指向)[：:]/m, '三、历史贯通与实践：')
+    .replace(/^(一、政治高度：)\s*结合习近平新时代中国特色社会主义思想，阐述讲话在党和国家事业全局中的重大意义。?\s*/m, '$1')
+    .replace(/^(二、理论深度：)\s*阐释核心要义、精神实质，分析其中蕴含的马克思主义立场观点方法。?\s*/m, '$1')
+    .replace(/^(三、历史贯通与实践：)\s*联系习近平总书记历次相关重要讲话，分析一脉相承的思想脉络，指出对推动中国式现代化的实践指导意义。?\s*/m, '$1')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export function useAdminArticleManagement({
   articles,
   loadData,
@@ -269,7 +282,7 @@ export function useAdminArticleManagement({
       }));
 
       setFetchedContent(article.fullText);
-      setFetchedAnalysis(article.analysis);
+      setFetchedAnalysis(normalizeAnalysisPreview(article.analysis));
       onSuccess(`文章内容已精准提取！标题: ${article.title}`, 5000);
     } catch (error) {
       console.error('Fetch article error:', error);
@@ -334,7 +347,7 @@ export function useAdminArticleManagement({
       }));
 
       setFetchedContent(article.fullText);
-      setFetchedAnalysis(article.analysis);
+      setFetchedAnalysis(normalizeAnalysisPreview(article.analysis));
       setShowManualInput(false);
       setManualContent('');
       setManualUrl('');
@@ -390,7 +403,7 @@ export function useAdminArticleManagement({
         id: articleId,
         abstract: newArticle.summary,
         fullText: fetchedContent || '',
-        analysis: fetchedAnalysis || '解读分析正在整理中...',
+        analysis: fetchedAnalysis.trim() || '解读分析正在整理中...',
       };
       await saveArticleDetail(detail);
 
@@ -456,7 +469,7 @@ export function useAdminArticleManagement({
       }));
 
       setFetchedContent(article.fullText || '');
-      setFetchedAnalysis(article.analysis || '');
+      setFetchedAnalysis(normalizeAnalysisPreview(article.analysis || ''));
       onSuccess(`AI提取成功！标题: ${article.title}`, 5000);
     } catch (error) {
       console.error('Fetch article error:', error);
@@ -491,7 +504,7 @@ export function useAdminArticleManagement({
       category: (pending.category as Speech['category']) || 'speech',
       categoryName: pending.categoryName || '重要讲话',
       domain: (pending.domain as Speech['domain']) || 'politics',
-      domainName: pending.domainName || '政治',
+      domainName: '政治',
       source: pending.source || '',
       summary: pending.summary || '',
       url: pending.url || '',
@@ -553,6 +566,7 @@ export function useAdminArticleManagement({
     setEditingDetail,
     setEditDialogOpen,
     setFetchUrl,
+    setFetchedAnalysis,
     setKimiKeyInput,
     setManualContent,
     setManualUrl,
