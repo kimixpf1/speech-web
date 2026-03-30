@@ -386,15 +386,13 @@ export function useAdminArticleManagement({
         return;
       }
 
-      if (fetchedContent) {
-        const detail: ArticleDetailContent = {
-          id: articleId,
-          abstract: newArticle.summary,
-          fullText: fetchedContent,
-          analysis: fetchedAnalysis || '解读分析正在整理中...',
-        };
-        await saveArticleDetail(detail);
-      }
+      const detail: ArticleDetailContent = {
+        id: articleId,
+        abstract: newArticle.summary,
+        fullText: fetchedContent || '',
+        analysis: fetchedAnalysis || '解读分析正在整理中...',
+      };
+      await saveArticleDetail(detail);
 
       const wasApproval = !!pendingToApprove;
       if (pendingToApprove) {

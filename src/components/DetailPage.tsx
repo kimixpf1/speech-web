@@ -13,7 +13,7 @@ export interface SpeechDetail extends Speech {
   analysis?: string;
 }
 import { getArticles, getLocalArticlesSync, getZhengjiguanArticles, type Speech } from '@/services/articleServiceEnhanced';
-import { getArticleDetail } from '@/services/articleDetailService';
+import { getArticleDetail, saveArticleDetail } from '@/services/articleDetailService';
 import {
   Dialog,
   DialogContent,
@@ -158,7 +158,7 @@ export function DetailPage() {
             // 一次性更新状态，避免中间状态
             setSpeech({
               ...baseSpeech,
-              abstract: cloudDetail.abstract || '摘要正在整理中...',
+              abstract: cloudDetail.abstract || baseSpeech.summary || '摘要正在整理中...',
               fullText: cloudDetail.fullText || '原文加载中...',
               analysis: cloudDetail.analysis || '解读分析正在整理中...',
             } as SpeechDetail);
@@ -172,7 +172,7 @@ export function DetailPage() {
         // 云端没有数据，显示占位符
         setSpeech({
           ...baseSpeech,
-          abstract: '摘要正在整理中...',
+          abstract: baseSpeech.summary || '摘要正在整理中...',
           fullText: '原文加载中...',
           analysis: '解读分析正在整理中...',
         } as SpeechDetail);
@@ -230,7 +230,7 @@ export function DetailPage() {
     if (!speech || !id) return;
     
     if (!isApiKeyConfigured()) {
-      setGenerateError('请先在管理员后台配置 Kimi API Key');
+      setGenerateError('请先在管理员后台配置 Kimi 或 DeepSeek API Key');
       return;
     }
 
@@ -252,6 +252,13 @@ export function DetailPage() {
         abstract: result.summary,
         analysis: result.analysis,
       } : null);
+
+      await saveArticleDetail({
+        id,
+        abstract: result.summary,
+        fullText: speech.fullText && !speech.fullText.includes('加载中') ? speech.fullText : '',
+        analysis: result.analysis,
+      });
 
       setHasGeneratedContent(true);
     } catch (e) {
