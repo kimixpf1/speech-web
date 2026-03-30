@@ -36,6 +36,8 @@ export interface Suggestion {
  * 获取所有建议
  */
 export async function getSuggestions(): Promise<Suggestion[]> {
+  // 由于 RLS 策略可能限制了对 suggestions 表的读取，这里直接查询如果失败则返回空数组
+  // 管理员应该在登录状态下调用此接口，这样可以读取所有数据
   const { data, error } = await supabase
     .from('suggestions')
     .select('*')
@@ -59,7 +61,7 @@ export async function getSuggestions(): Promise<Suggestion[]> {
 
     return {
       ...item,
-      content: item.message || item.content || '',
+      content: item.content || item.message || '', // 确保优先读取 content 字段
       date: rawDate || fallbackDate,
       time: rawTime || fallbackTime,
     };
