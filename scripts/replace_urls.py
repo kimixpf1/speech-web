@@ -6,18 +6,20 @@
 """
 
 import json
+import os
 import re
 import urllib.request
 import urllib.parse
 import time
 import sys
 
-# Supabase配置
-SUPABASE_URL = "https://ejeiuqcmkznfbglvbkbe.supabase.co"
-SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqZWl1cWNta3puZmJnbHZia2JlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1ODU4NzIsImV4cCI6MjA4NzE2MTg3Mn0.NfmTSA9DhuP51XKF0qfTuPINtSc7i26u5yIbl69cdAg"
-
-ADMIN_EMAIL = "admin@office.local"
-ADMIN_PASSWORD = "kimiclaw1"
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://ejeiuqcmkznfbglvbkbe.supabase.co")
+SUPABASE_ANON_KEY = os.getenv(
+    "SUPABASE_ANON_KEY",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqZWl1cWNta3puZmJnbHZia2JlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1ODU4NzIsImV4cCI6MjA4NzE2MTg3Mn0.NfmTSA9DhuP51XKF0qfTuPINtSc7i26u5yIbl69cdAg",
+)
+ADMIN_EMAIL = os.getenv("SUPABASE_ADMIN_EMAIL") or os.getenv("ADMIN_EMAIL")
+ADMIN_PASSWORD = os.getenv("SUPABASE_ADMIN_PASSWORD") or os.getenv("ADMIN_PASSWORD")
 
 CHANNELS = ["c64094", "c64387", "c1024", "c461529"]
 BATCH_SIZE = 50
@@ -49,6 +51,10 @@ def supabase_request(path, method="GET", data=None, token=None):
 
 def login():
     """管理员登录获取token"""
+    if not ADMIN_EMAIL or not ADMIN_PASSWORD:
+        print("请先设置环境变量 SUPABASE_ADMIN_EMAIL 和 SUPABASE_ADMIN_PASSWORD")
+        sys.exit(1)
+
     print("正在登录管理员账号...")
     result = supabase_request(
         "/auth/v1/token?grant_type=password",

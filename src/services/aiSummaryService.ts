@@ -86,6 +86,61 @@ function cleanEscapeChars(text: string | undefined | null): string {
     .trim();
 }
 
+function buildSummaryPrompt(articleTitle: string, articleContent: string): string {
+  return `你是一位资深的时政理论专家，擅长深度解读习近平总书记重要讲话。请根据以下文章内容，生成专业的摘要和深度解读。
+
+文章标题：${articleTitle}
+
+文章内容：
+${articleContent.substring(0, 6000)}
+
+请严格按照以下格式输出（禁止JSON，禁止英文）：
+
+【摘要】
+150-200字，准确概括文章核心内容，提炼关键论断。
+
+【解读】
+400-600字深度解读，分为三个段落（每段开头标注小标题）：
+
+一、政治高度：结合习近平新时代中国特色社会主义思想，阐述讲话在党和国家事业全局中的重大意义。
+
+二、理论深度：阐释核心要义、精神实质，分析其中蕴含的马克思主义立场观点方法。
+
+三、历史贯通与实践：联系习近平总书记历次相关重要讲话，分析一脉相承的思想脉络，指出对推动中国式现代化的实践指导意义。
+
+严格要求：
+1. 全部使用中文，禁止任何英文
+2. 禁止JSON格式，禁止引号、大括号等符号
+3. 解读必须分三段，每段用"一、""二、""三、"开头
+4. 每个小标题后必须直接进入该维度的分析内容，禁止先解释“政治高度”“理论深度”“历史贯通与实践”这些标题本身是什么意思
+5. 禁止出现“政治高度是指”“所谓政治高度”“这里的政治高度”“理论深度是指”“历史贯通与实践就是”等先定义概念的写法
+6. 语言庄重规范，适合政务学习场景`;
+}
+
+function normalizeAnalysisHeading(analysis: string): string {
+  return analysis
+    .replace(/^[ \t]*一[、，,.\s]*政治高度[：:]/m, '一、政治高度：')
+    .replace(/^[ \t]*二[、，,.\s]*理论深度[：:]/m, '二、理论深度：')
+    .replace(/^[ \t]*三[、，,.\s]*(历史贯通与实践|历史贯通|实践要求|实践指向)[：:]/m, '三、历史贯通与实践：');
+}
+
+function stripHeadingDefinitionPrefix(analysis: string): string {
+  const patterns: Array<[RegExp, string]> = [
+    [/^(一、政治高度：)\s*(政治高度(?:主要)?(?:是指|就是|意味着)|所谓政治高度|这里的政治高度(?:主要)?(?:是指|体现在)?|从政治高度来看，?)/m, '$1'],
+    [/^(二、理论深度：)\s*(理论深度(?:主要)?(?:是指|就是|意味着)|所谓理论深度|这里的理论深度(?:主要)?(?:是指|体现在)?|从理论深度来看，?)/m, '$1'],
+    [/^(三、历史贯通与实践：)\s*((历史贯通与实践|历史贯通|实践要求)(?:主要)?(?:是指|就是|意味着)|所谓历史贯通与实践|这里的历史贯通与实践(?:主要)?(?:是指|体现在)?|从历史贯通与实践来看，?)/m, '$1'],
+  ];
+
+  return patterns.reduce((current, [pattern, replacement]) => current.replace(pattern, replacement), analysis);
+}
+
+function normalizeAnalysisFormat(analysis: string): string {
+  return stripHeadingDefinitionPrefix(normalizeAnalysisHeading(analysis))
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 /**
  * 调用 DeepSeek API 生成摘要和解读（优先使用）
  */
@@ -98,19 +153,7 @@ async function generateWithDeepSeek(
     throw new Error('未配置 DeepSeek API Key');
   }
 
-  const prompt = `你是一位资深的时政理论专家。请根据以下文章生成摘要和解读。
-
-文章标题：${articleTitle}
-文章内容：${articleContent.substring(0, 6000)}
-
-请按格式输出：
-【摘要】150-200字，概括核心内容。
-【解读】400-600字，分三段，每段用"一、""二、""三、"开头：
-一、政治高度：阐述讲话的重大意义。
-二、理论深度：阐释核心要义和马克思主义立场观点方法。
-三、历史贯通与实践：分析思想脉络和实践指导意义。
-
-要求：全中文，禁止JSON格式。`;
+  const prompt = buildSummaryPrompt(articleTitle, articleContent);
 
   const response = await fetch(DEEPSEEK_API_URL, {
     method: 'POST',
@@ -154,7 +197,7 @@ function parseAIContent(rawContent: string): { summary: string; analysis: string
     summary = summaryMatch[1].trim();
   }
   if (analysisMatch && analysisMatch[1]) {
-    analysis = analysisMatch[1].trim();
+    analysis = normalizeAnalysisFormat(analysisMatch[1].trim());
   }
   
   // 降级：按比例分割
@@ -182,32 +225,7 @@ async function generateWithKimi(
     throw new Error('未配置 Kimi API Key，请在管理员后台配置');
   }
 
-  const prompt = `你是一位资深的时政理论专家，擅长深度解读习近平总书记重要讲话。请根据以下文章内容，生成专业的摘要和深度解读。
-
-文章标题：${articleTitle}
-
-文章内容：
-${articleContent.substring(0, 6000)}
-
-请严格按照以下格式输出（禁止JSON，禁止英文）：
-
-【摘要】
-150-200字，准确概括文章核心内容，提炼关键论断。
-
-【解读】
-400-600字深度解读，分为三个段落（每段开头标注小标题）：
-
-一、政治高度：结合习近平新时代中国特色社会主义思想，阐述讲话在党和国家事业全局中的重大意义。
-
-二、理论深度：阐释核心要义、精神实质，分析其中蕴含的马克思主义立场观点方法。
-
-三、历史贯通与实践：联系习近平总书记历次相关重要讲话，分析一脉相承的思想脉络，指出对推动中国式现代化的实践指导意义。
-
-严格要求：
-1. 全部使用中文，禁止任何英文
-2. 禁止JSON格式，禁止引号、大括号等符号
-3. 解读必须分三段，每段用"一、""二、""三、"开头
-4. 语言庄重规范，适合政务学习场景`;
+  const prompt = buildSummaryPrompt(articleTitle, articleContent);
 
   const response = await fetch(KIMI_API_URL, {
     method: 'POST',
