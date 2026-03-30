@@ -38,16 +38,16 @@ export function SuggestionBox() {
 
     // 提交建议
     try {
-      const success = await submitSuggestion(name, content);
-      if (success) {
+      const result = await submitSuggestion(name, content);
+      if (result.success) {
         setSubmitted(true);
         setName('');
         setContent('');
       } else {
-        setError('提交失败，请稍后重试');
+        setError(`提交失败，请稍后重试 (${result.error || '未知错误'})`);
       }
-    } catch (err) {
-      setError('提交失败，请稍后重试');
+    } catch (err: any) {
+      setError(`提交失败，请稍后重试 (${err.message || String(err)})`);
     } finally {
       setIsSubmitting(false);
     }

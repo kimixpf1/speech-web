@@ -53,31 +53,50 @@ export async function getSuggestions(): Promise<Suggestion[]> {
 }
 
 /**
+ * 安全的 UUID 生成器
+ */
+function generateUUID() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+/**
  * 提交新建议
  */
-export async function submitSuggestion(name: string, message: string): Promise<boolean> {
-  const now = new Date();
-  const payload = {
-    id: crypto.randomUUID(),
-    name,
-    content: message,
-    status: 'unread' as const,
-    timestamp: now.toISOString(),
-    date: now.toLocaleDateString('zh-CN'),
-    time: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-    user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
-  };
+export async function submitSuggestion(name: string, message: string): Promise<{success: boolean, error?: string}> {
+  try {
+    const now = new Date();
+    const payload = {
+      id: generateUUID(),
+      name,
+      content: message,
+      status: 'unread' as const,
+      timestamp: now.toISOString(),
+      date: now.toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' }),
+      time: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Shanghai' }),
+      user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+    };
 
-  const { error } = await supabase
-    .from('suggestions')
-    .insert(payload);
+    const { error } = await supabase
+      .from('suggestions')
+      .insert(payload);
 
-  if (error) {
-    console.error('提交建议失败:', error);
-    return false;
+    if (error) {
+      console.error('提交建议失败(Supabase Error):', error);
+      return { success: false, error: error.message || JSON.stringify(error) };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('提交建议异常:', err);
+    return { success: false, error: err.message || String(err) };
   }
-
-  return true;
 }
 
 /**
