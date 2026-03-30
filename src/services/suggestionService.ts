@@ -36,8 +36,8 @@ export interface Suggestion {
  * 获取所有建议
  */
 export async function getSuggestions(): Promise<Suggestion[]> {
-  let data = null;
-  let error = null;
+  let data: any[] | null = null;
+  let error: any = null;
 
   const primaryResult = await supabase
     .from('suggestions')
@@ -47,7 +47,7 @@ export async function getSuggestions(): Promise<Suggestion[]> {
   data = primaryResult.data;
   error = primaryResult.error;
 
-  if (error) {
+  if (error || !data || data.length === 0) {
     const fallbackResult = await publicSupabase
       .from('suggestions')
       .select('*')
@@ -133,8 +133,8 @@ export async function submitSuggestion(name: string, message: string): Promise<{
  * 获取未读建议数量
  */
 export async function getUnreadCount(): Promise<number> {
-  let count = null;
-  let error = null;
+  let count: number | null = null;
+  let error: any = null;
 
   const primaryResult = await supabase
     .from('suggestions')
@@ -144,7 +144,7 @@ export async function getUnreadCount(): Promise<number> {
   count = primaryResult.count;
   error = primaryResult.error;
 
-  if (error) {
+  if (error || !count || count === 0) {
     const fallbackResult = await publicSupabase
       .from('suggestions')
       .select('*', { count: 'exact', head: true })
