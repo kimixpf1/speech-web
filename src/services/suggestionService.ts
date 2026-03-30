@@ -134,75 +134,79 @@ export async function getUnreadCount(): Promise<number> {
  * 标记建议为已读
  */
 export async function markAsRead(id: string): Promise<boolean> {
-  const { error } = await supabase
+  const { data, error } = await publicSupabase
     .from('suggestions')
     .update({ status: 'read' })
-    .eq('id', id);
+    .eq('id', id)
+    .select('id');
   
   if (error) {
     console.error('标记已读失败:', error);
     return false;
   }
   
-  return true;
+  return (data?.length || 0) > 0;
 }
 
 /**
  * 批量标记建议为已读
  */
 export async function markMultipleAsRead(ids: string[]): Promise<boolean> {
-  const { error } = await supabase
+  const { data, error } = await publicSupabase
     .from('suggestions')
     .update({ status: 'read' })
-    .in('id', ids);
+    .in('id', ids)
+    .select('id');
   
   if (error) {
     console.error('批量标记已读失败:', error);
     return false;
   }
   
-  return true;
+  return (data?.length || 0) === ids.length;
 }
 
 /**
  * 删除建议
  */
 export async function deleteSuggestion(id: string): Promise<boolean> {
-  const { error } = await supabase
+  const { data, error } = await publicSupabase
     .from('suggestions')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .select('id');
   
   if (error) {
     console.error('删除建议失败:', error);
     return false;
   }
   
-  return true;
+  return (data?.length || 0) > 0;
 }
 
 /**
  * 批量删除建议
  */
 export async function deleteMultipleSuggestions(ids: string[]): Promise<boolean> {
-  const { error } = await supabase
+  const { data, error } = await publicSupabase
     .from('suggestions')
     .delete()
-    .in('id', ids);
+    .in('id', ids)
+    .select('id');
   
   if (error) {
     console.error('批量删除建议失败:', error);
     return false;
   }
   
-  return true;
+  return (data?.length || 0) === ids.length;
 }
 
 /**
  * 清空所有建议
  */
 export async function clearAllSuggestions(): Promise<boolean> {
-  const { error } = await supabase
+  const { error } = await publicSupabase
     .from('suggestions')
     .delete()
     .neq('id', '00000000-0000-0000-0000-000000000000'); // 删除所有记录的技巧

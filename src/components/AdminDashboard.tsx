@@ -311,28 +311,28 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   const handleMarkSuggestionRead = async (id: string) => {
     if (id) {
-      await markAsRead(id);
+      const success = await markAsRead(id);
       await loadData();
-      setSuccessMessage('标记已读成功');
+      setSuccessMessage(success ? '标记已读成功' : '标记已读失败');
       setTimeout(() => setSuccessMessage(''), 3000);
     }
   };
 
   const handleDeleteSuggestion = async (id: string) => {
     if (id && confirm('确定要删除这条建议吗？')) {
-      await deleteSuggestion(id);
+      const success = await deleteSuggestion(id);
       await loadData();
-      setSuccessMessage('删除成功');
+      setSuccessMessage(success ? '删除成功' : '删除失败');
       setTimeout(() => setSuccessMessage(''), 3000);
     }
   };
 
   const handleClearSuggestions = async () => {
     if (confirm('确定要清空所有建议吗？此操作不可恢复！')) {
-      await clearAllSuggestions();
+      const success = await clearAllSuggestions();
       setSelectedSuggestions(new Set());
       await loadData();
-      setSuccessMessage('清空成功');
+      setSuccessMessage(success ? '清空成功' : '清空失败');
       setTimeout(() => setSuccessMessage(''), 3000);
     }
   };
@@ -362,10 +362,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       return;
     }
     const ids = Array.from(selectedSuggestions);
-    await markMultipleAsRead(ids);
+    const success = await markMultipleAsRead(ids);
     setSelectedSuggestions(new Set());
     await loadData();
-    setSuccessMessage(`已标记 ${ids.length} 条建议为已读`);
+    setSuccessMessage(success ? `已标记 ${ids.length} 条建议为已读` : '批量标记已读失败');
     setTimeout(() => setSuccessMessage(''), 3000);
   };
 
@@ -376,10 +376,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     }
     if (confirm(`确定要删除选中的 ${selectedSuggestions.size} 条建议吗？`)) {
       const ids = Array.from(selectedSuggestions);
-      await deleteMultipleSuggestions(ids);
+      const success = await deleteMultipleSuggestions(ids);
       setSelectedSuggestions(new Set());
       await loadData();
-      setSuccessMessage(`已删除 ${ids.length} 条建议`);
+      setSuccessMessage(success ? `已删除 ${ids.length} 条建议` : '批量删除失败');
       setTimeout(() => setSuccessMessage(''), 3000);
     }
   };
