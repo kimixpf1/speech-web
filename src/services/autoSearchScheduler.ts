@@ -3,7 +3,8 @@
  * 早8点搜索昨日内容，晚8点搜索今日内容
  */
 
-import { searchArticles, setLastSearchTime, SearchedArticle } from './aiSearchService';
+import { searchArticles, setLastSearchTime } from './aiSearchService';
+import type { SearchedArticle } from './aiSearchService';
 
 // 存储键
 const AUTO_SEARCH_CONFIG_KEY = 'auto_search_config';

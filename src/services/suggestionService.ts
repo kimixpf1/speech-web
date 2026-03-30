@@ -36,12 +36,26 @@ export interface Suggestion {
  * 获取所有建议
  */
 export async function getSuggestions(): Promise<Suggestion[]> {
-  // 由于 RLS 策略可能限制了对 suggestions 表的读取，这里直接查询如果失败则返回空数组
-  // 管理员应该在登录状态下调用此接口，这样可以读取所有数据
-  const { data, error } = await supabase
+  let data = null;
+  let error = null;
+
+  const primaryResult = await supabase
     .from('suggestions')
     .select('*')
     .order('timestamp', { ascending: false, nullsFirst: false });
+
+  data = primaryResult.data;
+  error = primaryResult.error;
+
+  if (error) {
+    const fallbackResult = await publicSupabase
+      .from('suggestions')
+      .select('*')
+      .order('timestamp', { ascending: false, nullsFirst: false });
+
+    data = fallbackResult.data;
+    error = fallbackResult.error;
+  }
   
   if (error) {
     console.error('获取建议失败:', error);
@@ -119,10 +133,26 @@ export async function submitSuggestion(name: string, message: string): Promise<{
  * 获取未读建议数量
  */
 export async function getUnreadCount(): Promise<number> {
-  const { count, error } = await supabase
+  let count = null;
+  let error = null;
+
+  const primaryResult = await supabase
     .from('suggestions')
     .select('*', { count: 'exact', head: true })
     .eq('status', 'unread');
+
+  count = primaryResult.count;
+  error = primaryResult.error;
+
+  if (error) {
+    const fallbackResult = await publicSupabase
+      .from('suggestions')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'unread');
+
+    count = fallbackResult.count;
+    error = fallbackResult.error;
+  }
   
   if (error) {
     console.error('获取未读数量失败:', error);
@@ -224,8 +254,7 @@ export async function clearAllSuggestions(): Promise<boolean> {
 export function setupSuggestionListener(
   callback: (suggestions: Suggestion[]) => void
 ): () => void {
-  // 创建实时订阅
-  const channel = supabase
+  const channel = publicSupabase
     .channel('suggestions-changes')
     .on(
       'postgres_changes',
@@ -244,6 +273,6 @@ export function setupSuggestionListener(
   
   // 返回清理函数
   return () => {
-    supabase.removeChannel(channel);
+    publicSupabase.removeChannel(channel);
   };
 }
