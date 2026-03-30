@@ -210,7 +210,7 @@ export function useAdminArticleManagement({
     try {
       const success = await deleteArticle(deletingArticle.id);
       if (!success) {
-        alert('删除失败，请重试');
+        alert('删除失败，请重试。系统已阻止不完整删除，避免产生孤儿记录。');
         return;
       }
 

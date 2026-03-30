@@ -1,6 +1,12 @@
 import { supabase } from '@/lib/supabase';
 import { speechesData, type Speech } from '@/data/speeches';
 import { zhengjiguanArticles } from '@/data/zhengjiguanArticles';
+import {
+  clearArticleDetailCache,
+  getArticleDetail,
+  saveArticleDetail,
+  type ArticleDetailContent,
+} from '@/services/articleDetailService';
 
 // 表名
 const ARTICLES_TABLE = 'articles';
@@ -371,41 +377,67 @@ export async function updateArticle(article: Speech): Promise<{ success: boolean
 export async function deleteArticle(id: string): Promise<boolean> {
   try {
     console.log('删除文章，同步云端:', id);
-    
-    if (navigator.onLine) {
-      // 1. 先删除 article_details 表记录（防止孤儿记录）
-      const { error: detailError } = await supabase
-        .from('article_details')
-        .delete()
-        .eq('id', id);
-      
-      if (detailError) {
-        console.error('删除文章详情失败:', detailError);
-        // 继续尝试删除主表，不因为详情删除失败而中断
-      } else {
-        console.log('文章详情删除成功:', id);
-      }
-      
-      // 2. 再删除 articles 表记录
-      const { error } = await supabase
-        .from(ARTICLES_TABLE)
-        .delete()
-        .eq('id', id);
 
-      if (error) {
-        console.error('云端删除失败:', error);
+    const cached = getLocalCache();
+    const targetArticle = cached.find(a => a.id === id) || null;
+    const detailBackup = await getArticleDetail(id, true);
+
+    if (navigator.onLine) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        console.error('用户未登录，无法删除文章');
         return false;
       }
 
-      console.log('云端删除成功:', id);
+      const { data: deletedArticles, error: articleDeleteError } = await supabase
+        .from(ARTICLES_TABLE)
+        .delete()
+        .eq('id', id)
+        .select('id');
+
+      if (articleDeleteError || !deletedArticles?.length) {
+        console.error('云端删除文章失败:', articleDeleteError || new Error('未删除任何文章记录'));
+        return false;
+      }
+
+      console.log('文章主记录删除成功:', id);
+
+      const { data: deletedDetails, error: detailDeleteError } = await supabase
+        .from('article_details')
+        .delete()
+        .eq('id', id)
+        .select('id');
+
+      const hadDetailBackup = Boolean(detailBackup);
+      const detailDeleteSucceeded = !detailDeleteError && (!hadDetailBackup || Boolean(deletedDetails?.length));
+
+      if (!detailDeleteSucceeded) {
+        console.error('删除文章详情失败，准备回滚主记录:', detailDeleteError || new Error('未删除任何详情记录'));
+
+        if (targetArticle) {
+          const rollbackResult = await addArticle(targetArticle);
+          if (!rollbackResult.success) {
+            console.error('回滚文章主记录失败:', rollbackResult.error);
+          }
+        }
+
+        if (detailBackup) {
+          await saveArticleDetail(detailBackup as ArticleDetailContent);
+        }
+
+        return false;
+      }
+
+      console.log('文章详情删除成功:', id);
 
       const allArticles = await fetchFromCloud();
       saveLocalCache(allArticles);
+      clearArticleDetailCache(id);
       console.log('当前云端文章总数:', allArticles.length);
     } else {
-      const cached = getLocalCache();
       const filtered = cached.filter(a => a.id !== id);
       saveLocalCache(filtered);
+      clearArticleDetailCache(id);
     }
 
     return true;
