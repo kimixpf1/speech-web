@@ -3,24 +3,45 @@
 
 import { supabase } from '@/lib/supabase';
 
-// 尝试多种表名格式（Supabase/PostgreSQL表名映射复杂）
 const TABLE_NAMES_TO_TRY = ['new_table', 'New table', 'NewTable', 'newtable'];
+const TABLE_NAME_CACHE_KEY = 'supabase_analytics_table_name';
 
-// 找到正确的表名
 let correctTableName: string | null = null;
+
+function getCachedTableName() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  return localStorage.getItem(TABLE_NAME_CACHE_KEY);
+}
+
+function saveCachedTableName(tableName: string) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  localStorage.setItem(TABLE_NAME_CACHE_KEY, tableName);
+}
 
 async function findCorrectTableName(): Promise<string> {
   if (correctTableName) return correctTableName;
-  
-  for (const tableName of TABLE_NAMES_TO_TRY) {
+
+  const cachedTableName = getCachedTableName();
+  const tableNames = cachedTableName
+    ? [cachedTableName, ...TABLE_NAMES_TO_TRY.filter(name => name !== cachedTableName)]
+    : TABLE_NAMES_TO_TRY;
+
+  for (const tableName of tableNames) {
     try {
       const result = await supabase
         .from(tableName)
         .select('*', { count: 'exact', head: true });
       
-      if (!result.error && result.count !== null && result.count > 0) {
+      if (!result.error && result.count !== null) {
         console.log(`[Analytics] 找到正确的表名: ${tableName}, 记录数: ${result.count}`);
         correctTableName = tableName;
+        saveCachedTableName(tableName);
         return tableName;
       }
     } catch (e) {
@@ -29,6 +50,7 @@ async function findCorrectTableName(): Promise<string> {
   }
   
   console.log(`[Analytics] 未找到有数据的表，默认使用 new_table`);
+  saveCachedTableName('new_table');
   return 'new_table';
 }
 
