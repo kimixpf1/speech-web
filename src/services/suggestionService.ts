@@ -6,14 +6,16 @@ import { supabase } from '@/lib/supabase';
 // Suggestion 类型定义
 export interface Suggestion {
   id: string;
-  created_at: string;
+  created_at?: string;
+  timestamp?: string;
   name: string;
-  email: string;
-  message: string;
-  content: string;  // 兼容前端显示
+  email?: string;
+  message?: string;
+  content: string;
   status: 'read' | 'unread';
-  date?: string;    // 前端显示日期
-  time?: string;    // 前端显示时间
+  date?: string;
+  time?: string;
+  user_agent?: string;
 }
 
 /**
@@ -23,21 +25,29 @@ export async function getSuggestions(): Promise<Suggestion[]> {
   const { data, error } = await supabase
     .from('suggestions')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('timestamp', { ascending: false, nullsFirst: false });
   
   if (error) {
     console.error('获取建议失败:', error);
     return [];
   }
   
-  // 处理数据，添加 date, time, content 字段
   return (data || []).map(item => {
-    const createdAt = new Date(item.created_at);
+    const rawDate = item.date || '';
+    const rawTime = item.time || '';
+    const fallbackTimestamp = item.timestamp || item.created_at || null;
+    const fallbackDate = fallbackTimestamp
+      ? new Date(fallbackTimestamp).toLocaleDateString('zh-CN')
+      : '';
+    const fallbackTime = fallbackTimestamp
+      ? new Date(fallbackTimestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+      : '';
+
     return {
       ...item,
       content: item.message || item.content || '',
-      date: createdAt.toLocaleDateString('zh-CN'),
-      time: createdAt.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+      date: rawDate || fallbackDate,
+      time: rawTime || fallbackTime,
     };
   });
 }
@@ -46,22 +56,27 @@ export async function getSuggestions(): Promise<Suggestion[]> {
  * 提交新建议
  */
 export async function submitSuggestion(name: string, message: string): Promise<boolean> {
+  const now = new Date();
+  const payload = {
+    id: crypto.randomUUID(),
+    name,
+    content: message,
+    status: 'unread' as const,
+    timestamp: now.toISOString(),
+    date: now.toLocaleDateString('zh-CN'),
+    time: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+    user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+  };
+
   const { error } = await supabase
     .from('suggestions')
-    .insert({
-      id: crypto.randomUUID(),
-      name,
-      message,
-      email: '',
-      status: 'unread',
-      created_at: new Date().toISOString(),
-    });
-  
+    .insert(payload);
+
   if (error) {
     console.error('提交建议失败:', error);
     return false;
   }
-  
+
   return true;
 }
 
