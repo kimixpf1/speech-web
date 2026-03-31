@@ -170,3 +170,10 @@
 - 已让 src/services/articleDetailService.ts、src/components/DetailPage.tsx、src/services/aiSummaryService.ts 统一复用摘要压缩方法，详情页展示摘要和 AI 新生成摘要都会更稳定地收敛到简洁长度
 - 已通过 build / eslint / tsc 与 diagnostics，并在本地页面复测：首页列表摘要已明显缩短，详情页摘要已压缩为简洁版本
 - 本轮用户可自行复测：1）强刷首页，看列表摘要是否只剩 1-2 句；2）点进详情页，看摘要是否明显缩短；3）点“AI生成”重新生成摘要，确认仍保持简洁且尽量贴近原文
+
+## 当前进行中的第十步优化
+- [x] 动手前复核 .trae/rules/project_rules.md，并补核对三份根目录协作文件是否已同步到第九步状态
+- [x] 复核本地提交与远端 main，确认用户当前看到的线上代码仍停留在 b5e9797，而第九步补强修复提交 95fb260 还未真正进入远端
+- [ ] 重新发布第九步补强修复，明确覆盖 src/lib/utils.ts、src/services/aiSummaryService.ts、src/services/articleDetailService.ts、src/services/articleServiceEnhanced.ts、src/components/DetailPage.tsx 与三份根目录文件
+- [ ] 发布后再次核对远端文件内容与 Pages 部署结果，确认线上确实吃到更强摘要压缩和首页摘要治理
+- [ ] 重新执行 build / lint / tsc，并给出用户线上复测方法
