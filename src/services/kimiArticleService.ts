@@ -44,6 +44,61 @@ const DOMAIN_NAME_MAP: Record<NonNullable<ExtractedArticle['domain']>, string> =
   diplomacy: '外交',
 };
 
+const CATEGORY_NAME_MAP: Record<NonNullable<ExtractedArticle['category']>, string> = {
+  speech: '重要讲话',
+  article: '发表文章',
+  meeting: '重要会议',
+  inspection: '考察调研',
+};
+
+function isPeopleArticle(articleUrl: string): boolean {
+  try {
+    const { hostname } = new URL(articleUrl);
+    return hostname.toLowerCase().includes('people.com.cn');
+  } catch {
+    return false;
+  }
+}
+
+function inferPeopleCategoryFromArticle(article: ExtractedArticle, articleUrl: string): ExtractedArticle['category'] | null {
+  if (!isPeopleArticle(articleUrl)) {
+    return null;
+  }
+
+  const title = (article.title || '').trim();
+  const source = (article.source || '').trim();
+
+  if (!title) {
+    return null;
+  }
+
+  if (
+    /人民日报评论员|评论员文章|和音|人民论坛|任仲平|钟声|宣言|《求是》|发表文章|署名文章/.test(title) ||
+    /theory\.people\.com\.cn|opinion\.people\.com\.cn/.test(articleUrl.toLowerCase()) ||
+    /《求是》/.test(source)
+  ) {
+    return 'article';
+  }
+
+  if (/考察|调研|视察|植树|看望|慰问/.test(title)) {
+    return 'inspection';
+  }
+
+  if (/回信|复信|贺信|贺电|致电|慰问电|致辞|指示|命令/.test(title)) {
+    return 'speech';
+  }
+
+  if (/召开会议|会议|座谈会|全会|常委会|峰会|论坛|会见|会谈|审议|闭幕|开幕/.test(title)) {
+    return 'meeting';
+  }
+
+  if (/讲话/.test(title)) {
+    return 'speech';
+  }
+
+  return null;
+}
+
 function inferPeopleDomainFromUrl(articleUrl: string): ExtractedArticle['domain'] | null {
   try {
     const { hostname, pathname } = new URL(articleUrl);
@@ -96,6 +151,17 @@ function refineExtractedArticle(article: ExtractedArticle, articleUrl: string): 
     ...article,
     url: articleUrl,
   };
+
+  const inferredPeopleCategory = inferPeopleCategoryFromArticle(nextArticle, articleUrl);
+  if (
+    inferredPeopleCategory &&
+    (!nextArticle.category || (nextArticle.category === 'speech' && inferredPeopleCategory !== 'speech'))
+  ) {
+    nextArticle.category = inferredPeopleCategory;
+    nextArticle.categoryName = CATEGORY_NAME_MAP[inferredPeopleCategory];
+  } else if (nextArticle.category && !nextArticle.categoryName) {
+    nextArticle.categoryName = CATEGORY_NAME_MAP[nextArticle.category];
+  }
 
   const inferredPeopleDomain = inferPeopleDomainFromUrl(articleUrl);
   if (inferredPeopleDomain && (!nextArticle.domain || nextArticle.domain === 'politics')) {
