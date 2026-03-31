@@ -33,6 +33,81 @@ interface ArticleExtractionApiConfig {
   model: string;
 }
 
+const DOMAIN_NAME_MAP: Record<NonNullable<ExtractedArticle['domain']>, string> = {
+  economy: '经济',
+  politics: '政治',
+  culture: '文化',
+  society: '社会',
+  ecology: '生态',
+  party: '党建',
+  defense: '国防',
+  diplomacy: '外交',
+};
+
+function inferPeopleDomainFromUrl(articleUrl: string): ExtractedArticle['domain'] | null {
+  try {
+    const { hostname, pathname } = new URL(articleUrl);
+    const normalizedHost = hostname.toLowerCase();
+    const normalizedPath = pathname.toLowerCase();
+
+    if (!normalizedHost.includes('people.com.cn')) {
+      return null;
+    }
+
+    const hints = `${normalizedHost}${normalizedPath}`;
+    const hasPeopleChannel = (channels: string[]) =>
+      channels.some(channel =>
+        normalizedHost.includes(`${channel}.people.com.cn`) ||
+        normalizedPath.includes(`/${channel}/`)
+      );
+
+    if (/(world|foreign|overseas|hmrb|military)/.test(hints)) {
+      return hints.includes('military') ? 'defense' : 'diplomacy';
+    }
+
+    if (/(cpc|dangjian|theory|xuexi|fanfu|renshi)/.test(hints)) {
+      return 'party';
+    }
+
+    if (hasPeopleChannel(['finance', 'capital', 'industry', 'tech', 'scitech', 'economy', 'auto', 'house', 'shipin', 'ccn']) || normalizedHost.includes('ent.people.com.cn')) {
+      return 'economy';
+    }
+
+    if (hasPeopleChannel(['society', 'health', 'edu']) || normalizedHost.includes('pic.people.com.cn')) {
+      return 'society';
+    }
+
+    if (hasPeopleChannel(['culture', 'art', 'book', 'history', 'museum'])) {
+      return 'culture';
+    }
+
+    if (hasPeopleChannel(['env', 'energy', 'green'])) {
+      return 'ecology';
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function refineExtractedArticle(article: ExtractedArticle, articleUrl: string): ExtractedArticle {
+  const nextArticle: ExtractedArticle = {
+    ...article,
+    url: articleUrl,
+  };
+
+  const inferredPeopleDomain = inferPeopleDomainFromUrl(articleUrl);
+  if (inferredPeopleDomain && (!nextArticle.domain || nextArticle.domain === 'politics')) {
+    nextArticle.domain = inferredPeopleDomain;
+    nextArticle.domainName = DOMAIN_NAME_MAP[inferredPeopleDomain];
+  } else if (nextArticle.domain && !nextArticle.domainName) {
+    nextArticle.domainName = DOMAIN_NAME_MAP[nextArticle.domain];
+  }
+
+  return nextArticle;
+}
+
 /**
  * 保存Kimi API Key到本地存储
  */
@@ -587,7 +662,7 @@ async function requestArticleExtraction(
     throw new Error('解析文章内容失败，请重试');
   }
 
-  article.url = url;
+  article = refineExtractedArticle(article, url);
 
   if (!article.title || !article.fullText) {
     throw new Error('提取的内容不完整，请重试');
@@ -662,8 +737,7 @@ async function requestArticleExtractionWithKimiBrowser(
     throw new Error('Kimi 浏览网页后未返回内容');
   }
 
-  const article = parseExtractedArticleResponse(content);
-  article.url = url;
+  const article = refineExtractedArticle(parseExtractedArticleResponse(content), url);
 
   if (!article.title || !article.fullText) {
     throw new Error('Kimi 浏览网页后返回的内容不完整');

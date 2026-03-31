@@ -51,7 +51,7 @@
 - [x] 以最小改动修复 favicon 404，避免新增无意义报错
 - [x] 跑 build / eslint / tsc，验证现有功能不受影响
 - [x] 真人模拟回归首页、详情页、后台关键链路
-- [ ] 验证无误后推送部署并回写记录
+- [x] 验证无误后推送部署并回写记录
 
 ## 第二步优化完成情况
 - 已在 index.html 显式接入站点图标，复用 public/share-cover.svg，首页已不再请求 /favicon.ico 404
@@ -61,3 +61,33 @@
 - 已通过 build / eslint / tsc
 - 已做真人模拟回归：首页正常加载，详情页摘要与解读正常展示，favicon 请求返回 200
 - 当前仍可见的 404 来自 analytics 对 Supabase 表名 new_table 的探测回退，不属于 favicon 问题，也不由本轮改动引入
+
+## 当前进行中的第三步优化
+- [x] 动手前确认本轮目标：消除 analytics 表名探测 404，且不能影响现有统计功能
+- [x] 调整 analytics / supabaseAnalytics 的表名优先级与缓存逻辑
+- [x] 跑 build / eslint / tsc，验证现有功能不受影响
+- [x] 真人模拟回归首页、后台访问统计、详情页关键链路
+- [x] 验证无误后推送部署并回写记录
+
+## 第三步优化完成情况
+- analytics.ts 与 supabaseAnalytics.ts 已统一优先使用真实存在的表名 New table，并继续保留表名缓存
+- 已避免首页和后台访问统计首次探测时先请求不存在的 new_table，从而消除该 404
+- 已验证首页请求链路中 analytics 表探测返回 200，后台访问统计页加载与刷新正常
+- 已通过 build / eslint / tsc
+- 已做真人模拟回归：首页正常、详情页正常、后台访问统计页正常，相关表探测均为 200
+
+## 当前进行中的第四步优化
+- [x] 动手前确认本轮目标：优化人民网文章领域识别，避免 URL 提取后大量默认落入政治分类
+- [x] 在 kimiArticleService 中补充人民网 URL/栏目特征推断逻辑，仅在原结果缺失或默认政治时兜底修正
+- [x] 同步补全手动粘贴提取链路对 domain/domainName 的回填
+- [x] 跑 build / eslint / tsc，验证现有功能不受影响
+- [x] 以代表性人民网 URL 样本校验栏目识别映射，并确认首页/详情/后台主链路未受影响
+- [ ] 验证无误后推送部署并回写记录
+
+## 第四步优化完成情况
+- 已为 people.com.cn / jhsjk.people.cn 提取结果补充 URL 栏目识别逻辑
+- 当 AI 返回领域为空或默认 politics 时，会优先参考人民网栏目特征修正为经济 / 党建 / 外交 / 国防 / 社会 / 文化 / 生态等更贴近来源栏目
+- 已保持原有 AI 识别结果优先级，非默认政治结果不会被强行覆盖
+- 已补全手动粘贴提取场景下的 domain / domainName 回填，避免 URL 提取和手动提取表现不一致
+- 已通过 build / eslint / tsc
+- 已用代表性人民网 URL 样本验证 finance/cpc/world/military/health/culture/env 等栏目映射结果符合预期，politics 栏目不会被误判为经济

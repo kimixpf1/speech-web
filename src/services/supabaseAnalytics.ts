@@ -3,7 +3,7 @@
 
 import { supabase } from '@/lib/supabase';
 
-const TABLE_NAMES_TO_TRY = ['new_table', 'New table', 'NewTable', 'newtable'];
+const TABLE_NAMES_TO_TRY = ['New table', 'new_table', 'NewTable', 'newtable'];
 const TABLE_NAME_CACHE_KEY = 'supabase_analytics_table_name';
 
 let correctTableName: string | null = null;
@@ -49,9 +49,10 @@ async function findCorrectTableName(): Promise<string> {
     }
   }
   
-  console.log(`[Analytics] 未找到有数据的表，默认使用 new_table`);
-  saveCachedTableName('new_table');
-  return 'new_table';
+  console.log(`[Analytics] 未找到可访问的表，默认使用 ${TABLE_NAMES_TO_TRY[0]}`);
+  correctTableName = TABLE_NAMES_TO_TRY[0];
+  saveCachedTableName(correctTableName);
+  return correctTableName;
 }
 
 // 统计数据类型

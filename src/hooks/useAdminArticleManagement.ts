@@ -331,6 +331,8 @@ export function useAdminArticleManagement({
         url: article.url,
         category: article.category || 'speech',
         categoryName: article.categoryName || '重要讲话',
+        domain: article.domain || previous.domain,
+        domainName: article.domainName || previous.domainName,
         location: article.location,
       }));
 

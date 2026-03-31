@@ -6,28 +6,52 @@ import { supabase } from '@/lib/supabase';
 // 百度统计 Tracking ID
 const BAIDU_TRACKING_ID = 'fde2c5ee85e02a961caa756c4a6e2c88';
 
-// 尝试多种表名格式
-const TABLE_NAMES_TO_TRY = ['new_table', 'New table', 'NewTable', 'newtable'];
+const TABLE_NAMES_TO_TRY = ['New table', 'new_table', 'NewTable', 'newtable'];
+const TABLE_NAME_CACHE_KEY = 'supabase_analytics_table_name';
 let correctTableName: string | null = null;
+
+function getCachedTableName() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  return localStorage.getItem(TABLE_NAME_CACHE_KEY);
+}
+
+function saveCachedTableName(tableName: string) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  localStorage.setItem(TABLE_NAME_CACHE_KEY, tableName);
+}
 
 async function findCorrectTableName(): Promise<string> {
   if (correctTableName) return correctTableName;
-  
-  for (const tableName of TABLE_NAMES_TO_TRY) {
+
+  const cachedTableName = getCachedTableName();
+  const tableNames = cachedTableName
+    ? [cachedTableName, ...TABLE_NAMES_TO_TRY.filter(name => name !== cachedTableName)]
+    : TABLE_NAMES_TO_TRY;
+
+  for (const tableName of tableNames) {
     try {
       const result = await supabase
         .from(tableName)
         .select('*', { count: 'exact', head: true });
       
-      if (!result.error && result.count !== null && result.count > 0) {
+      if (!result.error && result.count !== null) {
         correctTableName = tableName;
+        saveCachedTableName(tableName);
         return tableName;
       }
     } catch (e) {
-      // 继续尝试下一个
     }
   }
-  return 'new_table';
+
+  correctTableName = TABLE_NAMES_TO_TRY[0];
+  saveCachedTableName(correctTableName);
+  return correctTableName;
 }
 
 // 访问记录类型
