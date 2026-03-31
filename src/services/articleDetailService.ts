@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { normalizeAnalysisText } from '@/lib/utils';
 
 // 表名
 const ARTICLE_DETAILS_TABLE = 'article_details';
@@ -11,19 +12,6 @@ export interface ArticleDetailContent {
   abstract: string;
   fullText: string;
   analysis: string;
-}
-
-function normalizeAnalysisContent(analysis: string): string {
-  return (analysis || '')
-    .replace(/^[ \t]*一[、，,.\s]*政治高度[：:]/m, '一、政治高度：')
-    .replace(/^[ \t]*二[、，,.\s]*理论深度[：:]/m, '二、理论深度：')
-    .replace(/^[ \t]*三[、，,.\s]*(历史贯通与实践|历史贯通|实践要求|实践指向)[：:]/m, '三、历史贯通与实践：')
-    .replace(/^(一、政治高度：)\s*结合习近平新时代中国特色社会主义思想，阐述讲话在党和国家事业全局中的重大意义。?\s*/m, '$1')
-    .replace(/^(二、理论深度：)\s*阐释核心要义、精神实质，分析其中蕴含的马克思主义立场观点方法。?\s*/m, '$1')
-    .replace(/^(三、历史贯通与实践：)\s*联系习近平总书记历次相关重要讲话，分析一脉相承的思想脉络，指出对推动中国式现代化的实践指导意义。?\s*/m, '$1')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
 }
 
 // 获取本地缓存的详情
@@ -55,7 +43,7 @@ export async function getArticleDetail(id: string, forceRefresh: boolean = false
     if (localDetails[id]) {
       return {
         ...localDetails[id],
-        analysis: normalizeAnalysisContent(localDetails[id].analysis),
+        analysis: normalizeAnalysisText(localDetails[id].analysis),
       };
     }
   }
@@ -74,7 +62,7 @@ export async function getArticleDetail(id: string, forceRefresh: boolean = false
           id: data.id,
           abstract: data.abstract || '',
           fullText: data.full_text || '',
-          analysis: normalizeAnalysisContent(data.analysis || ''),
+          analysis: normalizeAnalysisText(data.analysis || ''),
         };
         
         // 更新本地缓存
@@ -118,7 +106,7 @@ export async function saveArticleDetail(detail: ArticleDetailContent): Promise<b
   try {
     const normalizedDetail: ArticleDetailContent = {
       ...detail,
-      analysis: normalizeAnalysisContent(detail.analysis),
+      analysis: normalizeAnalysisText(detail.analysis),
     };
 
     // 保存到云端
@@ -189,7 +177,7 @@ export async function syncArticleDetails(): Promise<void> {
           id: item.id,
           abstract: item.abstract || '',
           fullText: item.full_text || '',
-          analysis: normalizeAnalysisContent(item.analysis || ''),
+          analysis: normalizeAnalysisText(item.analysis || ''),
         };
       });
       saveLocalDetails(details);
@@ -205,7 +193,7 @@ export function getLocalArticleDetail(id: string): ArticleDetailContent | null {
   return localDetails[id]
     ? {
         ...localDetails[id],
-        analysis: normalizeAnalysisContent(localDetails[id].analysis),
+        analysis: normalizeAnalysisText(localDetails[id].analysis),
       }
     : null;
 }

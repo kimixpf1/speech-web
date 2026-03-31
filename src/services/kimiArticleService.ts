@@ -1,5 +1,6 @@
 // Kimi API 服务 - 用于精准提取文章内容
 import { getDeepSeekApiKey, getPreferredApi } from '@/services/aiSearchService';
+import { normalizeAnalysisText } from '@/lib/utils';
 
 const KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions';
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
@@ -357,7 +358,9 @@ function parseExtractedArticleResponse(content: string): ExtractedArticle {
     .replace(/,\s*([}\]])/g, '$1')
     .trim();
 
-  return JSON.parse(candidate) as ExtractedArticle;
+  const article = JSON.parse(candidate) as ExtractedArticle;
+  article.analysis = normalizeAnalysisText(article.analysis || '');
+  return article;
 }
 
 function buildArticleExtractionPrompt(url: string, pageContent: string): string {
@@ -386,14 +389,19 @@ ${truncatedContent}
   "domainName": "领域中文名",
   "summary": "文章摘要，200-300字，概述主要内容",
   "fullText": "纯净的正文内容（见下方详细要求）",
-  "analysis": "深度解读分析，400-600字，必须分为三个段落，每段开头用小标题标注：\n一、政治高度：结合习近平新时代中国特色社会主义思想，阐述讲话在党和国家事业全局中的重大意义。\n二、理论深度：阐释核心要义、精神实质，分析其中蕴含的马克思主义立场观点方法。\n三、历史贯通与实践：联系习近平总书记历次相关重要讲话，分析一脉相承的思想脉络，指出对推动中国式现代化的实践指导意义。"
+  "analysis": "深度解读分析正文，400-600字，分三段书写"
 }
 
 【解读分析撰写规范】
 解读必须分为三个段落，每段开头用小标题标注：
-一、政治高度：结合习近平新时代中国特色社会主义思想，阐述讲话在党和国家事业全局中的重大意义。
-二、理论深度：阐释核心要义、精神实质，分析其中蕴含的马克思主义立场观点方法。
-三、历史贯通与实践：联系习近平总书记历次相关重要讲话，分析一脉相承的思想脉络，指出对推动中国式现代化的实践指导意义。
+一、政治高度：直接写本篇文章在党和国家事业全局中的重大意义分析内容。
+二、理论深度：直接写核心要义、精神实质和马克思主义立场观点方法分析内容。
+三、历史贯通与实践：直接写思想脉络和实践指导意义分析内容。
+
+【禁止写法】
+- 禁止把上面三句要求原样抄进答案
+- 禁止出现“政治高度是指”“所谓政治高度”“这里的政治高度”等先解释标题含义的句子
+- 小标题后必须直接进入正文分析
 
 【最重要】fullText正文提取规则：
 
