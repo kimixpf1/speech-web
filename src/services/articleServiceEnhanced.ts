@@ -7,6 +7,7 @@ import {
   saveArticleDetail,
   type ArticleDetailContent,
 } from '@/services/articleDetailService';
+import { normalizeSummaryText } from '@/lib/utils';
 
 // 表名
 const ARTICLES_TABLE = 'articles';
@@ -78,7 +79,7 @@ function fromDbFormat(dbArticle: Record<string, unknown>): Speech {
     zhengjiguanLevel: dbArticle.zhengjiguan_level as 'central' | 'jiangsu' | 'suzhou' | undefined,
     source: (dbArticle.source || '') as string,
     location: (dbArticle.location || '') as string,
-    summary: (dbArticle.summary || '') as string,
+    summary: normalizeSummaryText((dbArticle.summary || '') as string),
     url: (dbArticle.url || '') as string,
   };
 }
@@ -89,6 +90,7 @@ export function ensureDomainField(article: Speech): Speech {
     ...article,
     domain: article.domain || 'economy',
     domainName: article.domainName || '经济',
+    summary: normalizeSummaryText(article.summary || ''),
     isZhengjiguan: article.isZhengjiguan || false,
   };
 }
@@ -96,7 +98,15 @@ export function ensureDomainField(article: Speech): Speech {
 // 保存到本地缓存
 function saveLocalCache(articles: Speech[]): void {
   try {
-    localStorage.setItem(ARTICLES_CACHE_KEY, JSON.stringify(articles));
+    localStorage.setItem(
+      ARTICLES_CACHE_KEY,
+      JSON.stringify(
+        articles.map(article => ({
+          ...article,
+          summary: normalizeSummaryText(article.summary || ''),
+        }))
+      )
+    );
     localStorage.setItem('last_sync_time', new Date().toISOString());
   } catch (e) {
     console.error('Failed to save local cache:', e);
@@ -107,7 +117,12 @@ function saveLocalCache(articles: Speech[]): void {
 function getLocalCache(): Speech[] {
   try {
     const cached = localStorage.getItem(ARTICLES_CACHE_KEY);
-    return cached ? JSON.parse(cached) : [];
+    return cached
+      ? (JSON.parse(cached) as Speech[]).map(article => ({
+          ...article,
+          summary: normalizeSummaryText(article.summary || ''),
+        }))
+      : [];
   } catch {
     return [];
   }

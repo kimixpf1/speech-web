@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { Document, Paragraph, TextRun, AlignmentType, HeadingLevel, Packer } from 'docx';
 import { saveAs } from 'file-saver';
+import { normalizeSummaryText } from '@/lib/utils';
 
 const categoryConfig: Record<string, { icon: React.ElementType; color: string; bgColor: string; borderColor: string; label: string }> = {
   speech: { icon: Mic, color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-200', label: '重要讲话' },
@@ -118,37 +119,7 @@ function cleanFullText(text: string): string {
 }
 
 function normalizeAbstractPreview(text: string): string {
-  const cleaned = (text || '')
-    .replace(/^【摘要】[\s：:]*/i, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  if (!cleaned || cleaned.length <= 120) {
-    return cleaned;
-  }
-
-  const sentences = cleaned
-    .split(/(?<=[。！？；])/)
-    .map(sentence => sentence.trim())
-    .filter(Boolean);
-
-  const selected: string[] = [];
-  let currentLength = 0;
-
-  for (const sentence of sentences) {
-    if (currentLength > 0 && currentLength + sentence.length > 120) {
-      break;
-    }
-
-    selected.push(sentence);
-    currentLength += sentence.length;
-
-    if (currentLength >= 70 || selected.length >= 2) {
-      break;
-    }
-  }
-
-  return (selected.join('') || cleaned.slice(0, 120)).trim();
+  return normalizeSummaryText(text);
 }
 
 export function DetailPage() {

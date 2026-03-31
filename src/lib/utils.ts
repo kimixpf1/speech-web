@@ -20,3 +20,61 @@ export function normalizeAnalysisText(analysis: string): string {
     .replace(/\n{3,}/g, '\n\n')
     .trim()
 }
+
+export function normalizeSummaryText(
+  summary: string,
+  options?: {
+    maxLength?: number
+    minLength?: number
+    maxSentences?: number
+  }
+) {
+  const maxLength = options?.maxLength ?? 120
+  const minLength = options?.minLength ?? 70
+  const maxSentences = options?.maxSentences ?? 2
+
+  const cleaned = (summary || '')
+    .replace(/^【摘要】[\s：:]*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!cleaned || cleaned.length <= maxLength) {
+    return cleaned
+  }
+
+  const sentences = cleaned
+    .split(/(?<=[。！？；])/)
+    .map(sentence => sentence.trim())
+    .filter(Boolean)
+
+  if (sentences.length === 0) {
+    return cleaned.slice(0, maxLength).trim()
+  }
+
+  const selected: string[] = []
+  let currentLength = 0
+
+  for (const sentence of sentences) {
+    const remaining = maxLength - currentLength
+
+    if (remaining <= 0) {
+      break
+    }
+
+    if (sentence.length > remaining) {
+      if (selected.length === 0) {
+        selected.push(sentence.slice(0, remaining).trim())
+      }
+      break
+    }
+
+    selected.push(sentence)
+    currentLength += sentence.length
+
+    if (currentLength >= minLength || selected.length >= maxSentences) {
+      break
+    }
+  }
+
+  return (selected.join('') || cleaned.slice(0, maxLength)).trim()
+}

@@ -3,7 +3,7 @@
 
 import { getKimiApiKey } from './kimiArticleService';
 import { getDeepSeekApiKey } from './aiSearchService';
-import { normalizeAnalysisText } from '@/lib/utils';
+import { normalizeAnalysisText, normalizeSummaryText } from '@/lib/utils';
 
 const KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions';
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
@@ -98,7 +98,7 @@ ${articleContent.substring(0, 6000)}
 请严格按照以下格式输出（禁止JSON，禁止英文）：
 
 【摘要】
-80-120字，必须简洁明了，读完就知道文章讲了什么事。尽量直接复用原文里的关键表述，少做扩写，不要空话套话，不要重复标题，不要写得比原文还长。
+80-120字，最多两句，必须简洁明了，读完就知道文章讲了什么事。优先直接摘用原文里的关键句或关键表述，少做改写，不要空话套话，不要重复标题，不要补充原文没有的信息，不要写得比原文还长。
 
 【解读】
 400-600字深度解读，分为三个段落（每段开头标注小标题）：
@@ -136,55 +136,15 @@ function buildExtractiveSummary(articleContent: string, articleTitle: string): s
     return '';
   }
 
-  const selected: string[] = [];
-  let currentLength = 0;
-
-  for (const sentence of sentences) {
-    if (currentLength > 0 && currentLength + sentence.length > 120) {
-      break;
-    }
-
-    selected.push(sentence);
-    currentLength += sentence.length;
-
-    if (currentLength >= 70 || selected.length >= 2) {
-      break;
-    }
-  }
-
-  return selected.join('').trim();
+  return normalizeSummaryText(sentences.join(''), { maxLength: 120, minLength: 70, maxSentences: 2 });
 }
 
 function clampSummaryLength(summary: string, maxLength: number): string {
-  const sentences = summary
-    .split(/(?<=[。！？；])/)
-    .map(sentence => sentence.trim())
-    .filter(Boolean);
-
-  const selected: string[] = [];
-  let currentLength = 0;
-
-  for (const sentence of sentences) {
-    if (currentLength > 0 && currentLength + sentence.length > maxLength) {
-      break;
-    }
-
-    selected.push(sentence);
-    currentLength += sentence.length;
-
-    if (currentLength >= 70 || selected.length >= 2) {
-      break;
-    }
-  }
-
-  return (selected.join('') || summary.slice(0, maxLength)).trim();
+  return normalizeSummaryText(summary, { maxLength, minLength: 70, maxSentences: 2 });
 }
 
 function normalizeGeneratedSummary(summary: string, articleContent: string, articleTitle: string): string {
-  const cleanedSummary = cleanEscapeChars(summary)
-    .replace(/^【摘要】[\s：:]*/i, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const cleanedSummary = normalizeSummaryText(cleanEscapeChars(summary), { maxLength: 1000, minLength: 70, maxSentences: 20 });
 
   const extractiveSummary = buildExtractiveSummary(articleContent, articleTitle);
 
@@ -193,7 +153,7 @@ function normalizeGeneratedSummary(summary: string, articleContent: string, arti
   }
 
   if (cleanedSummary.length <= 120) {
-    return cleanedSummary;
+    return normalizeSummaryText(cleanedSummary);
   }
 
   return extractiveSummary || clampSummaryLength(cleanedSummary, 120);

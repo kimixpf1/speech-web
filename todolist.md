@@ -154,3 +154,19 @@
 - 已让 useAdminArticleManagement 与 kimiArticleService 改为读取新增文章识别专用偏好，后台新增文章时可单独优先走 DeepSeek，AI 搜索仍可单独优先走 Kimi
 - 已通过 build / eslint / tsc 与 diagnostics，确认本轮拆分未引入新的编译或类型错误
 - 本轮用户可自行复测：后台“管理 API”里把“搜索时优先使用”设成 Kimi，把“URL新增文章识别时优先使用”设成 DeepSeek；关闭后重新打开确认两个选择仍分别保持；再去新增文章页看“已配置 DeepSeek”标识是否跟随识别优先项，而不是跟搜索优先项一起变化
+
+## 当前进行中的第九步优化
+- [x] 动手前确认本轮目标：复核线上反馈“首页仍卡、摘要仍偏长”，排查是否为部署未生效还是修复力度不足
+- [x] 复核远端 main 代码，确认摘要提示词、首页缓存回填、详情预加载等改动确实已经推送并部署
+- [x] 继续补强摘要长度压缩逻辑，修复“第一句特别长时仍可能超过 120 字”的兜底漏洞
+- [x] 在文章列表与本地缓存层统一压缩 summary，降低首页首次进入和返回首页时因长摘要渲染造成的卡顿
+- [x] 跑 build / eslint / tsc 与 diagnostics，确认补强修复未引入新问题
+
+## 第九步优化完成情况
+- 已确认此前改动确实已经推送到远端 main 并成功部署，线上不是“没推送”，而是之前的摘要压缩逻辑对超长单句场景处理不够彻底
+- 已在 src/lib/utils.ts 新增统一的 normalizeSummaryText，所有摘要压缩改为走同一套规则
+- 已修复“首句超长仍整句保留”的问题，现在超过上限时会在第一句内部直接截断，不再让 120 字限制失效
+- 已让 src/services/articleServiceEnhanced.ts 在云端映射、本地缓存读取、本地缓存写入、静态兜底时统一压缩 summary，首页列表会直接使用更短摘要，减轻首次进入和返回首页的渲染负担
+- 已让 src/services/articleDetailService.ts、src/components/DetailPage.tsx、src/services/aiSummaryService.ts 统一复用摘要压缩方法，详情页展示摘要和 AI 新生成摘要都会更稳定地收敛到简洁长度
+- 已通过 build / eslint / tsc 与 diagnostics，并在本地页面复测：首页列表摘要已明显缩短，详情页摘要已压缩为简洁版本
+- 本轮用户可自行复测：1）强刷首页，看列表摘要是否只剩 1-2 句；2）点进详情页，看摘要是否明显缩短；3）点“AI生成”重新生成摘要，确认仍保持简洁且尽量贴近原文
