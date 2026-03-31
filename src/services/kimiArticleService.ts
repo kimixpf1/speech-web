@@ -51,6 +51,52 @@ const CATEGORY_NAME_MAP: Record<NonNullable<ExtractedArticle['category']>, strin
   inspection: '考察调研',
 };
 
+const DOMAIN_KEYWORDS: Record<NonNullable<ExtractedArticle['domain']>, string[]> = {
+  economy: [
+    '经济', '金融', '高质量发展', '产业', '企业', '科技', '创新', '新质生产力', '制造业', '数字经济', '营商环境',
+    '改革开放', '外贸', '投资', '贸易', '市场', '消费', '工业', '农业', '民营经济', '海洋经济', '自贸', '开发区',
+  ],
+  politics: [
+    '法治', '治理', '民主', '人大', '政协', '国家治理', '政治局', '制度建设', '依法治国', '统一战线',
+  ],
+  culture: [
+    '文化', '文明', '文艺', '体育', '教育强国', '博物馆', '文物', '出版', '传统文化', '文化遗产', '宣传思想文化',
+  ],
+  society: [
+    '民生', '教育', '医疗', '卫生', '就业', '养老', '社保', '乡村振兴', '扶贫', '基层治理', '健康中国',
+    '社会保障', '住房保障', '农民增收', '学校', '医院',
+  ],
+  ecology: [
+    '生态', '环境', '绿色', '低碳', '碳达峰', '碳中和', '污染防治', '生态文明', '植树', '节能减排',
+    '美丽中国', '荒漠化', '环保',
+  ],
+  party: [
+    '党建', '全面从严治党', '巡视', '纪检', '中央纪委', '党校', '党员', '组织工作', '作风建设', '八项规定',
+    '党内', '反腐', '干部队伍', '自我革命',
+  ],
+  defense: [
+    '国防', '军事', '军队', '强军', '部队', '军委', '武警', '练兵', '备战', '国防和军队现代化',
+  ],
+  diplomacy: [
+    '外交', '外事', '出访', '峰会', '总统', '总理', '国王', '会见外宾', '会见外国', '多边', '双边',
+    '命运共同体', '贺电', '贺信', '致电祝贺', '国际社会', '外国', '国际组织',
+  ],
+};
+
+function scoreDomainByText(text: string, weight: number, scores: Record<NonNullable<ExtractedArticle['domain']>, number>) {
+  if (!text) {
+    return;
+  }
+
+  for (const [domain, keywords] of Object.entries(DOMAIN_KEYWORDS) as [NonNullable<ExtractedArticle['domain']>, string[]][]) {
+    for (const keyword of keywords) {
+      if (text.includes(keyword)) {
+        scores[domain] += weight;
+      }
+    }
+  }
+}
+
 function isPeopleArticle(articleUrl: string): boolean {
   try {
     const { hostname } = new URL(articleUrl);
@@ -120,7 +166,7 @@ function inferPeopleDomainFromUrl(articleUrl: string): ExtractedArticle['domain'
       return hints.includes('military') ? 'defense' : 'diplomacy';
     }
 
-    if (/(cpc|dangjian|theory|xuexi|fanfu|renshi)/.test(hints)) {
+    if (/(cpc|dangjian|xuexi|fanfu|renshi)/.test(hints)) {
       return 'party';
     }
 
@@ -146,6 +192,57 @@ function inferPeopleDomainFromUrl(articleUrl: string): ExtractedArticle['domain'
   }
 }
 
+function inferDomainFromArticleContent(article: ExtractedArticle, articleUrl: string): ExtractedArticle['domain'] | null {
+  const scores: Record<NonNullable<ExtractedArticle['domain']>, number> = {
+    economy: 0,
+    politics: 0,
+    culture: 0,
+    society: 0,
+    ecology: 0,
+    party: 0,
+    defense: 0,
+    diplomacy: 0,
+  };
+
+  scoreDomainByText(articleUrl.toLowerCase(), 2, scores);
+  scoreDomainByText(article.source || '', 2, scores);
+  scoreDomainByText(article.title || '', 4, scores);
+  scoreDomainByText(article.summary || '', 2, scores);
+  scoreDomainByText(article.fullText || '', 1, scores);
+
+  if (article.category === 'inspection' && /植树|生态|绿色|环境/.test(`${article.title} ${article.summary} ${article.fullText}`)) {
+    scores.ecology += 4;
+  }
+
+  if (article.category === 'inspection' && /企业|产业|科技|创新|园区|开发区|制造业/.test(`${article.title} ${article.summary} ${article.fullText}`)) {
+    scores.economy += 4;
+  }
+
+  if (article.category === 'meeting' && /会见|会谈|峰会|多边|双边|总统|总理|国王|外国/.test(article.title || '')) {
+    scores.diplomacy += 5;
+  }
+
+  const sortedDomains = Object.entries(scores)
+    .sort((a, b) => b[1] - a[1]) as [NonNullable<ExtractedArticle['domain']>, number][];
+
+  const [bestDomain, bestScore] = sortedDomains[0];
+  const secondScore = sortedDomains[1]?.[1] ?? 0;
+
+  if (!bestDomain || bestScore <= 0) {
+    return null;
+  }
+
+  if (bestDomain !== 'politics' && bestScore >= 3 && bestScore >= secondScore + 2) {
+    return bestDomain;
+  }
+
+  if (bestDomain === 'politics' && bestScore >= 4 && secondScore === 0) {
+    return bestDomain;
+  }
+
+  return null;
+}
+
 function refineExtractedArticle(article: ExtractedArticle, articleUrl: string): ExtractedArticle {
   const nextArticle: ExtractedArticle = {
     ...article,
@@ -164,9 +261,12 @@ function refineExtractedArticle(article: ExtractedArticle, articleUrl: string): 
   }
 
   const inferredPeopleDomain = inferPeopleDomainFromUrl(articleUrl);
-  if (inferredPeopleDomain && (!nextArticle.domain || nextArticle.domain === 'politics')) {
-    nextArticle.domain = inferredPeopleDomain;
-    nextArticle.domainName = DOMAIN_NAME_MAP[inferredPeopleDomain];
+  const inferredContentDomain = inferDomainFromArticleContent(nextArticle, articleUrl);
+  const refinedDomain = inferredPeopleDomain || inferredContentDomain;
+
+  if (refinedDomain && (!nextArticle.domain || nextArticle.domain === 'politics')) {
+    nextArticle.domain = refinedDomain;
+    nextArticle.domainName = DOMAIN_NAME_MAP[refinedDomain];
   } else if (nextArticle.domain && !nextArticle.domainName) {
     nextArticle.domainName = DOMAIN_NAME_MAP[nextArticle.domain];
   }
