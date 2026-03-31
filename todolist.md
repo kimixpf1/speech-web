@@ -35,7 +35,7 @@
 - [x] 提取共享的解读格式规范化函数，替换多处重复实现
 - [x] 跑 build / eslint / tsc，验证现有功能不受影响
 - [x] 真人模拟回归关键后台链路
-- [ ] 验证无误后推送部署并回写记录
+- [x] 验证无误后推送部署并回写记录
 
 ## 第一步优化完成情况
 - 已在 src/lib/utils.ts 统一维护 normalizeAnalysisText
@@ -44,3 +44,20 @@
 - 已通过 build / eslint / tsc
 - 已做真人模拟回归：后台文章管理页可打开，新增文章弹窗可正常显示“解读”输入框，前台详情页可正常展示摘要与解读
 - 回归中发现的 404 来自 http://127.0.0.1:4174/favicon.ico，与本轮改动无关
+
+## 当前进行中的第二步优化
+- [x] 动手前确认本轮目标：处理历史 article_details 解读文本，并评估 /favicon.ico 404 是否需要最小修复
+- [x] 为历史 article_details 增加批量清洗方案，且不影响现有运行链路
+- [x] 以最小改动修复 favicon 404，避免新增无意义报错
+- [x] 跑 build / eslint / tsc，验证现有功能不受影响
+- [x] 真人模拟回归首页、详情页、后台关键链路
+- [ ] 验证无误后推送部署并回写记录
+
+## 第二步优化完成情况
+- 已在 index.html 显式接入站点图标，复用 public/share-cover.svg，首页已不再请求 /favicon.ico 404
+- 已新增 scripts/normalize_article_details_analysis.py，用于批量清洗历史 article_details.analysis 文本
+- 已通过已登录管理员会话完成历史数据排查：article_details 共 1138 条，其中 1 条旧格式记录需要清洗
+- 已实际完成该 1 条历史记录清洗，记录 ID 为 P2024-0257，复查后剩余需清洗数量为 0
+- 已通过 build / eslint / tsc
+- 已做真人模拟回归：首页正常加载，详情页摘要与解读正常展示，favicon 请求返回 200
+- 当前仍可见的 404 来自 analytics 对 Supabase 表名 new_table 的探测回退，不属于 favicon 问题，也不由本轮改动引入
