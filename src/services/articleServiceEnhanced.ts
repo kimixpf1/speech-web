@@ -60,22 +60,25 @@ function toDbFormat(article: Speech): Record<string, unknown> {
 
 // 将数据库格式转换为 Speech 对象
 function fromDbFormat(dbArticle: Record<string, unknown>): Speech {
+  const category = (dbArticle.category || 'speech') as 'speech' | 'article' | 'meeting' | 'inspection';
+  const domain = (dbArticle.domain || 'economy') as 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy';
+
   return {
     id: dbArticle.id as string,
-    title: dbArticle.title as string,
-    date: dbArticle.date as string,
+    title: (dbArticle.title || '') as string,
+    date: (dbArticle.date || '') as string,
     year: dbArticle.year as number,
     month: dbArticle.month as number,
     day: dbArticle.day as number,
-    category: dbArticle.category as 'speech' | 'article' | 'meeting' | 'inspection',
+    category,
     categoryName: (dbArticle.categoryname || dbArticle.categoryName || '重要讲话') as string,
-    domain: (dbArticle.domain || 'economy') as 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy',
+    domain,
     domainName: (dbArticle.domain_name || dbArticle.domainName || '经济') as string,
     isZhengjiguan: (dbArticle.is_zhengjiguan || false) as boolean,
     zhengjiguanLevel: dbArticle.zhengjiguan_level as 'central' | 'jiangsu' | 'suzhou' | undefined,
-    source: dbArticle.source as string,
+    source: (dbArticle.source || '') as string,
     location: (dbArticle.location || '') as string,
-    summary: dbArticle.summary as string,
+    summary: (dbArticle.summary || '') as string,
     url: (dbArticle.url || '') as string,
   };
 }

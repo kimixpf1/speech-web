@@ -1,5 +1,5 @@
 // Kimi API 服务 - 用于精准提取文章内容
-import { getDeepSeekApiKey, getPreferredApi } from '@/services/aiSearchService';
+import { getDeepSeekApiKey, getPreferredExtractionApi } from '@/services/aiSearchService';
 import { normalizeAnalysisText } from '@/lib/utils';
 
 const KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions';
@@ -55,31 +55,38 @@ const DOMAIN_KEYWORDS: Record<NonNullable<ExtractedArticle['domain']>, string[]>
   economy: [
     '经济', '金融', '高质量发展', '产业', '企业', '科技', '创新', '新质生产力', '制造业', '数字经济', '营商环境',
     '改革开放', '外贸', '投资', '贸易', '市场', '消费', '工业', '农业', '民营经济', '海洋经济', '自贸', '开发区',
+    '现代化产业体系', '实体经济', '科技创新', '科技自立自强', '产业链', '供应链', '统一大市场', '项目建设',
+    '招商引资', '民营企业', '园区', '工厂', '产业基地', '创新平台', '经济工作', '经济大省', '数字中国',
   ],
   politics: [
     '法治', '治理', '民主', '人大', '政协', '国家治理', '政治局', '制度建设', '依法治国', '统一战线',
+    '国家安全', '总体国家安全观', '民族团结', '宗教工作', '法治中国', '人民当家作主', '协商民主',
   ],
   culture: [
-    '文化', '文明', '文艺', '体育', '教育强国', '博物馆', '文物', '出版', '传统文化', '文化遗产', '宣传思想文化',
+    '文化', '文明', '文艺', '体育', '博物馆', '文物', '出版', '传统文化', '文化遗产', '宣传思想文化',
+    '精神文明', '中华优秀传统文化', '哲学社会科学', '文化自信', '考古', '非物质文化遗产',
   ],
   society: [
     '民生', '教育', '医疗', '卫生', '就业', '养老', '社保', '乡村振兴', '扶贫', '基层治理', '健康中国',
-    '社会保障', '住房保障', '农民增收', '学校', '医院',
+    '社会保障', '住房保障', '农民增收', '学校', '医院', '共同富裕', '人口高质量发展', '托育', '住房',
+    '义务教育', '高校毕业生', '收入分配',
   ],
   ecology: [
     '生态', '环境', '绿色', '低碳', '碳达峰', '碳中和', '污染防治', '生态文明', '植树', '节能减排',
-    '美丽中国', '荒漠化', '环保',
+    '美丽中国', '荒漠化', '环保', '气候变化', '生物多样性', '河湖', '林草', '黄河流域生态保护',
   ],
   party: [
     '党建', '全面从严治党', '巡视', '纪检', '中央纪委', '党校', '党员', '组织工作', '作风建设', '八项规定',
-    '党内', '反腐', '干部队伍', '自我革命',
+    '党内', '反腐', '干部队伍', '自我革命', '学习教育', '政绩观', '中央八项规定精神', '主题教育',
   ],
   defense: [
     '国防', '军事', '军队', '强军', '部队', '军委', '武警', '练兵', '备战', '国防和军队现代化',
+    '战略威慑', '联合作战', '国防动员', '军民融合',
   ],
   diplomacy: [
     '外交', '外事', '出访', '峰会', '总统', '总理', '国王', '会见外宾', '会见外国', '多边', '双边',
-    '命运共同体', '贺电', '贺信', '致电祝贺', '国际社会', '外国', '国际组织',
+    '命运共同体', '贺电', '贺信', '致电祝贺', '国际社会', '外国', '国际组织', '亚太经合组织',
+    '上海合作组织', '金砖', '二十国集团', '联合国', '中非合作论坛', '东盟', '中欧', '全球南方',
   ],
 };
 
@@ -95,6 +102,48 @@ function scoreDomainByText(text: string, weight: number, scores: Record<NonNulla
       }
     }
   }
+}
+
+function inferDomainFromStrongSignals(article: ExtractedArticle): ExtractedArticle['domain'] | null {
+  const title = article.title || '';
+  const summary = article.summary || '';
+  const combined = `${title} ${summary}`;
+
+  if (/(气候变化|生态环境|生物多样性|绿色发展|碳达峰|碳中和|污染防治|美丽中国)/.test(combined)) {
+    return 'ecology';
+  }
+
+  const strongDomainPatterns: Array<[NonNullable<ExtractedArticle['domain']>, RegExp]> = [
+    ['diplomacy', /(外交|外事|出访|国事访问|峰会|亚太经合组织|上海合作组织|金砖|二十国集团|联合国|中非合作论坛|中阿峰会|中拉论坛|全球南方|会见.*(总统|总理|国王|外宾|外国)|致电祝贺.*(总统|总理|国王))/],
+    ['defense', /(国防|军事|军队|强军|军委|武警|备战|练兵|国防和军队现代化)/],
+    ['party', /(党建|全面从严治党|纪检|巡视|党校|组织工作|作风建设|八项规定|反腐|自我革命|学习教育|政绩观)/],
+    ['ecology', /(生态|环境|绿色|气候变化|碳达峰|碳中和|污染防治|美丽中国|荒漠化|植树|生态文明)/],
+    ['culture', /(文化|文明|文艺|体育|博物馆|文物|出版|文化遗产|宣传思想文化|精神文明)/],
+    ['society', /(民生|教育|医疗|卫生|就业|养老|社保|社会保障|住房保障|乡村振兴|扶贫|脱贫|人口高质量发展|共同富裕|健康中国)/],
+    ['economy', /(经济|金融|高质量发展|新质生产力|现代化产业体系|实体经济|数字经济|海洋经济|统一大市场|营商环境|科技创新|科技自立自强|制造业|产业链|供应链|招商引资|项目建设|企业家)/],
+  ];
+
+  for (const [domain, pattern] of strongDomainPatterns) {
+    if (pattern.test(combined)) {
+      return domain;
+    }
+  }
+
+  if (article.category === 'inspection') {
+    if (/(科技园区|企业|工厂|开发区|产业基地|创新平台|项目建设|营商环境)/.test(combined)) {
+      return 'economy';
+    }
+
+    if (/(农业生产|乡村振兴|农民增收|民生保障|学校|医院)/.test(combined)) {
+      return 'society';
+    }
+
+    if (/(生态环境|污染治理|绿色发展|河湖|林草|植树)/.test(combined)) {
+      return 'ecology';
+    }
+  }
+
+  return null;
 }
 
 function isPeopleArticle(articleUrl: string): boolean {
@@ -193,6 +242,11 @@ function inferPeopleDomainFromUrl(articleUrl: string): ExtractedArticle['domain'
 }
 
 function inferDomainFromArticleContent(article: ExtractedArticle, articleUrl: string): ExtractedArticle['domain'] | null {
+  const strongSignalDomain = inferDomainFromStrongSignals(article);
+  if (strongSignalDomain) {
+    return strongSignalDomain;
+  }
+
   const scores: Record<NonNullable<ExtractedArticle['domain']>, number> = {
     economy: 0,
     politics: 0,
@@ -210,15 +264,15 @@ function inferDomainFromArticleContent(article: ExtractedArticle, articleUrl: st
   scoreDomainByText(article.summary || '', 2, scores);
   scoreDomainByText(article.fullText || '', 1, scores);
 
-  if (article.category === 'inspection' && /植树|生态|绿色|环境/.test(`${article.title} ${article.summary} ${article.fullText}`)) {
+  if (article.category === 'inspection' && /植树|生态|绿色|环境|河湖|林草|气候变化/.test(`${article.title} ${article.summary} ${article.fullText}`)) {
     scores.ecology += 4;
   }
 
-  if (article.category === 'inspection' && /企业|产业|科技|创新|园区|开发区|制造业/.test(`${article.title} ${article.summary} ${article.fullText}`)) {
+  if (article.category === 'inspection' && /企业|产业|科技|创新|园区|开发区|制造业|项目建设|营商环境|现代化产业体系/.test(`${article.title} ${article.summary} ${article.fullText}`)) {
     scores.economy += 4;
   }
 
-  if (article.category === 'meeting' && /会见|会谈|峰会|多边|双边|总统|总理|国王|外国/.test(article.title || '')) {
+  if (article.category === 'meeting' && /会见|会谈|峰会|多边|双边|总统|总理|国王|外国|国际组织|亚太经合组织|上海合作组织|金砖|联合国/.test(article.title || '')) {
     scores.diplomacy += 5;
   }
 
@@ -232,7 +286,7 @@ function inferDomainFromArticleContent(article: ExtractedArticle, articleUrl: st
     return null;
   }
 
-  if (bestDomain !== 'politics' && bestScore >= 3 && bestScore >= secondScore + 2) {
+  if (bestDomain !== 'politics' && bestScore >= 3 && bestScore >= secondScore + 1) {
     return bestDomain;
   }
 
@@ -681,7 +735,8 @@ ${truncatedContent}
 5. 标题含"文化/文明/文艺/体育" → culture（文化）
 6. 标题含"民生/扶贫/乡村振兴/医疗/就业/养老" → society（社会）
 7. 标题含"经济/金融/高质量发展/产业/企业/科技/创新/新质生产力/改革开放/营商环境/招商引资/项目建设/产业升级" → economy（经济）
-8. 其他默认 → politics（政治）
+8. 如果是人民网 politics.people.com.cn 等时政频道文章，不要因为频道名就一律判成 politics，必须结合标题、摘要、正文主题判断是经济/外交/社会/生态等具体领域
+9. 只有确实没有明显领域特征时，才默认 → politics（政治）
 
 【重要】考察调研类文章领域判断补充：
 - 分类为"考察调研(inspection)"的文章，需结合内容判断领域：
@@ -710,7 +765,7 @@ function resolveArticleExtractionApiConfigs(
 ): ArticleExtractionApiConfig[] {
   const kimiApiKey = getKimiApiKey();
   const deepSeekApiKey = getDeepSeekApiKey();
-  const preferredProvider = getPreferredApi();
+  const preferredProvider = getPreferredExtractionApi();
   const configs: ArticleExtractionApiConfig[] = [];
   const seenProviders = new Set<ArticleExtractionProvider>();
 

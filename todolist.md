@@ -122,3 +122,35 @@
 - 已完成模拟验证：海洋经济文章归为经济，拉共体峰会贺信归为外交，植树活动归为生态，卫生健康相关座谈归为社会，政治局会议保持政治
 - 已通过 build / eslint / tsc 与 diagnostics，确认首页、详情页、后台文章管理主链路未受影响
 - 本轮用户可自行复测：后台新增文章里分别粘贴经济 / 外交 / 社会 / 生态 / 政治类人民网链接，检查提取结果中的领域是否不再大面积默认显示“政治”
+
+## 当前进行中的第七步优化
+- [x] 动手前确认本轮目标：继续提升人民网领域识别精度，并同步收紧摘要长度、优化首页/详情页返回体验、排查额外搜索工作流
+- [x] 在 kimiArticleService 中补充“标题/摘要强信号优先 + 扩展关键词评分”，减少经济 / 外交 / 社会 / 生态等内容继续被回落到政治
+- [x] 在 aiSummaryService 中把摘要提示词收紧到 80-120 字，并增加抽取式摘要与长度裁剪兜底
+- [x] 在 App.tsx、ContentList.tsx、DetailPage.tsx、articleServiceEnhanced.ts 中补充首页本地缓存回填、详情页预加载、脏数据兜底，降低首次进入和返回首页卡顿/报错概率
+- [x] 复核 GitHub Actions 工作流，确认今天上午额外“搜索工作流”并非 fetch-articles 定时自动触发
+- [x] 跑 build / eslint / tsc 与 diagnostics，验证现有功能不受影响
+
+## 第七步优化完成情况
+- 已在 kimiArticleService 中新增标题/摘要强信号识别，外交、国防、党建、生态、文化、社会、经济类文章优先按主题落域，不再轻易被 politics.people.com.cn 频道名带偏
+- 已扩展经济、外交、社会、生态等领域关键词，并放宽非政治领域领先阈值，减少“明明有明显主题词却仍回落政治”的情况
+- 已在摘要生成链路中把摘要要求改为 80-120 字，强调“简洁明了、尽量复用原文表述”，同时新增抽取式兜底和超长裁剪，避免摘要比原文还长
+- 已在首页链路中接入本地缓存 fallback、详情页空闲预加载、列表 hover/focus 预加载，以及 category 异常值兜底，减少首次进入首页、点击详情、详情返回首页时的卡顿和错误边界触发
+- 已确认 fetch-articles.yml 当前只有 workflow_dispatch，没有 schedule；今天上午看到的自动搜索主要来自 ai-auto-search，其他“像搜索”的记录更可能是历史手动运行或其他 workflow
+- 已通过 build / eslint / tsc 与 diagnostics，并在本地页面完成首页进入、详情打开、浏览器返回首页的模拟检查，未再出现“页面在加载时遇到了意外错误”
+- 本轮用户可自行复测：1）后台新增人民网经济/外交/社会/生态/政治文章，看领域是否更精准；2）详情页点“AI生成”重新生成摘要，确认摘要明显缩短；3）首次打开首页、点进详情再返回首页，确认进入速度和稳定性改善
+
+## 当前进行中的第八步优化
+- [x] 动手前确认本轮目标：拆分“AI 搜索优先模型”和“URL 新增文章识别优先模型”，避免两个配置互相联动
+- [x] 在 aiSearchService 中增加独立的新增文章识别优先模型存储键与读写方法
+- [x] 在 AdminDashboard / AdminApiConfigDialog 中拆出两套独立设置入口
+- [x] 在 useAdminArticleManagement 与 kimiArticleService 中改为读取新增文章识别专用偏好
+- [x] 跑 build / eslint / tsc 与 diagnostics，验证拆分后不影响现有功能
+
+## 第八步优化完成情况
+- 已将 AI 搜索优先模型继续保留在 preferred_search_api 中，专门用于搜索链路
+- 已新增 URL 新增文章识别优先模型配置 preferred_article_extraction_api，专门用于后台“新增文章 -> 粘贴 URL -> AI 提取”链路
+- 已在后台 API 配置弹窗中拆出两组按钮：“搜索时优先使用”和“URL新增文章识别时优先使用”，现在切换一项不会再带动另一项
+- 已让 useAdminArticleManagement 与 kimiArticleService 改为读取新增文章识别专用偏好，后台新增文章时可单独优先走 DeepSeek，AI 搜索仍可单独优先走 Kimi
+- 已通过 build / eslint / tsc 与 diagnostics，确认本轮拆分未引入新的编译或类型错误
+- 本轮用户可自行复测：后台“管理 API”里把“搜索时优先使用”设成 Kimi，把“URL新增文章识别时优先使用”设成 DeepSeek；关闭后重新打开确认两个选择仍分别保持；再去新增文章页看“已配置 DeepSeek”标识是否跟随识别优先项，而不是跟搜索优先项一起变化

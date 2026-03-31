@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { getDeepSeekApiKey, getPreferredApi } from '@/services/aiSearchService';
+import { getDeepSeekApiKey, getPreferredExtractionApi } from '@/services/aiSearchService';
 import {
   getArticleDetail,
   saveArticleDetail,
@@ -86,7 +86,7 @@ function parseArticleDate(date?: string) {
 function getAvailableExtractionProvider() {
   const kimiApiKey = getKimiApiKey();
   const deepSeekApiKey = getDeepSeekApiKey();
-  const preferredApi = getPreferredApi();
+  const preferredApi = getPreferredExtractionApi();
 
   if (preferredApi === 'deepseek' && deepSeekApiKey) {
     return { provider: 'deepseek' as const, apiKey: deepSeekApiKey };

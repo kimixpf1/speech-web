@@ -94,6 +94,8 @@ import {
   validateDeepSeekApiKey,
   setPreferredApi,
   getPreferredApi,
+  setPreferredExtractionApi,
+  getPreferredExtractionApi,
   shouldAutoSearch,
   setLastSearchTime,
   getLastSearchTime,
@@ -164,6 +166,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   // AI 搜索状态（新增）
   const [deepSeekApiKey, setDeepSeekApiKeyState] = useState(getDeepSeekApiKey() || '');
   const [preferredApi, setPreferredApiState] = useState<'kimi' | 'deepseek'>(getPreferredApi());
+  const [preferredExtractionApi, setPreferredExtractionApiState] = useState<'kimi' | 'deepseek'>(getPreferredExtractionApi());
   const [showApiConfigDialog, setShowApiConfigDialog] = useState(false);
   const [deepSeekKeyInput, setDeepSeekKeyInput] = useState('');
   const [deepSeekKeyValidating, setDeepSeekKeyValidating] = useState(false);
@@ -763,10 +766,14 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     setTimeout(() => setSuccessMessage(''), 3000);
   };
 
-  // 切换首选 API
   const handleSwitchPreferredApi = (api: 'kimi' | 'deepseek') => {
     setPreferredApi(api);
     setPreferredApiState(api);
+  };
+
+  const handleSwitchPreferredExtractionApi = (api: 'kimi' | 'deepseek') => {
+    setPreferredExtractionApi(api);
+    setPreferredExtractionApiState(api);
   };
 
   // 加载最近的workflow运行记录
@@ -1003,7 +1010,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         githubToken={githubToken}
         tokenInput={tokenInput}
         tokenValidating={tokenValidating}
-        preferredApi={preferredApi}
+        preferredSearchApi={preferredApi}
+        preferredExtractionApi={preferredExtractionApi}
         onOpenChange={setShowApiConfigDialog}
         onKimiKeyInputChange={setKimiKeyInput}
         onSaveKimiKey={handleSaveKimiKey}
@@ -1014,7 +1022,8 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         onTokenInputChange={setTokenInput}
         onSaveToken={handleSaveToken}
         onClearToken={handleClearToken}
-        onSwitchPreferredApi={handleSwitchPreferredApi}
+        onSwitchPreferredSearchApi={handleSwitchPreferredApi}
+        onSwitchPreferredExtractionApi={handleSwitchPreferredExtractionApi}
       />
 
       {/* Kimi API Key 配置对话框 */}

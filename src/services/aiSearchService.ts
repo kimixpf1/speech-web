@@ -11,6 +11,7 @@ const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 // 本地存储键
 const DEEPSEEK_API_KEY_STORAGE = 'deepseek_api_key';
 const PREFERRED_API_STORAGE = 'preferred_search_api';
+const PREFERRED_EXTRACTION_API_STORAGE = 'preferred_article_extraction_api';
 const LAST_SEARCH_TIME_STORAGE = 'last_search_time';
 
 // 搜索关键词配置 - 多维度搜索确保不漏
@@ -167,6 +168,17 @@ export function setPreferredApi(api: 'kimi' | 'deepseek'): void {
 
 export function getPreferredApi(): 'kimi' | 'deepseek' {
   return (localStorage.getItem(PREFERRED_API_STORAGE) as 'kimi' | 'deepseek') || 'kimi';
+}
+
+export function setPreferredExtractionApi(api: 'kimi' | 'deepseek'): void {
+  localStorage.setItem(PREFERRED_EXTRACTION_API_STORAGE, api);
+}
+
+export function getPreferredExtractionApi(): 'kimi' | 'deepseek' {
+  return (
+    (localStorage.getItem(PREFERRED_EXTRACTION_API_STORAGE) as 'kimi' | 'deepseek') ||
+    getPreferredApi()
+  );
 }
 
 export function getLastSearchTime(): number | null {

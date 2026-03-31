@@ -14,7 +14,8 @@ interface AdminApiConfigDialogProps {
   githubToken: string;
   tokenInput: string;
   tokenValidating: boolean;
-  preferredApi: 'kimi' | 'deepseek';
+  preferredSearchApi: 'kimi' | 'deepseek';
+  preferredExtractionApi: 'kimi' | 'deepseek';
   onOpenChange: (open: boolean) => void;
   onKimiKeyInputChange: (value: string) => void;
   onSaveKimiKey: () => void;
@@ -25,7 +26,8 @@ interface AdminApiConfigDialogProps {
   onTokenInputChange: (value: string) => void;
   onSaveToken: () => void;
   onClearToken: () => void;
-  onSwitchPreferredApi: (api: 'kimi' | 'deepseek') => void;
+  onSwitchPreferredSearchApi: (api: 'kimi' | 'deepseek') => void;
+  onSwitchPreferredExtractionApi: (api: 'kimi' | 'deepseek') => void;
 }
 
 export function AdminApiConfigDialog({
@@ -39,7 +41,8 @@ export function AdminApiConfigDialog({
   githubToken,
   tokenInput,
   tokenValidating,
-  preferredApi,
+  preferredSearchApi,
+  preferredExtractionApi,
   onOpenChange,
   onKimiKeyInputChange,
   onSaveKimiKey,
@@ -50,7 +53,8 @@ export function AdminApiConfigDialog({
   onTokenInputChange,
   onSaveToken,
   onClearToken,
-  onSwitchPreferredApi,
+  onSwitchPreferredSearchApi,
+  onSwitchPreferredExtractionApi,
 }: AdminApiConfigDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -165,17 +169,41 @@ export function AdminApiConfigDialog({
               <label className="text-sm font-medium">搜索时优先使用</label>
               <div className="flex gap-2">
                 <Button
-                  variant={preferredApi === 'kimi' ? 'default' : 'outline'}
+                  variant={preferredSearchApi === 'kimi' ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => onSwitchPreferredApi('kimi')}
+                  onClick={() => onSwitchPreferredSearchApi('kimi')}
                   disabled={!kimiApiKey}
                 >
                   Kimi
                 </Button>
                 <Button
-                  variant={preferredApi === 'deepseek' ? 'default' : 'outline'}
+                  variant={preferredSearchApi === 'deepseek' ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => onSwitchPreferredApi('deepseek')}
+                  onClick={() => onSwitchPreferredSearchApi('deepseek')}
+                  disabled={!deepSeekApiKey}
+                >
+                  DeepSeek
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {(kimiApiKey || deepSeekApiKey) && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">URL新增文章识别时优先使用</label>
+              <div className="flex gap-2">
+                <Button
+                  variant={preferredExtractionApi === 'kimi' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => onSwitchPreferredExtractionApi('kimi')}
+                  disabled={!kimiApiKey}
+                >
+                  Kimi
+                </Button>
+                <Button
+                  variant={preferredExtractionApi === 'deepseek' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => onSwitchPreferredExtractionApi('deepseek')}
                   disabled={!deepSeekApiKey}
                 >
                   DeepSeek

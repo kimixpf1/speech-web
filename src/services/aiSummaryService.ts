@@ -98,7 +98,7 @@ ${articleContent.substring(0, 6000)}
 请严格按照以下格式输出（禁止JSON，禁止英文）：
 
 【摘要】
-150-200字，准确概括文章核心内容，提炼关键论断。
+80-120字，必须简洁明了，读完就知道文章讲了什么事。尽量直接复用原文里的关键表述，少做扩写，不要空话套话，不要重复标题，不要写得比原文还长。
 
 【解读】
 400-600字深度解读，分为三个段落（每段开头标注小标题）：
@@ -117,6 +117,86 @@ ${articleContent.substring(0, 6000)}
 5. 禁止出现“政治高度是指”“所谓政治高度”“这里的政治高度”“理论深度是指”“历史贯通与实践就是”等先定义概念的写法
 6. 禁止把上面三条写作要求原样抄进答案
 7. 语言庄重规范，适合政务学习场景`;
+}
+
+function buildExtractiveSummary(articleContent: string, articleTitle: string): string {
+  const normalizedTitle = articleTitle.replace(/\s+/g, '').trim();
+  const sentences = articleContent
+    .replace(/\r/g, '')
+    .split(/\n+/)
+    .flatMap(paragraph => paragraph.split(/(?<=[。！？；])/))
+    .map(sentence => sentence.trim())
+    .filter(sentence =>
+      sentence.length >= 12 &&
+      !/^(来源|原标题|责任编辑|编辑|打印|分享|微信|微博)/.test(sentence) &&
+      sentence.replace(/\s+/g, '') !== normalizedTitle
+    );
+
+  if (sentences.length === 0) {
+    return '';
+  }
+
+  const selected: string[] = [];
+  let currentLength = 0;
+
+  for (const sentence of sentences) {
+    if (currentLength > 0 && currentLength + sentence.length > 120) {
+      break;
+    }
+
+    selected.push(sentence);
+    currentLength += sentence.length;
+
+    if (currentLength >= 70 || selected.length >= 2) {
+      break;
+    }
+  }
+
+  return selected.join('').trim();
+}
+
+function clampSummaryLength(summary: string, maxLength: number): string {
+  const sentences = summary
+    .split(/(?<=[。！？；])/)
+    .map(sentence => sentence.trim())
+    .filter(Boolean);
+
+  const selected: string[] = [];
+  let currentLength = 0;
+
+  for (const sentence of sentences) {
+    if (currentLength > 0 && currentLength + sentence.length > maxLength) {
+      break;
+    }
+
+    selected.push(sentence);
+    currentLength += sentence.length;
+
+    if (currentLength >= 70 || selected.length >= 2) {
+      break;
+    }
+  }
+
+  return (selected.join('') || summary.slice(0, maxLength)).trim();
+}
+
+function normalizeGeneratedSummary(summary: string, articleContent: string, articleTitle: string): string {
+  const cleanedSummary = cleanEscapeChars(summary)
+    .replace(/^【摘要】[\s：:]*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const extractiveSummary = buildExtractiveSummary(articleContent, articleTitle);
+
+  if (!cleanedSummary) {
+    return extractiveSummary || '摘要生成失败，请重试';
+  }
+
+  if (cleanedSummary.length <= 120) {
+    return cleanedSummary;
+  }
+
+  return extractiveSummary || clampSummaryLength(cleanedSummary, 120);
 }
 
 function normalizeAnalysisFormat(analysis: string): string {
@@ -159,13 +239,13 @@ async function generateWithDeepSeek(
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content || '';
   
-  return parseAIContent(content);
+  return parseAIContent(content, articleContent, articleTitle);
 }
 
 /**
  * 解析AI返回的内容，提取摘要和解读
  */
-function parseAIContent(rawContent: string): { summary: string; analysis: string } {
+function parseAIContent(rawContent: string, articleContent: string, articleTitle: string): { summary: string; analysis: string } {
   const content = cleanEscapeChars(rawContent);
   
   let summary = '';
@@ -190,7 +270,7 @@ function parseAIContent(rawContent: string): { summary: string; analysis: string
   }
   
   return {
-    summary: summary || '摘要生成失败，请重试',
+    summary: normalizeGeneratedSummary(summary, articleContent, articleTitle),
     analysis: analysis || '解读生成失败，请重试',
   };
 }
@@ -231,7 +311,7 @@ async function generateWithKimi(
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content || '';
   
-  return parseAIContent(content);
+  return parseAIContent(content, articleContent, articleTitle);
 }
 
 /**

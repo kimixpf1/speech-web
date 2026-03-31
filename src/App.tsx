@@ -8,7 +8,7 @@ import { About } from '@/components/About';
 import { Footer } from '@/components/Footer';
 import { ZhengjiguanPage } from '@/components/ZhengjiguanPage';
 import useSWR from 'swr';
-import { getArticles, setupRealtimeSubscription, type Speech } from '@/services/articleServiceEnhanced';
+import { getArticles, getLocalArticlesSync, setupRealtimeSubscription, type Speech } from '@/services/articleServiceEnhanced';
 import { initAnalytics } from '@/services/analytics';
 import { isAdminLoggedInSync, isAdminLoggedIn } from '@/services/adminAuth';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -17,7 +17,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import './App.css';
 
 // 懒加载页面组件
-const DetailPage = lazy(() => import('@/components/DetailPage').then(m => ({ default: m.DetailPage })));
+const loadDetailPage = () => import('@/components/DetailPage');
+const DetailPage = lazy(() => loadDetailPage().then(m => ({ default: m.DetailPage })));
 const AdminLogin = lazy(() => import('@/components/AdminLogin').then(m => ({ default: m.AdminLogin })));
 const AdminDashboard = lazy(() => import('@/components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const SuggestionBox = lazy(() => import('@/components/SuggestionBox').then(m => ({ default: m.SuggestionBox })));
@@ -63,6 +64,7 @@ function HomePage() {
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300); // 300ms 防抖延迟
+  const cachedArticles = useMemo(() => getLocalArticlesSync(), []);
 
   // 记录滚动位置
   useEffect(() => {
@@ -85,7 +87,7 @@ function HomePage() {
 
   // 使用 SWR 获取数据并处理缓存，替代手写的 useState 和 useEffect 获取逻辑
   const { data: articles = [], mutate } = useSWR<Speech[]>('articles', getArticles, {
-    fallbackData: [],
+    fallbackData: cachedArticles,
     revalidateOnFocus: false, // 避免切换标签页时频繁拉取
   });
 
@@ -101,6 +103,25 @@ function HomePage() {
   useEffect(() => {
     sessionStorage.setItem('selectedYear', selectedYear);
   }, [selectedYear]);
+
+  useEffect(() => {
+    const preload = () => {
+      void loadDetailPage();
+    };
+
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+
+    if (idleWindow.requestIdleCallback) {
+      const idleId = idleWindow.requestIdleCallback(() => preload(), { timeout: 1200 });
+      return () => idleWindow.cancelIdleCallback?.(idleId);
+    }
+
+    const timeoutId = window.setTimeout(preload, 300);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   // 初始化访问统计并设置实时订阅
   useEffect(() => {

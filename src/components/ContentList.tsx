@@ -28,10 +28,12 @@ const domainConfig: Record<string, { color: string; bgColor: string }> = {
   diplomacy: { color: 'text-cyan-600', bgColor: 'bg-cyan-50' },
 };
 
+const preloadDetailPage = () => import('@/components/DetailPage');
+
 function SpeechCard({ speech }: { speech: Speech }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const navigate = useNavigate();
-  const config = categoryConfig[speech.category];
+  const config = categoryConfig[speech.category] || categoryConfig.speech;
   const Icon = config.icon;
 
   const handleNavigateToDetail = (e: React.MouseEvent) => {
@@ -41,7 +43,11 @@ function SpeechCard({ speech }: { speech: Speech }) {
   };
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-200 border-gray-100 overflow-hidden">
+    <Card
+      className="group hover:shadow-lg transition-all duration-200 border-gray-100 overflow-hidden"
+      onMouseEnter={() => void preloadDetailPage()}
+      onFocus={() => void preloadDetailPage()}
+    >
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           {/* Category Icon */}

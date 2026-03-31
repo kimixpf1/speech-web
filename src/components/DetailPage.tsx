@@ -117,6 +117,40 @@ function cleanFullText(text: string): string {
   return result.trim();
 }
 
+function normalizeAbstractPreview(text: string): string {
+  const cleaned = (text || '')
+    .replace(/^【摘要】[\s：:]*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!cleaned || cleaned.length <= 120) {
+    return cleaned;
+  }
+
+  const sentences = cleaned
+    .split(/(?<=[。！？；])/)
+    .map(sentence => sentence.trim())
+    .filter(Boolean);
+
+  const selected: string[] = [];
+  let currentLength = 0;
+
+  for (const sentence of sentences) {
+    if (currentLength > 0 && currentLength + sentence.length > 120) {
+      break;
+    }
+
+    selected.push(sentence);
+    currentLength += sentence.length;
+
+    if (currentLength >= 70 || selected.length >= 2) {
+      break;
+    }
+  }
+
+  return (selected.join('') || cleaned.slice(0, 120)).trim();
+}
+
 export function DetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -158,7 +192,7 @@ export function DetailPage() {
             // 一次性更新状态，避免中间状态
             setSpeech({
               ...baseSpeech,
-              abstract: cloudDetail.abstract || baseSpeech.summary || '摘要正在整理中...',
+              abstract: normalizeAbstractPreview(cloudDetail.abstract || baseSpeech.summary || '摘要正在整理中...'),
               fullText: cloudDetail.fullText || '原文加载中...',
               analysis: cloudDetail.analysis || '解读分析正在整理中...',
             } as SpeechDetail);
@@ -172,7 +206,7 @@ export function DetailPage() {
         // 云端没有数据，显示占位符
         setSpeech({
           ...baseSpeech,
-          abstract: baseSpeech.summary || '摘要正在整理中...',
+          abstract: normalizeAbstractPreview(baseSpeech.summary || '摘要正在整理中...'),
           fullText: '原文加载中...',
           analysis: '解读分析正在整理中...',
         } as SpeechDetail);
@@ -694,7 +728,7 @@ export function DetailPage() {
     );
   }
 
-  const config = categoryConfig[speech.category];
+  const config = categoryConfig[speech.category] || categoryConfig.speech;
   const Icon = config.icon;
 
   return (

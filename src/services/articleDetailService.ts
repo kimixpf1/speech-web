@@ -14,6 +14,40 @@ export interface ArticleDetailContent {
   analysis: string;
 }
 
+function normalizeAbstractText(abstract: string): string {
+  const cleaned = (abstract || '')
+    .replace(/^【摘要】[\s：:]*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!cleaned || cleaned.length <= 120) {
+    return cleaned;
+  }
+
+  const sentences = cleaned
+    .split(/(?<=[。！？；])/)
+    .map(sentence => sentence.trim())
+    .filter(Boolean);
+
+  const selected: string[] = [];
+  let currentLength = 0;
+
+  for (const sentence of sentences) {
+    if (currentLength > 0 && currentLength + sentence.length > 120) {
+      break;
+    }
+
+    selected.push(sentence);
+    currentLength += sentence.length;
+
+    if (currentLength >= 70 || selected.length >= 2) {
+      break;
+    }
+  }
+
+  return (selected.join('') || cleaned.slice(0, 120)).trim();
+}
+
 // 获取本地缓存的详情
 function getLocalDetails(): Record<string, ArticleDetailContent> {
   try {
@@ -43,6 +77,7 @@ export async function getArticleDetail(id: string, forceRefresh: boolean = false
     if (localDetails[id]) {
       return {
         ...localDetails[id],
+        abstract: normalizeAbstractText(localDetails[id].abstract),
         analysis: normalizeAnalysisText(localDetails[id].analysis),
       };
     }
@@ -60,7 +95,7 @@ export async function getArticleDetail(id: string, forceRefresh: boolean = false
       if (data && !error) {
         const detail: ArticleDetailContent = {
           id: data.id,
-          abstract: data.abstract || '',
+          abstract: normalizeAbstractText(data.abstract || ''),
           fullText: data.full_text || '',
           analysis: normalizeAnalysisText(data.analysis || ''),
         };
@@ -106,6 +141,7 @@ export async function saveArticleDetail(detail: ArticleDetailContent): Promise<b
   try {
     const normalizedDetail: ArticleDetailContent = {
       ...detail,
+      abstract: normalizeAbstractText(detail.abstract),
       analysis: normalizeAnalysisText(detail.analysis),
     };
 
@@ -175,7 +211,7 @@ export async function syncArticleDetails(): Promise<void> {
       data.forEach(item => {
         details[item.id] = {
           id: item.id,
-          abstract: item.abstract || '',
+          abstract: normalizeAbstractText(item.abstract || ''),
           fullText: item.full_text || '',
           analysis: normalizeAnalysisText(item.analysis || ''),
         };
@@ -193,6 +229,7 @@ export function getLocalArticleDetail(id: string): ArticleDetailContent | null {
   return localDetails[id]
     ? {
         ...localDetails[id],
+        abstract: normalizeAbstractText(localDetails[id].abstract),
         analysis: normalizeAnalysisText(localDetails[id].analysis),
       }
     : null;
