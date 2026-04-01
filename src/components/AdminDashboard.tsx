@@ -717,11 +717,12 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
       if (result.success) {
         setSearchStage('completed');
-        if (result.newCount > 0) {
-          setSearchMessage(`后台搜索完成！新增 ${result.newCount} 篇待审核文章`);
-        } else {
-          setSearchMessage('后台搜索完成！暂无新文章（可能已存在或工作流未找到）');
-        }
+        setSearchMessage(
+          result.message ||
+            (result.newCount > 0
+              ? `后台搜索完成！新增 ${result.newCount} 篇待审核文章`
+              : '后台搜索完成！暂无新文章（可能已存在或工作流未找到）')
+        );
         
         // 刷新数据
         await loadData();
