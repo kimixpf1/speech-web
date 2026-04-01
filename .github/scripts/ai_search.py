@@ -238,6 +238,24 @@ def get_page_title_and_text(url: str) -> Tuple[str, str]:
     return title, text
 
 
+def is_qstheory_xi_original(page_title: str, page_text: str) -> bool:
+    if not page_title or not page_text:
+        return False
+
+    if '作者：习近平' in page_text:
+        return True
+
+    compact_title = re.sub(r'\s+', '', page_title)
+    compact_head = re.sub(r'\s+', '', page_text[:600])
+    direct_markers = [
+        f'{compact_title}※习近平',
+        f'{compact_title}习近平一',
+        f'{compact_title}习近平二',
+        f'{compact_title}习近平',
+    ]
+    return any(marker in compact_head for marker in direct_markers)
+
+
 def normalize_direct_article(article: Dict) -> Optional[Dict]:
     normalized = dict(article)
     normalized['url'] = normalize_url_for_compare(article.get('url', ''))
@@ -252,7 +270,7 @@ def normalize_direct_article(article: Dict) -> Optional[Dict]:
 
     if 'qstheory.cn' in url:
         page_title, page_text = get_page_title_and_text(url)
-        if not page_title or '作者：习近平' not in page_text:
+        if not is_qstheory_xi_original(page_title, page_text):
             return None
         normalized['title'] = page_title
         normalized['summary'] = page_title
@@ -815,16 +833,24 @@ def get_existing_urls() -> set:
         return set()
     urls = set()
     for table in [TABLE, 'articles']:
-        try:
-            resp = requests.get(
-                f'{SUPABASE_URL}/rest/v1/{table}?select=url&limit=2000',
-                headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'},
-                timeout=30
-            )
-            if resp.status_code == 200:
-                urls |= {normalize_url_for_compare(row['url']) for row in resp.json() if row.get('url')}
-        except Exception:
-            continue
+        offset = 0
+        page_size = 1000
+        while True:
+            try:
+                resp = requests.get(
+                    f'{SUPABASE_URL}/rest/v1/{table}?select=url&order=id.asc&limit={page_size}&offset={offset}',
+                    headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'},
+                    timeout=30
+                )
+                if resp.status_code != 200:
+                    break
+                rows = resp.json()
+                urls |= {normalize_url_for_compare(row['url']) for row in rows if row.get('url')}
+                if len(rows) < page_size:
+                    break
+                offset += page_size
+            except Exception:
+                break
     return urls
 
 
@@ -833,16 +859,24 @@ def get_existing_titles() -> set:
         return set()
     titles = set()
     for table in [TABLE, 'articles']:
-        try:
-            resp = requests.get(
-                f'{SUPABASE_URL}/rest/v1/{table}?select=title&limit=2000',
-                headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'},
-                timeout=30
-            )
-            if resp.status_code == 200:
-                titles |= {row['title'] for row in resp.json() if row.get('title')}
-        except Exception:
-            continue
+        offset = 0
+        page_size = 1000
+        while True:
+            try:
+                resp = requests.get(
+                    f'{SUPABASE_URL}/rest/v1/{table}?select=title&order=id.asc&limit={page_size}&offset={offset}',
+                    headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'},
+                    timeout=30
+                )
+                if resp.status_code != 200:
+                    break
+                rows = resp.json()
+                titles |= {row['title'] for row in rows if row.get('title')}
+                if len(rows) < page_size:
+                    break
+                offset += page_size
+            except Exception:
+                break
     return titles
 
 

@@ -221,9 +221,10 @@ export function AdminPendingTab({
             </Badge>
           </div>
           <div className="text-xs text-green-700 space-y-1">
-            <p>• <strong>Kimi API</strong> 联网搜索习近平总书记最新讲话</p>
-            <p>• <strong>百度搜索</strong> 人民网、新华网、求是网验证</p>
-            <p>• 两个来源自动去重，新文章进入待审核</p>
+            <p>• <strong>GitHub Actions</strong> 每日 8:00 搜昨日、20:00 搜今日</p>
+            <p>• <strong>直抓来源</strong> 人民网讲话数据库、新华社/新华网、求是网</p>
+            <p>• <strong>Kimi 联网</strong> 作为补漏来源，统一去重后再与文章库比对</p>
+            <p>• 最终仅把真正新增的总书记原文放入待审核</p>
           </div>
         </CardContent>
       </Card>
@@ -367,7 +368,13 @@ export function AdminPendingTab({
                     </div>
                   )}
                   {(log.details?.source_breakdown || log.details?.merge_summary || log.details?.final_new_articles) && (
-                    <div className="mt-2 pt-2 border-t border-gray-200 space-y-2">
+                    <details className="mt-2 pt-2 border-t border-gray-200 group">
+                      <summary className="flex cursor-pointer list-none items-center justify-between text-xs text-gray-500 hover:text-gray-700">
+                        <span>筛选说明</span>
+                        <span className="text-[11px] text-gray-400 group-open:hidden">展开</span>
+                        <span className="text-[11px] text-gray-400 hidden group-open:inline">收起</span>
+                      </summary>
+                      <div className="mt-2 space-y-2">
                       {log.details?.source_breakdown && (
                         <div>
                           <div className="text-xs text-gray-500 mb-1">来源命中：</div>
@@ -453,7 +460,8 @@ export function AdminPendingTab({
                           {log.details.save_result.error ? `，失败原因：${log.details.save_result.error}` : ''}
                         </div>
                       )}
-                    </div>
+                      </div>
+                    </details>
                   )}
                   {log.details?.search_results && (
                     <div className="mt-2 pt-2 border-t border-gray-200">
