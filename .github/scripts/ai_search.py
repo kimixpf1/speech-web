@@ -197,10 +197,11 @@ def normalize_url_for_compare(url: str) -> str:
     if not url:
         return ''
     parsed = urlparse(url.strip())
+    scheme = 'https'
     path = parsed.path.rstrip('/')
     if 'jhsjk.people.cn' in parsed.netloc and path.startswith('/article/'):
-        return urlunparse((parsed.scheme or 'https', parsed.netloc, path, '', '', ''))
-    return urlunparse((parsed.scheme or 'https', parsed.netloc, path, '', '', ''))
+        return urlunparse((scheme, parsed.netloc, path, '', '', ''))
+    return urlunparse((scheme, parsed.netloc, path, '', '', ''))
 
 
 def clean_page_title(title: str) -> str:
@@ -242,18 +243,11 @@ def is_qstheory_xi_original(page_title: str, page_text: str) -> bool:
     if not page_title or not page_text:
         return False
 
-    if '作者：习近平' in page_text:
-        return True
-
-    compact_title = re.sub(r'\s+', '', page_title)
-    compact_head = re.sub(r'\s+', '', page_text[:600])
-    direct_markers = [
-        f'{compact_title}※习近平',
-        f'{compact_title}习近平一',
-        f'{compact_title}习近平二',
-        f'{compact_title}习近平',
-    ]
-    return any(marker in compact_head for marker in direct_markers)
+    compact_title = re.sub(r'\s+', '', normalize_title_for_compare(page_title) or page_title)
+    compact_text = re.sub(r'\s+', '', page_text)
+    author_pattern = rf'{re.escape(compact_title)}.{{0,120}}作者：习近平'
+    direct_pattern = rf'{re.escape(compact_title)}(?:※)?习近平(?:[一二三四五六七八九十]|\b|$)'
+    return bool(re.search(author_pattern, compact_text) or re.search(direct_pattern, compact_text))
 
 
 def normalize_direct_article(article: Dict) -> Optional[Dict]:
@@ -272,8 +266,9 @@ def normalize_direct_article(article: Dict) -> Optional[Dict]:
         page_title, page_text = get_page_title_and_text(url)
         if not is_qstheory_xi_original(page_title, page_text):
             return None
-        normalized['title'] = page_title
-        normalized['summary'] = page_title
+        normalized_title = normalize_title_for_compare(page_title) or page_title
+        normalized['title'] = normalized_title
+        normalized['summary'] = normalized_title
         normalized['source'] = '求是网'
         normalized['category'] = 'article'
         normalized['categoryName'] = '发表文章'
@@ -828,55 +823,48 @@ def merge_and_dedupe(source_articles: Dict[str, List[Dict]], existing_titles: Op
     return all_articles, diagnostics
 
 
+def fetch_existing_values(table: str, column: str, pending_only: bool = False) -> set:
+    values = set()
+    offset = 0
+    page_size = 1000
+    base_query = f'select={column}&order=id.asc&limit={page_size}&offset={{offset}}'
+    if pending_only:
+        base_query += '&status=eq.pending'
+
+    while True:
+        try:
+            resp = requests.get(
+                f'{SUPABASE_URL}/rest/v1/{table}?{base_query.format(offset=offset)}',
+                headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'},
+                timeout=30
+            )
+            if resp.status_code != 200:
+                break
+            rows = resp.json()
+            values |= {row[column] for row in rows if row.get(column)}
+            if len(rows) < page_size:
+                break
+            offset += page_size
+        except Exception:
+            break
+    return values
+
+
 def get_existing_urls() -> set:
     if not SUPABASE_URL:
         return set()
-    urls = set()
-    for table in [TABLE, 'articles']:
-        offset = 0
-        page_size = 1000
-        while True:
-            try:
-                resp = requests.get(
-                    f'{SUPABASE_URL}/rest/v1/{table}?select=url&order=id.asc&limit={page_size}&offset={offset}',
-                    headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'},
-                    timeout=30
-                )
-                if resp.status_code != 200:
-                    break
-                rows = resp.json()
-                urls |= {normalize_url_for_compare(row['url']) for row in rows if row.get('url')}
-                if len(rows) < page_size:
-                    break
-                offset += page_size
-            except Exception:
-                break
-    return urls
+
+    urls = {normalize_url_for_compare(url) for url in fetch_existing_values('articles', 'url')}
+    urls |= {normalize_url_for_compare(url) for url in fetch_existing_values(TABLE, 'url', pending_only=True)}
+    return {url for url in urls if url}
 
 
 def get_existing_titles() -> set:
     if not SUPABASE_URL:
         return set()
-    titles = set()
-    for table in [TABLE, 'articles']:
-        offset = 0
-        page_size = 1000
-        while True:
-            try:
-                resp = requests.get(
-                    f'{SUPABASE_URL}/rest/v1/{table}?select=title&order=id.asc&limit={page_size}&offset={offset}',
-                    headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'},
-                    timeout=30
-                )
-                if resp.status_code != 200:
-                    break
-                rows = resp.json()
-                titles |= {row['title'] for row in rows if row.get('title')}
-                if len(rows) < page_size:
-                    break
-                offset += page_size
-            except Exception:
-                break
+
+    titles = fetch_existing_values('articles', 'title')
+    titles |= fetch_existing_values(TABLE, 'title', pending_only=True)
     return titles
 
 
