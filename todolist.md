@@ -228,3 +228,7 @@
 - 已定位顶部状态提示错误的直接原因：`waitForWorkflowCompletion()` 里使用了 `head: true` 查询却错误读取 `data.length` 作为计数，导致前后待审核数量始终按 0 计算
 - 已把后台搜索完成提示改为优先使用最新 `search_logs` 中的 `new_count / final_new_articles_count / save_result.saved_count`，并用真实的 `count` 字段兜底，确保顶部提示与实际新增待审核一致
 - 已再次复核 GitHub Actions 定时配置：北京时间每日 8:00 / 20:00 仍对应 UTC `0 0 * * *` 与 `0 12 * * *`，当前工作流入口、去重链路与保存链路均已保持一致
+- 用户最新反馈说明：手动点击搜索与定时搜索虽然共用同一个 GitHub Actions 工作流，但手动触发的执行记录不应再显示“定时任务”
+- 已定位原因：`ai_search.py` 写搜索日志时把 `search_type` 硬编码成了 `auto`，导致 workflow_dispatch 手动触发也会被后台界面标记为“定时任务”
+- 已改为根据 GitHub Actions 事件来源自动区分：`schedule` 记为 `auto/定时任务`，`workflow_dispatch` 记为 `manual/手动搜索`，并额外写入 `triggered_from` 与 `github_event_name` 便于后续排查
+- 这样后续你就能直接从执行记录里看出：哪些是早晚 8 点的定时任务，哪些是你手动点按钮触发的搜索

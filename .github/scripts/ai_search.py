@@ -93,6 +93,33 @@ DOMAIN_NAMES = {'economy': '经济', 'politics': '政治', 'culture': '文化', 
                 'ecology': '生态', 'party': '党建', 'defense': '国防', 'diplomacy': '外交'}
 
 
+def get_search_trigger_metadata() -> Dict[str, str]:
+    event_name = os.environ.get('GITHUB_EVENT_NAME', '').strip() or 'unknown'
+    triggered_from = ''
+
+    event_path = os.environ.get('GITHUB_EVENT_PATH', '').strip()
+    if event_path and os.path.exists(event_path):
+        try:
+            with open(event_path, 'r', encoding='utf-8') as file:
+                event_payload = json.load(file)
+            triggered_from = (
+                event_payload.get('inputs', {}).get('triggered_from', '')
+                or event_payload.get('client_payload', {}).get('triggered_from', '')
+                or ''
+            ).strip()
+        except Exception as error:
+            print(f'[Trigger] Failed to parse event payload: {error}')
+
+    search_type = 'auto' if event_name == 'schedule' else 'manual'
+    trigger_label = '定时任务' if search_type == 'auto' else '手动搜索'
+    return {
+        'event_name': event_name,
+        'triggered_from': triggered_from or ('schedule' if search_type == 'auto' else 'manual'),
+        'search_type': search_type,
+        'trigger_label': trigger_label,
+    }
+
+
 def get_target_search_context() -> Tuple[str, str, str, str]:
     """返回目标搜索日期信息：日期文案、日期ISO、昨日/今日标签、搜索类型"""
     utc_now = datetime.utcnow()
@@ -907,13 +934,21 @@ def save_log(crawl_count, search_count, new_count, status, details):
         from datetime import timezone
         beijing_tz = timezone(timedelta(hours=8))
         beijing_now = datetime.now(beijing_tz)
+        trigger_meta = get_search_trigger_metadata()
         log_data = {
             'executed_at': beijing_now.isoformat(),  # 带时区的北京时间
             'crawl_count': crawl_count,
             'search_count': search_count,
             'new_count': new_count,
             'status': status,
-            'details': {**details, 'search_type': 'auto', 'api_used': 'direct+kimi+baidu'},
+            'details': {
+                **details,
+                'search_type': trigger_meta['search_type'],
+                'triggered_from': trigger_meta['triggered_from'],
+                'github_event_name': trigger_meta['event_name'],
+                'trigger_label': trigger_meta['trigger_label'],
+                'api_used': 'direct+kimi+baidu',
+            },
             'duration_seconds': 0,
         }
         print(f'[Log] Saving to {LOG_TABLE}: {json.dumps(log_data, ensure_ascii=False)}')
