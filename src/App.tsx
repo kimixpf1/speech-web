@@ -8,7 +8,7 @@ import { About } from '@/components/About';
 import { Footer } from '@/components/Footer';
 import { ZhengjiguanPage } from '@/components/ZhengjiguanPage';
 import useSWR from 'swr';
-import { getArticles, getLocalArticlesSync, setupRealtimeSubscription, type Speech } from '@/services/articleServiceEnhanced';
+import { getArticles, getLocalArticlesSync, getZhengjiguanArticles, setupRealtimeSubscription, type Speech } from '@/services/articleServiceEnhanced';
 import { initAnalytics } from '@/services/analytics';
 import { isAdminLoggedInSync, isAdminLoggedIn } from '@/services/adminAuth';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -91,6 +91,10 @@ function HomePage() {
     fallbackData: cachedArticles,
     revalidateOnFocus: false, // 避免切换标签页时频繁拉取
   });
+  const { data: zhengjiguanArticles = [], mutate: mutateZhengjiguan } = useSWR<Speech[]>('zhengjiguan-articles', getZhengjiguanArticles, {
+    fallbackData: [],
+    revalidateOnFocus: false,
+  });
 
   // 持久化筛选状态到sessionStorage（返回时恢复，关闭标签页后重置为economy默认）
   useEffect(() => {
@@ -140,27 +144,32 @@ function HomePage() {
           }
           return [updatedArticle, ...prevArticles];
         }, false); // 设置为 false 避免不必要的重新验证请求
+        if (updatedArticle.isZhengjiguan) {
+          void mutateZhengjiguan();
+        }
       },
       (deletedId) => {
         mutate((prevArticles = []) => prevArticles.filter(a => a.id !== deletedId), false);
+        void mutateZhengjiguan();
       }
     );
 
     return () => {
       unsubscribe();
     };
-  }, [mutate]);
+  }, [mutate, mutateZhengjiguan]);
 
   // Calculate stats
   const stats = useMemo(() => {
+    const zhengjiguanCount = zhengjiguanArticles.length;
     return {
-      total: articles.length,
+      total: articles.length + zhengjiguanCount,
       speech: articles.filter(s => s.category === 'speech').length,
       article: articles.filter(s => s.category === 'article').length,
       meeting: articles.filter(s => s.category === 'meeting').length,
       inspection: articles.filter(s => s.category === 'inspection').length,
     };
-  }, [articles]);
+  }, [articles, zhengjiguanArticles]);
 
   // Filter and sort speeches
   const filteredSpeeches = useMemo(() => {

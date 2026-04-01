@@ -321,6 +321,9 @@ export function AdminAddArticleDialog({
           <div className="space-y-2">
             <label className="text-sm font-medium">
               摘要 <span className="text-red-500">*</span>
+              <span className="ml-2 text-xs font-normal text-gray-500">
+                当前 {newArticle.summary?.trim().length || 0} 字
+              </span>
             </label>
             <Textarea
               placeholder="请输入文章摘要"

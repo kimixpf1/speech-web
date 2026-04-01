@@ -29,9 +29,9 @@ export function normalizeSummaryText(
     maxSentences?: number
   }
 ) {
-  const maxLength = options?.maxLength ?? 120
-  const minLength = options?.minLength ?? 70
-  const maxSentences = options?.maxSentences ?? 2
+  const maxLength = options?.maxLength ?? 220
+  const minLength = options?.minLength ?? 90
+  const maxSentences = options?.maxSentences ?? 3
 
   const cleaned = (summary || '')
     .replace(/^【摘要】[\s：:]*/i, '')

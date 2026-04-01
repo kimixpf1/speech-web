@@ -550,7 +550,10 @@ export function AdminPendingTab({
                     </div>
                     <h3 className="font-medium text-gray-900 mb-1">{article.title}</h3>
                     {article.summary && article.summary !== article.title && (
-                      <p className="text-sm text-gray-600 line-clamp-2 mb-1">{article.summary}</p>
+                      <>
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-1">{article.summary}</p>
+                        <p className="text-xs text-gray-400 mb-1">摘要 {article.summary.trim().length} 字</p>
+                      </>
                     )}
                     {article.url && (
                       <div className="flex items-center gap-2 mt-1">

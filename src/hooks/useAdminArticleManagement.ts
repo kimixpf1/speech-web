@@ -22,7 +22,7 @@ import {
   validateKimiApiKey,
 } from '@/services/kimiArticleService';
 import { approveArticle, type PendingArticle } from '@/services/pendingArticleService';
-import { normalizeAnalysisText } from '@/lib/utils';
+import { normalizeAnalysisText, normalizeSummaryText } from '@/lib/utils';
 
 interface UseAdminArticleManagementOptions {
   articles: Speech[];
@@ -81,6 +81,10 @@ function parseArticleDate(date?: string) {
   }
 
   return { year, month, day };
+}
+
+function normalizeExtractedSummary(summary: string | undefined, title: string | undefined) {
+  return normalizeSummaryText(summary || title || '', { maxLength: 220, minLength: 90, maxSentences: 3 });
 }
 
 function getAvailableExtractionProvider() {
@@ -260,7 +264,7 @@ export function useAdminArticleManagement({
         month,
         day,
         source: article.source,
-        summary: article.summary,
+        summary: normalizeExtractedSummary(article.summary, article.title),
         url: article.url,
         category: article.category || 'speech',
         categoryName: article.categoryName || '重要讲话',
@@ -327,7 +331,7 @@ export function useAdminArticleManagement({
         title: article.title,
         date: article.date,
         source: article.source,
-        summary: article.summary,
+        summary: normalizeExtractedSummary(article.summary, article.title),
         url: article.url,
         category: article.category || 'speech',
         categoryName: article.categoryName || '重要讲话',
@@ -378,7 +382,7 @@ export function useAdminArticleManagement({
         isZhengjiguan: newArticle.isZhengjiguan || false,
         zhengjiguanLevel: newArticle.zhengjiguanLevel,
         source: newArticle.source,
-        summary: newArticle.summary,
+        summary: normalizeExtractedSummary(newArticle.summary, newArticle.title),
         url: newArticle.url || '',
         location: newArticle.location,
       };
@@ -391,7 +395,7 @@ export function useAdminArticleManagement({
 
       const detail: ArticleDetailContent = {
         id: articleId,
-        abstract: newArticle.summary,
+        abstract: normalizeExtractedSummary(newArticle.summary, newArticle.title),
         fullText: fetchedContent || '',
         analysis: fetchedAnalysis.trim() || '解读分析正在整理中...',
       };
@@ -429,7 +433,7 @@ export function useAdminArticleManagement({
       setNewArticle((previous) => ({
         ...previous,
         title: title || previous.title,
-        summary: summary || previous.summary,
+        summary: normalizeExtractedSummary(summary || previous.summary, title || previous.title),
         url,
       }));
       setFetchError('未配置 Kimi/DeepSeek API Key，请手动填写或配置 API Key');
@@ -451,7 +455,7 @@ export function useAdminArticleManagement({
         month: article.date ? parseInt(article.date.split('-')[1]) : previous.month,
         day: article.date ? parseInt(article.date.split('-')[2]) : previous.day,
         source: article.source || previous.source,
-        summary: article.summary || summary || previous.summary,
+        summary: normalizeExtractedSummary(article.summary || summary || previous.summary, article.title || title || previous.title),
         url: article.url || url,
         category: (article.category as Speech['category']) || previous.category,
         categoryName: article.categoryName || previous.categoryName,
@@ -467,7 +471,7 @@ export function useAdminArticleManagement({
       setNewArticle((previous) => ({
         ...previous,
         title: title || previous.title,
-        summary: summary || previous.summary,
+        summary: normalizeExtractedSummary(summary || previous.summary, title || previous.title),
         url,
       }));
     } finally {

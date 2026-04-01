@@ -98,7 +98,7 @@ ${articleContent.substring(0, 6000)}
 请严格按照以下格式输出（禁止JSON，禁止英文）：
 
 【摘要】
-80-120字，最多两句，必须简洁明了，读完就知道文章讲了什么事。优先直接摘用原文里的关键句或关键表述，少做改写，不要空话套话，不要重复标题，不要补充原文没有的信息，不要写得比原文还长。
+120-220字，2到3句，必须简洁明了、实事求是，读完就知道文章讲了什么事。优先直接摘用原文里的关键句或关键表述，尽量少改写，不要空话套话，不要重复标题，不要补充原文没有的信息。
 
 【解读】
 400-600字深度解读，分为三个段落（每段开头标注小标题）：
@@ -136,15 +136,15 @@ function buildExtractiveSummary(articleContent: string, articleTitle: string): s
     return '';
   }
 
-  return normalizeSummaryText(sentences.join(''), { maxLength: 120, minLength: 70, maxSentences: 2 });
+  return normalizeSummaryText(sentences.join(''), { maxLength: 220, minLength: 90, maxSentences: 3 });
 }
 
 function clampSummaryLength(summary: string, maxLength: number): string {
-  return normalizeSummaryText(summary, { maxLength, minLength: 70, maxSentences: 2 });
+  return normalizeSummaryText(summary, { maxLength, minLength: 90, maxSentences: 3 });
 }
 
 function normalizeGeneratedSummary(summary: string, articleContent: string, articleTitle: string): string {
-  const cleanedSummary = normalizeSummaryText(cleanEscapeChars(summary), { maxLength: 1000, minLength: 70, maxSentences: 20 });
+  const cleanedSummary = normalizeSummaryText(cleanEscapeChars(summary), { maxLength: 1000, minLength: 90, maxSentences: 20 });
 
   const extractiveSummary = buildExtractiveSummary(articleContent, articleTitle);
 
@@ -152,11 +152,11 @@ function normalizeGeneratedSummary(summary: string, articleContent: string, arti
     return extractiveSummary || '摘要生成失败，请重试';
   }
 
-  if (cleanedSummary.length <= 120) {
+  if (cleanedSummary.length <= 220) {
     return normalizeSummaryText(cleanedSummary);
   }
 
-  return extractiveSummary || clampSummaryLength(cleanedSummary, 120);
+  return extractiveSummary || clampSummaryLength(cleanedSummary, 220);
 }
 
 function normalizeAnalysisFormat(analysis: string): string {

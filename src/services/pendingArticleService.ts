@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { normalizeSummaryText } from '@/lib/utils';
 
 export interface PendingArticle {
   id: string;
@@ -41,7 +42,14 @@ export async function getPendingArticles(): Promise<PendingArticle[]> {
     console.error('getPendingArticles error:', error);
     return [];
   }
-  return data || [];
+  return (data || []).map((article) => ({
+    ...article,
+    summary: normalizeSummaryText(article.summary || article.title || '', {
+      maxLength: 220,
+      minLength: 90,
+      maxSentences: 3,
+    }),
+  }));
 }
 
 export async function approveArticle(id: string): Promise<boolean> {
