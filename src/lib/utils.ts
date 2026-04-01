@@ -78,3 +78,32 @@ export function normalizeSummaryText(
 
   return (selected.join('') || cleaned.slice(0, maxLength)).trim()
 }
+
+type StorageType = 'local' | 'session'
+
+function getStorage(storageType: StorageType): Storage | null {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  try {
+    return storageType === 'local' ? window.localStorage : window.sessionStorage
+  } catch {
+    return null
+  }
+}
+
+export function safeGetStorageItem(storageType: StorageType, key: string): string | null {
+  try {
+    return getStorage(storageType)?.getItem(key) ?? null
+  } catch {
+    return null
+  }
+}
+
+export function safeSetStorageItem(storageType: StorageType, key: string, value: string): void {
+  try {
+    getStorage(storageType)?.setItem(key, value)
+  } catch {
+  }
+}

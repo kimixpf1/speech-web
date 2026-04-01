@@ -33,6 +33,76 @@ interface AdminPendingTabProps {
   onRejectPending: (id: string) => void;
 }
 
+type SearchLogArticleItem = {
+  title?: string;
+  url?: string;
+  source?: string;
+  matched_title?: string;
+  reason?: string;
+  reasons?: string[];
+};
+
+function formatSearchLogItems(items: SearchLogArticleItem[] | undefined) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return [];
+  }
+
+  return items.map((item) => {
+    const extras = [
+      item.source ? `来源：${item.source}` : '',
+      item.matched_title ? `命中：${item.matched_title}` : '',
+      item.reason ? item.reason : '',
+      Array.isArray(item.reasons) && item.reasons.length > 0 ? item.reasons.join('；') : '',
+    ].filter(Boolean);
+
+    return {
+      title: item.title || '未提供标题',
+      url: item.url || '',
+      extraText: extras.join(' ｜ '),
+    };
+  });
+}
+
+function SearchLogArticleGroup({
+  title,
+  items,
+  emptyText,
+}: {
+  title: string;
+  items?: SearchLogArticleItem[];
+  emptyText?: string;
+}) {
+  const formattedItems = formatSearchLogItems(items);
+
+  return (
+    <div className="rounded border border-gray-200 bg-white p-3">
+      <div className="text-xs font-medium text-gray-700 mb-2">{title}</div>
+      {formattedItems.length === 0 ? (
+        <div className="text-xs text-gray-400">{emptyText || '无'}</div>
+      ) : (
+        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+          {formattedItems.map((item, index) => (
+            <div key={`${title}-${index}`} className="text-xs text-gray-600">
+              <div className="font-medium text-gray-700">{item.title}</div>
+              {item.extraText && <div className="mt-0.5">{item.extraText}</div>}
+              {item.url && (
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-0.5 inline-flex text-blue-600 hover:text-blue-700 break-all"
+                >
+                  {item.url}
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AdminPendingTab({
   showAutoSearchPrompt,
   hasApiKey,
@@ -294,6 +364,95 @@ export function AdminPendingTab({
                           </span>
                         )}
                       </div>
+                    </div>
+                  )}
+                  {(log.details?.source_breakdown || log.details?.merge_summary || log.details?.final_new_articles) && (
+                    <div className="mt-2 pt-2 border-t border-gray-200 space-y-2">
+                      {log.details?.source_breakdown && (
+                        <div>
+                          <div className="text-xs text-gray-500 mb-1">来源命中：</div>
+                          <div className="flex flex-wrap gap-1">
+                            {Object.entries(log.details.source_breakdown).map(([key, value]: [string, any]) => (
+                              <span key={key} className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                                {key}: {value}条
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {log.details?.merge_summary && (
+                        <div>
+                          <div className="text-xs text-gray-500 mb-1">筛选说明：</div>
+                          <div className="flex flex-wrap gap-1">
+                            <span className="text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700">
+                              原始候选 {log.details.merge_summary.input_total ?? 0}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 rounded bg-green-50 text-green-700">
+                              去重保留 {log.details.merge_summary.kept_count ?? 0}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 rounded bg-amber-50 text-amber-700">
+                              非原文过滤 {log.details.merge_summary.normalized_rejected_count ?? 0}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 rounded bg-red-50 text-red-700">
+                              库内标题重复 {log.details.merge_summary.duplicate_existing_title_count ?? 0}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 rounded bg-orange-50 text-orange-700">
+                              本轮标题重复 {log.details.merge_summary.duplicate_seen_title_count ?? 0}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 rounded bg-orange-50 text-orange-700">
+                              本轮链接重复 {log.details.merge_summary.duplicate_seen_url_count ?? 0}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 rounded bg-rose-50 text-rose-700">
+                              校验淘汰 {log.details.merge_summary.validation_rejected_count ?? 0}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 rounded bg-purple-50 text-purple-700">
+                              库内链接过滤 {log.details.existing_url_filtered_count ?? 0}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      <div className="grid gap-2 md:grid-cols-2">
+                        <SearchLogArticleGroup
+                          title="去重保留"
+                          items={log.details?.merge_details?.kept_articles}
+                          emptyText="没有保留下来的候选"
+                        />
+                        <SearchLogArticleGroup
+                          title="最终新增待审核"
+                          items={log.details?.final_new_articles}
+                          emptyText="没有新增待审核文章"
+                        />
+                        <SearchLogArticleGroup
+                          title="库内标题重复"
+                          items={log.details?.merge_details?.duplicate_existing_title}
+                          emptyText="没有因为库内标题重复被过滤的文章"
+                        />
+                        <SearchLogArticleGroup
+                          title="库内链接过滤"
+                          items={log.details?.existing_url_filtered}
+                          emptyText="没有因为库内已有链接被过滤的文章"
+                        />
+                        <SearchLogArticleGroup
+                          title="非原文/评论过滤"
+                          items={log.details?.merge_details?.normalized_rejected}
+                          emptyText="没有命中过滤规则"
+                        />
+                        <SearchLogArticleGroup
+                          title="本轮重复或校验淘汰"
+                          items={[
+                            ...(log.details?.merge_details?.duplicate_seen_title || []),
+                            ...(log.details?.merge_details?.duplicate_seen_url || []),
+                            ...(log.details?.merge_details?.validation_rejected || []),
+                          ]}
+                          emptyText="没有本轮重复或校验淘汰的文章"
+                        />
+                      </div>
+                      {log.details?.save_result && (
+                        <div className="text-xs text-gray-500">
+                          保存结果：尝试写入 {log.details.save_result.attempted_count ?? 0} 条，成功 {log.details.save_result.saved_count ?? 0} 条
+                          {log.details.save_result.error ? `，失败原因：${log.details.save_result.error}` : ''}
+                        </div>
+                      )}
                     </div>
                   )}
                   {log.details?.search_results && (

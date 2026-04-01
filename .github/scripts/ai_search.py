@@ -36,6 +36,7 @@ TABLE = 'pending_articles'
 LOG_TABLE = 'search_logs'
 REQUEST_DELAY = 1.5
 MAX_RETRIES = 2
+MAX_LOG_ARTICLES = 30
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
@@ -273,25 +274,38 @@ def normalize_direct_article(article: Dict) -> Optional[Dict]:
     return normalized if is_direct_xi_title(title) else None
 
 
-def is_title_duplicate(title: str, existing_titles: Set[str]) -> bool:
+def find_duplicate_title_match(title: str, existing_titles: Set[str]) -> str:
     normalized_title = normalize_title_for_compare(title)
     if not normalized_title:
-        return False
+        return ''
 
     for existing in existing_titles:
         normalized_existing = normalize_title_for_compare(existing)
-        if not normalized_existing:
-            continue
-        if normalized_title == normalized_existing:
-            return True
-        if normalized_title in normalized_existing or normalized_existing in normalized_title:
-            return True
-        if len(normalized_title) >= 8 and len(normalized_existing) >= 8:
-            common = sum(1 for char in normalized_title if char in normalized_existing)
-            similarity = common / max(len(normalized_title), len(normalized_existing))
-            if similarity > 0.8:
-                return True
-    return False
+        if normalized_existing and normalized_title == normalized_existing:
+            return existing
+    return ''
+
+
+def is_title_duplicate(title: str, existing_titles: Set[str]) -> bool:
+    return bool(find_duplicate_title_match(title, existing_titles))
+
+
+def compact_article(article: Dict, extra: Optional[Dict] = None) -> Dict:
+    compact = {
+        'title': (article.get('title') or '').strip(),
+        'url': normalize_url_for_compare(article.get('url', '')),
+        'source': article.get('source', ''),
+        'date': article.get('date', ''),
+    }
+    if extra:
+        compact.update(extra)
+    return compact
+
+
+def append_limited(items: List[Dict], article: Dict, extra: Optional[Dict] = None, limit: int = MAX_LOG_ARTICLES):
+    if len(items) >= limit:
+        return
+    items.append(compact_article(article, extra))
 
 
 def extract_date_from_text(text: str) -> str:
@@ -678,28 +692,74 @@ def crawl_xinhua(target_date_iso: str) -> List[Dict]:
     return articles
 
 
-def merge_and_dedupe(source_articles: Dict[str, List[Dict]], existing_titles: Optional[Set[str]] = None) -> List[Dict]:
+def merge_and_dedupe(source_articles: Dict[str, List[Dict]], existing_titles: Optional[Set[str]] = None) -> Tuple[List[Dict], Dict]:
     all_articles = []
     seen_titles = set()
     seen_urls = set()
-    rejected = []
     existing_titles = existing_titles or set()
+    diagnostics = {
+        'ordered_sources': [],
+        'source_inputs': {source_tag: len(articles) for source_tag, articles in source_articles.items()},
+        'normalized_rejected': [],
+        'duplicate_existing_title': [],
+        'duplicate_seen_title': [],
+        'duplicate_seen_url': [],
+        'validation_rejected': [],
+        'kept_articles': [],
+    }
     
     def add(article, source_tag):
         normalized_article = normalize_direct_article(article)
         if not normalized_article:
+            append_limited(
+                diagnostics['normalized_rejected'],
+                article,
+                {'source_tag': source_tag, 'reason': '非总书记直接原文，或命中评论/解读过滤'}
+            )
             return
 
         title, url = normalized_article.get('title', ''), normalized_article.get('url', '')
         normalized_url = normalize_url_for_compare(url)
-        if not title or not normalized_url or normalized_url in seen_urls:
+        if not title or not normalized_url:
+            append_limited(
+                diagnostics['normalized_rejected'],
+                normalized_article,
+                {'source_tag': source_tag, 'reason': '标题或链接为空'}
+            )
             return
-        if is_title_duplicate(title, existing_titles) or is_title_duplicate(title, seen_titles):
+        if normalized_url in seen_urls:
+            append_limited(
+                diagnostics['duplicate_seen_url'],
+                normalized_article,
+                {'source_tag': source_tag, 'reason': '与本轮其他来源链接重复'}
+            )
+            return
+
+        existing_title_match = find_duplicate_title_match(title, existing_titles)
+        if existing_title_match:
+            append_limited(
+                diagnostics['duplicate_existing_title'],
+                normalized_article,
+                {'source_tag': source_tag, 'matched_title': existing_title_match}
+            )
+            return
+
+        seen_title_match = find_duplicate_title_match(title, seen_titles)
+        if seen_title_match:
+            append_limited(
+                diagnostics['duplicate_seen_title'],
+                normalized_article,
+                {'source_tag': source_tag, 'matched_title': seen_title_match}
+            )
             return
         
         validation = validate_article(normalized_article)
         if not validation['valid']:
-            rejected.append({'title': title, 'url': normalized_url, 'reasons': validation['reasons']})
+            append_limited(
+                diagnostics['validation_rejected'],
+                normalized_article,
+                {'source_tag': source_tag, 'reasons': validation['reasons']}
+            )
             print(f'[Validate] 拒绝: {title[:30]}... - {validation["reasons"]}')
             return
         
@@ -709,7 +769,7 @@ def merge_and_dedupe(source_articles: Dict[str, List[Dict]], existing_titles: Op
         domain = detect_domain(title)
         category = normalized_article.get('category') or detect_category(title)
         
-        all_articles.append({
+        final_article = {
             'id': str(uuid.uuid4()),
             'title': title, 'url': normalized_url,
             'date': normalized_article.get('date', date.today().isoformat()),
@@ -720,7 +780,13 @@ def merge_and_dedupe(source_articles: Dict[str, List[Dict]], existing_titles: Op
             'status': 'pending',
             'discovered_by': f'ai_auto_{source_tag}',
             'fetched_at': datetime.now().isoformat(),
-        })
+        }
+        all_articles.append(final_article)
+        append_limited(
+            diagnostics['kept_articles'],
+            final_article,
+            {'source_tag': source_tag}
+        )
 
     ordered_sources = sorted(
         source_articles.items(),
@@ -728,10 +794,20 @@ def merge_and_dedupe(source_articles: Dict[str, List[Dict]], existing_titles: Op
     )
 
     for source_tag, articles in ordered_sources:
+        diagnostics['ordered_sources'].append(source_tag)
         for article in articles:
             add(article, source_tag)
-    
-    return all_articles
+
+    diagnostics['summary'] = {
+        'input_total': sum(len(articles) for articles in source_articles.values()),
+        'kept_count': len(all_articles),
+        'normalized_rejected_count': len(diagnostics['normalized_rejected']),
+        'duplicate_existing_title_count': len(diagnostics['duplicate_existing_title']),
+        'duplicate_seen_title_count': len(diagnostics['duplicate_seen_title']),
+        'duplicate_seen_url_count': len(diagnostics['duplicate_seen_url']),
+        'validation_rejected_count': len(diagnostics['validation_rejected']),
+    }
+    return all_articles, diagnostics
 
 
 def get_existing_urls() -> set:
@@ -770,9 +846,18 @@ def get_existing_titles() -> set:
     return titles
 
 
-def save_articles(articles: List[Dict]) -> int:
-    if not articles or not SUPABASE_URL:
-        return 0
+def save_articles(articles: List[Dict]) -> Dict:
+    result = {
+        'attempted_count': len(articles),
+        'saved_count': 0,
+        'status_code': None,
+        'error': '',
+    }
+    if not articles:
+        return result
+    if not SUPABASE_URL:
+        result['error'] = 'SUPABASE_URL not configured'
+        return result
     try:
         resp = requests.post(
             f'{SUPABASE_URL}/rest/v1/{TABLE}',
@@ -780,9 +865,15 @@ def save_articles(articles: List[Dict]) -> int:
                      'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
             json=articles, timeout=30
         )
-        return len(articles) if resp.status_code in (200, 201) else 0
-    except:
-        return 0
+        result['status_code'] = resp.status_code
+        if resp.status_code in (200, 201):
+            result['saved_count'] = len(articles)
+        else:
+            result['error'] = resp.text[:500]
+        return result
+    except Exception as error:
+        result['error'] = str(error)[:500]
+        return result
 
 
 def save_log(crawl_count, search_count, new_count, status, details):
@@ -850,25 +941,26 @@ def main():
         'baidu': baidu_articles,
     }
 
-    merged = merge_and_dedupe(source_articles, existing_titles)
+    merged, merge_details = merge_and_dedupe(source_articles, existing_titles)
     print(f'[Merge] After dedup: {len(merged)} articles')
     
+    existing_url_filtered = [a for a in merged if a['url'] in existing_urls]
     new_articles = [a for a in merged if a['url'] not in existing_urls]
     print(f'[Filter] New: {len(new_articles)} articles')
     
-    saved = save_articles(new_articles)
+    save_result = save_articles(new_articles)
     
     # 状态判定：工作流正常运行即为成功，没找到文章不是失败
     # failed 仅用于 API 调用异常等真正的失败情况
     status = 'success'
-    # 记录搜索源状态到 details 中，但不改变 success 状态
-    # 因为"没找到文章"也是正常的业务结果
+    if save_result['attempted_count'] > 0 and save_result['saved_count'] != save_result['attempted_count']:
+        status = 'partial_fail'
     
     direct_count = sum(len(items) for items in direct_source_articles.values())
     save_log(
         direct_count + len(kimi_articles) + len(baidu_articles),
         len(kimi_articles) + len(baidu_articles),
-        saved,
+        save_result['saved_count'],
         status,
         {
             'people_jhsjk': len(direct_source_articles['people_jhsjk']),
@@ -879,6 +971,14 @@ def main():
             'baidu': len(baidu_articles),
             'search_date': search_date,
             'target_date': target_date_iso,
+            'source_breakdown': {key: len(value) for key, value in source_articles.items()},
+            'merge_summary': merge_details['summary'],
+            'merge_details': merge_details,
+            'existing_url_filtered_count': len(existing_url_filtered),
+            'existing_url_filtered': [compact_article(article) for article in existing_url_filtered[:MAX_LOG_ARTICLES]],
+            'final_new_articles_count': len(new_articles),
+            'final_new_articles': [compact_article(article) for article in new_articles[:MAX_LOG_ARTICLES]],
+            'save_result': save_result,
         }
     )
     
@@ -888,7 +988,7 @@ def main():
         f'PeopleXJP {len(direct_source_articles["people_xijinping"])}, '
         f'Xinhua {len(direct_source_articles["xinhua"])}, '
         f'QSTheory {len(direct_source_articles["qstheory"])}, '
-        f'Kimi {len(kimi_articles)}, Baidu {len(baidu_articles)}, New {saved} ==='
+        f'Kimi {len(kimi_articles)}, Baidu {len(baidu_articles)}, New {save_result["saved_count"]} ==='
     )
 
 

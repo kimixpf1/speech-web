@@ -14,6 +14,7 @@ import { isAdminLoggedInSync, isAdminLoggedIn } from '@/services/adminAuth';
 import { useDebounce } from '@/hooks/useDebounce';
 import { NotFoundPage } from '@/components/NotFoundPage';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { safeGetStorageItem, safeSetStorageItem } from '@/lib/utils';
 import './App.css';
 
 // 懒加载页面组件
@@ -56,7 +57,7 @@ function PageLoader() {
 
 // 获取上次的滚动位置以避免返回时白屏等待
 function getInitialScrollPosition() {
-  const saved = sessionStorage.getItem('lastScrollY');
+  const saved = safeGetStorageItem('session', 'lastScrollY');
   return saved ? parseInt(saved, 10) : 0;
 }
 
@@ -69,39 +70,39 @@ function HomePage() {
   // 记录滚动位置
   useEffect(() => {
     const handleScroll = () => {
-      sessionStorage.setItem('lastScrollY', window.scrollY.toString());
+      safeSetStorageItem('session', 'lastScrollY', window.scrollY.toString());
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const [selectedDomain, setSelectedDomain] = useState(
-    () => sessionStorage.getItem('selectedDomain') || 'economy'
+    () => safeGetStorageItem('session', 'selectedDomain') || 'economy'
   );
   const [selectedCategory, setSelectedCategory] = useState(
-    () => sessionStorage.getItem('selectedCategory') || 'all'
+    () => safeGetStorageItem('session', 'selectedCategory') || 'all'
   );
   const [selectedYear, setSelectedYear] = useState(
-    () => sessionStorage.getItem('selectedYear') || 'all'
+    () => safeGetStorageItem('session', 'selectedYear') || 'all'
   );
 
   // 使用 SWR 获取数据并处理缓存，替代手写的 useState 和 useEffect 获取逻辑
-  const { data: articles = [], mutate } = useSWR<Speech[]>('articles', getArticles, {
+  const { data: articles = [], mutate, isLoading } = useSWR<Speech[]>('articles', getArticles, {
     fallbackData: cachedArticles,
     revalidateOnFocus: false, // 避免切换标签页时频繁拉取
   });
 
   // 持久化筛选状态到sessionStorage（返回时恢复，关闭标签页后重置为economy默认）
   useEffect(() => {
-    sessionStorage.setItem('selectedDomain', selectedDomain);
+    safeSetStorageItem('session', 'selectedDomain', selectedDomain);
   }, [selectedDomain]);
 
   useEffect(() => {
-    sessionStorage.setItem('selectedCategory', selectedCategory);
+    safeSetStorageItem('session', 'selectedCategory', selectedCategory);
   }, [selectedCategory]);
 
   useEffect(() => {
-    sessionStorage.setItem('selectedYear', selectedYear);
+    safeSetStorageItem('session', 'selectedYear', selectedYear);
   }, [selectedYear]);
 
   useEffect(() => {
@@ -231,8 +232,10 @@ function HomePage() {
         resultCount={filteredSpeeches.length}
       />
       <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6">
-        {articles.length === 0 ? (
+        {articles.length === 0 && isLoading ? (
           <div className="text-center py-20 text-gray-400">加载文章中...</div>
+        ) : articles.length === 0 ? (
+          <div className="text-center py-20 text-gray-400">暂无可显示的文章数据</div>
         ) : (
           <ContentList speeches={filteredSpeeches} />
         )}
