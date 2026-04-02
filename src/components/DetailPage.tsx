@@ -328,6 +328,19 @@ export function DetailPage() {
       && typeof SpeechSynthesisUtterance !== 'undefined';
   };
 
+  const getUserAgent = () => {
+    if (typeof navigator === 'undefined') {
+      return '';
+    }
+    return navigator.userAgent.toLowerCase();
+  };
+
+  const isAndroidDevice = () => /android/.test(getUserAgent());
+
+  const isHuaweiDevice = () => /huawei|honor/.test(getUserAgent());
+
+  const shouldAvoidFallbackAudio = () => isAndroidDevice() || isHuaweiDevice();
+
   const splitTextForTTS = (text: string, maxLen: number = 300): string[] => {
     const chunks: string[] = [];
     // 按句号、问号、感叹号、换行分割
@@ -357,6 +370,10 @@ export function DetailPage() {
   const getPreferredVoice = () => {
     const voices = synthRef.current?.getVoices() || [];
     if (!voices.length) {
+      return null;
+    }
+
+    if (isAndroidDevice() || isHuaweiDevice()) {
       return null;
     }
 
@@ -441,7 +458,7 @@ export function DetailPage() {
     playNext();
   };
 
-  const playWithNativeTTS = (text: string) => {
+  const playWithNativeTTS = (text: string, options?: { chunkSize?: number; attempt?: number }) => {
     if (!supportsSpeechSynthesis()) {
       playWithAudioFallback(text);
       return;
@@ -457,13 +474,18 @@ export function DetailPage() {
       return;
     }
 
-    const chunks = splitTextForTTS(text, 180);
+    const isAndroidLikeDevice = isAndroidDevice() || isHuaweiDevice();
+    const chunkSize = options?.chunkSize ?? (isAndroidLikeDevice ? 90 : 180);
+    const attempt = options?.attempt ?? 0;
+    const chunks = splitTextForTTS(text, chunkSize);
     if (chunks.length === 0) {
       setTtsError('暂无可播报内容');
       return;
     }
 
-    synth.cancel();
+    if (synth.speaking || synth.pending) {
+      synth.cancel();
+    }
     utteranceQueueRef.current = [];
     nativeTtsActiveRef.current = true;
     setIsSpeaking(true);
@@ -490,7 +512,7 @@ export function DetailPage() {
       utterance.pitch = 1;
       utterance.lang = selectedVoice?.lang || 'zh-CN';
 
-      if (selectedVoice) {
+      if (selectedVoice && !isAndroidLikeDevice) {
         utterance.voice = selectedVoice;
       }
 
@@ -515,6 +537,19 @@ export function DetailPage() {
         utteranceQueueRef.current = [];
         setIsSpeaking(false);
         if (!hasStarted) {
+          if (attempt === 0) {
+            window.setTimeout(() => {
+              playWithNativeTTS(text, {
+                chunkSize: Math.max(60, Math.floor(chunkSize * 0.7)),
+                attempt: 1,
+              });
+            }, 120);
+            return;
+          }
+          if (shouldAvoidFallbackAudio()) {
+            setTtsError('当前华为安卓浏览器原生语音未成功启动，请稍后重试');
+            return;
+          }
           playWithAudioFallback(text);
           return;
         }
@@ -525,7 +560,6 @@ export function DetailPage() {
       utteranceRef.current = utterance;
 
       try {
-        synth.cancel();
         synth.speak(utterance);
         synth.resume();
       } catch {
@@ -533,20 +567,49 @@ export function DetailPage() {
         nativeTtsActiveRef.current = false;
         utteranceQueueRef.current = [];
         setIsSpeaking(false);
+        if (attempt === 0) {
+          window.setTimeout(() => {
+            playWithNativeTTS(text, {
+              chunkSize: Math.max(60, Math.floor(chunkSize * 0.7)),
+              attempt: 1,
+            });
+          }, 120);
+          return;
+        }
+        if (shouldAvoidFallbackAudio()) {
+          setTtsError('当前华为安卓浏览器原生语音未成功启动，请稍后重试');
+          return;
+        }
         playWithAudioFallback(text);
       }
     };
 
     clearSpeakStartTimeout();
     startTimeoutRef.current = window.setTimeout(() => {
-      if (nativeTtsActiveRef.current && !hasStarted) {
+      if (nativeTtsActiveRef.current && !hasStarted && !synth.speaking && !synth.pending) {
         synth.cancel();
         nativeTtsActiveRef.current = false;
         utteranceQueueRef.current = [];
         setIsSpeaking(false);
+        if (attempt === 0) {
+          playWithNativeTTS(text, {
+            chunkSize: Math.max(60, Math.floor(chunkSize * 0.7)),
+            attempt: 1,
+          });
+          return;
+        }
+        if (shouldAvoidFallbackAudio()) {
+          setTtsError('当前华为安卓浏览器原生语音未成功启动，请稍后重试');
+          return;
+        }
         playWithAudioFallback(text);
       }
-    }, 1500);
+    }, isAndroidLikeDevice ? 4200 : 1800);
+
+    if (isAndroidLikeDevice) {
+      window.setTimeout(speakNext, 120);
+      return;
+    }
 
     speakNext();
   };
