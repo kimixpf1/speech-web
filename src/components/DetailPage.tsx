@@ -144,6 +144,7 @@ export function DetailPage() {
   const isAudioPlayingRef = useRef(false);
   const nativeTtsActiveRef = useRef(false);
   const startTimeoutRef = useRef<number | null>(null);
+  const resumeIntervalRef = useRef<number | null>(null);
 
   // AI生成状态
   const [isGenerating, setIsGenerating] = useState(false);
@@ -313,6 +314,9 @@ export function DetailPage() {
       if (startTimeoutRef.current) {
         window.clearTimeout(startTimeoutRef.current);
       }
+      if (resumeIntervalRef.current) {
+        window.clearInterval(resumeIntervalRef.current);
+      }
       if (synthRef.current) {
         synthRef.current.cancel();
       }
@@ -339,7 +343,13 @@ export function DetailPage() {
 
   const isHuaweiDevice = () => /huawei|honor/.test(getUserAgent());
 
-  const shouldAvoidFallbackAudio = () => isAndroidDevice() || isHuaweiDevice();
+  const isIOSDevice = () => /iphone|ipad|ipod/.test(getUserAgent());
+
+  const isWeChatBrowser = () => /micromessenger|wechat/.test(getUserAgent());
+
+  const isMobileDevice = () => isAndroidDevice() || isIOSDevice();
+
+  const shouldAvoidFallbackAudio = () => isMobileDevice() || isWeChatBrowser();
 
   const splitTextForTTS = (text: string, maxLen: number = 300): string[] => {
     const chunks: string[] = [];
@@ -365,6 +375,25 @@ export function DetailPage() {
       window.clearTimeout(startTimeoutRef.current);
       startTimeoutRef.current = null;
     }
+  };
+
+  const clearResumeInterval = () => {
+    if (resumeIntervalRef.current) {
+      window.clearInterval(resumeIntervalRef.current);
+      resumeIntervalRef.current = null;
+    }
+  };
+
+  const startResumeInterval = () => {
+    clearResumeInterval();
+    if (!isMobileDevice() && !isWeChatBrowser()) {
+      return;
+    }
+    resumeIntervalRef.current = window.setInterval(() => {
+      try {
+        synthRef.current?.resume();
+      } catch {}
+    }, 700);
   };
 
   const getPreferredVoice = () => {
@@ -396,6 +425,7 @@ export function DetailPage() {
 
   const stopSpeaking = useCallback(() => {
     clearSpeakStartTimeout();
+    clearResumeInterval();
     nativeTtsActiveRef.current = false;
     utteranceQueueRef.current = [];
     if (synthRef.current) {
@@ -475,7 +505,8 @@ export function DetailPage() {
     }
 
     const isAndroidLikeDevice = isAndroidDevice() || isHuaweiDevice();
-    const chunkSize = options?.chunkSize ?? (isAndroidLikeDevice ? 90 : 180);
+    const isMobileLikeDevice = isMobileDevice() || isWeChatBrowser();
+    const chunkSize = options?.chunkSize ?? (isAndroidLikeDevice ? 80 : isMobileLikeDevice ? 100 : 180);
     const attempt = options?.attempt ?? 0;
     const chunks = splitTextForTTS(text, chunkSize);
     if (chunks.length === 0) {
@@ -489,6 +520,7 @@ export function DetailPage() {
     utteranceQueueRef.current = [];
     nativeTtsActiveRef.current = true;
     setIsSpeaking(true);
+    startResumeInterval();
 
     const selectedVoice = getPreferredVoice();
     let index = 0;
@@ -501,6 +533,7 @@ export function DetailPage() {
 
       if (index >= chunks.length) {
         clearSpeakStartTimeout();
+        clearResumeInterval();
         nativeTtsActiveRef.current = false;
         utteranceQueueRef.current = [];
         setIsSpeaking(false);
@@ -519,6 +552,7 @@ export function DetailPage() {
       utterance.onstart = () => {
         hasStarted = true;
         clearSpeakStartTimeout();
+        startResumeInterval();
       };
       utterance.onend = () => {
         if (!nativeTtsActiveRef.current) {
@@ -533,21 +567,22 @@ export function DetailPage() {
           return;
         }
         clearSpeakStartTimeout();
+        clearResumeInterval();
         nativeTtsActiveRef.current = false;
         utteranceQueueRef.current = [];
         setIsSpeaking(false);
         if (!hasStarted) {
-          if (attempt === 0) {
+          if (attempt < 2) {
             window.setTimeout(() => {
               playWithNativeTTS(text, {
-                chunkSize: Math.max(60, Math.floor(chunkSize * 0.7)),
-                attempt: 1,
+                chunkSize: Math.max(40, Math.floor(chunkSize * 0.75)),
+                attempt: attempt + 1,
               });
-            }, 120);
+            }, 150);
             return;
           }
           if (shouldAvoidFallbackAudio()) {
-            setTtsError('当前华为安卓浏览器原生语音未成功启动，请稍后重试');
+            setTtsError(isWeChatBrowser() ? '当前微信环境语音启动失败，请先保持页面前台后重试' : '当前手机浏览器原生语音未成功启动，请稍后重试');
             return;
           }
           playWithAudioFallback(text);
@@ -560,24 +595,26 @@ export function DetailPage() {
       utteranceRef.current = utterance;
 
       try {
+        synth.resume();
         synth.speak(utterance);
         synth.resume();
       } catch {
         clearSpeakStartTimeout();
+        clearResumeInterval();
         nativeTtsActiveRef.current = false;
         utteranceQueueRef.current = [];
         setIsSpeaking(false);
-        if (attempt === 0) {
+        if (attempt < 2) {
           window.setTimeout(() => {
             playWithNativeTTS(text, {
-              chunkSize: Math.max(60, Math.floor(chunkSize * 0.7)),
-              attempt: 1,
+              chunkSize: Math.max(40, Math.floor(chunkSize * 0.75)),
+              attempt: attempt + 1,
             });
-          }, 120);
+          }, 150);
           return;
         }
         if (shouldAvoidFallbackAudio()) {
-          setTtsError('当前华为安卓浏览器原生语音未成功启动，请稍后重试');
+          setTtsError(isWeChatBrowser() ? '当前微信环境语音启动失败，请先保持页面前台后重试' : '当前手机浏览器原生语音未成功启动，请稍后重试');
           return;
         }
         playWithAudioFallback(text);
@@ -588,23 +625,24 @@ export function DetailPage() {
     startTimeoutRef.current = window.setTimeout(() => {
       if (nativeTtsActiveRef.current && !hasStarted && !synth.speaking && !synth.pending) {
         synth.cancel();
+        clearResumeInterval();
         nativeTtsActiveRef.current = false;
         utteranceQueueRef.current = [];
         setIsSpeaking(false);
-        if (attempt === 0) {
+        if (attempt < 2) {
           playWithNativeTTS(text, {
-            chunkSize: Math.max(60, Math.floor(chunkSize * 0.7)),
-            attempt: 1,
+            chunkSize: Math.max(40, Math.floor(chunkSize * 0.75)),
+            attempt: attempt + 1,
           });
           return;
         }
         if (shouldAvoidFallbackAudio()) {
-          setTtsError('当前华为安卓浏览器原生语音未成功启动，请稍后重试');
+          setTtsError(isWeChatBrowser() ? '当前微信环境语音启动失败，请先保持页面前台后重试' : '当前手机浏览器原生语音未成功启动，请稍后重试');
           return;
         }
         playWithAudioFallback(text);
       }
-    }, isAndroidLikeDevice ? 4200 : 1800);
+    }, isAndroidLikeDevice ? 4200 : isMobileLikeDevice ? 3200 : 1800);
 
     if (isAndroidLikeDevice) {
       window.setTimeout(speakNext, 120);
@@ -625,14 +663,15 @@ export function DetailPage() {
     
     let text = `${speech.title}。${speech.abstract}`;
     if (speech.fullText && !speech.fullText.includes('正在整理中')) {
-      text += `。${speech.fullText.substring(0, 2400)}`;
+      text += `。${speech.fullText.substring(0, isMobileDevice() || isWeChatBrowser() ? 900 : 2400)}`;
     }
-    if (speech.analysis && !speech.analysis.includes('正在整理中')) {
+    if (speech.analysis && !speech.analysis.includes('正在整理中') && !isMobileDevice() && !isWeChatBrowser()) {
       text += `。${speech.analysis.substring(0, 1600)}`;
     }
     text = text.replace(/\s+/g, ' ').replace(/\n+/g, '。').trim();
-    if (text.length > 4200) {
-      text = text.substring(0, 4200) + '。后续内容省略。';
+    const maxLength = isMobileDevice() || isWeChatBrowser() ? 1400 : 4200;
+    if (text.length > maxLength) {
+      text = text.substring(0, maxLength) + '。后续内容省略。';
     }
 
     if (supportsSpeechSynthesis()) {
@@ -1223,7 +1262,7 @@ export function DetailPage() {
               </p>
             )}
             <p className="text-xs text-gray-500 text-center">
-              优先使用浏览器内置语音播报；若当前环境不支持，会自动切换备用方案
+              手机端与微信环境会优先尝试浏览器内置语音，先播放标题和摘要，再继续正文
             </p>
           </div>
         </DialogContent>
