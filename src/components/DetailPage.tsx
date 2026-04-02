@@ -24,6 +24,8 @@ import {
 import { Document, Paragraph, TextRun, AlignmentType, HeadingLevel, Packer } from 'docx';
 import { saveAs } from 'file-saver';
 import { normalizeSummaryText } from '@/lib/utils';
+import { Progress } from '@/components/ui/progress';
+import type { Progress as PiperProgress, TtsSession as PiperTtsSession } from '@mintplex-labs/piper-tts-web';
 
 const categoryConfig: Record<string, { icon: React.ElementType; color: string; bgColor: string; borderColor: string; label: string }> = {
   speech: { icon: Mic, color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-200', label: '重要讲话' },
@@ -122,6 +124,9 @@ function normalizeAbstractPreview(text: string): string {
   return normalizeSummaryText(text);
 }
 
+const LOCAL_VOICE_PACK_ID = 'zh_CN-huayan-x_low';
+const LOCAL_VOICE_PACK_SIZE_MB = 20;
+
 export function DetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -145,6 +150,15 @@ export function DetailPage() {
   const nativeTtsActiveRef = useRef(false);
   const startTimeoutRef = useRef<number | null>(null);
   const resumeIntervalRef = useRef<number | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const currentBufferSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const voicePackRunIdRef = useRef(0);
+  const localVoicePackSessionRef = useRef<PiperTtsSession | null>(null);
+  const localVoicePackModuleRef = useRef<typeof import('@mintplex-labs/piper-tts-web') | null>(null);
+  const [isPreparingVoicePack, setIsPreparingVoicePack] = useState(false);
+  const [voicePackReady, setVoicePackReady] = useState(false);
+  const [voicePackDownloadProgress, setVoicePackDownloadProgress] = useState(0);
+  const [voicePackStatusText, setVoicePackStatusText] = useState('');
 
   // AI生成状态
   const [isGenerating, setIsGenerating] = useState(false);
@@ -323,6 +337,7 @@ export function DetailPage() {
       utteranceQueueRef.current = [];
       nativeTtsActiveRef.current = false;
       stopAudioQueue();
+      void audioContextRef.current?.close().catch(() => {});
     };
   }, []);
 
@@ -349,17 +364,25 @@ export function DetailPage() {
 
   const isMobileDevice = () => isAndroidDevice() || isIOSDevice();
 
-  const isPagesDeployment = () => {
+  const supportsDownloadedVoicePack = () => isMobileDevice() || isWeChatBrowser();
+
+  const shouldPreferDownloadedVoicePack = () => isHuaweiDevice() || isWeChatBrowser();
+
+  const canUseLocalTtsApi = () => {
     if (typeof window === 'undefined') {
       return false;
     }
 
-    return /github\.io$/i.test(window.location.hostname);
+    if (import.meta.env.DEV) {
+      return true;
+    }
+
+    return import.meta.env.VITE_ENABLE_TTS_PROXY === 'true';
   };
 
-  const shouldPreferServerTts = () => isMobileDevice() || isWeChatBrowser();
+  const shouldPreferServerTts = () => canUseLocalTtsApi() && (isMobileDevice() || isWeChatBrowser());
 
-  const shouldAvoidFallbackAudio = () => isMobileDevice() || isWeChatBrowser();
+  const shouldAvoidFallbackAudio = () => canUseLocalTtsApi() && (isMobileDevice() || isWeChatBrowser());
 
   const splitTextForTTS = (text: string, maxLen: number = 300): string[] => {
     const chunks: string[] = [];
@@ -424,9 +447,20 @@ export function DetailPage() {
   };
 
   const stopAudioQueue = () => {
+    voicePackRunIdRef.current += 1;
     isAudioPlayingRef.current = false;
+    if (currentBufferSourceRef.current) {
+      try {
+        currentBufferSourceRef.current.stop();
+      } catch {}
+      currentBufferSourceRef.current.disconnect();
+      currentBufferSourceRef.current = null;
+    }
     audioQueueRef.current.forEach(audio => {
       audio.pause();
+      if (audio.dataset.objectUrl) {
+        URL.revokeObjectURL(audio.dataset.objectUrl);
+      }
       audio.src = '';
     });
     audioQueueRef.current = [];
@@ -438,6 +472,7 @@ export function DetailPage() {
     clearResumeInterval();
     nativeTtsActiveRef.current = false;
     utteranceQueueRef.current = [];
+    setIsPreparingVoicePack(false);
     if (synthRef.current) {
       synthRef.current.cancel();
     }
@@ -445,12 +480,257 @@ export function DetailPage() {
     setIsSpeaking(false);
   }, []);
 
+  const loadLocalVoicePackModule = async () => {
+    if (!localVoicePackModuleRef.current) {
+      localVoicePackModuleRef.current = await import('@mintplex-labs/piper-tts-web');
+    }
+
+    return localVoicePackModuleRef.current;
+  };
+
+  const updateVoicePackProgress = (progress: PiperProgress, fallbackText: string) => {
+    const total = progress.total || 0;
+    const loaded = progress.loaded || 0;
+    const percent = total > 0 ? Math.max(1, Math.min(100, Math.round((loaded * 100) / total))) : 0;
+    setVoicePackDownloadProgress(percent);
+    setVoicePackStatusText(total > 0 ? `${fallbackText} ${percent}%` : fallbackText);
+  };
+
+  const refreshVoicePackState = useCallback(async () => {
+    if (!supportsDownloadedVoicePack()) {
+      setVoicePackReady(false);
+      setVoicePackDownloadProgress(0);
+      setVoicePackStatusText('');
+      return;
+    }
+
+    try {
+      const voicePackModule = await loadLocalVoicePackModule();
+      const storedVoices = await voicePackModule.stored();
+      const hasDownloadedVoicePack = storedVoices.includes(LOCAL_VOICE_PACK_ID);
+      setVoicePackReady(hasDownloadedVoicePack);
+      setVoicePackDownloadProgress(hasDownloadedVoicePack ? 100 : 0);
+      setVoicePackStatusText(
+        hasDownloadedVoicePack
+          ? '离线语音包已就绪，华为和微信环境会优先使用本地播报'
+          : `可下载约 ${LOCAL_VOICE_PACK_SIZE_MB}MB 的中文离线语音包，下载后保存在当前浏览器里`
+      );
+    } catch (error) {
+      console.error('检查离线语音包状态失败:', error);
+      setVoicePackReady(false);
+      setVoicePackDownloadProgress(0);
+      setVoicePackStatusText(`可下载约 ${LOCAL_VOICE_PACK_SIZE_MB}MB 的中文离线语音包，下载后保存在当前浏览器里`);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (showTtsDialog) {
+      void refreshVoicePackState();
+    }
+  }, [refreshVoicePackState, showTtsDialog]);
+
+  const ensureAudioContextReady = async () => {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    const AudioContextConstructor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextConstructor) {
+      return null;
+    }
+
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContextConstructor();
+    }
+
+    if (audioContextRef.current.state === 'suspended') {
+      await audioContextRef.current.resume();
+    }
+
+    return audioContextRef.current;
+  };
+
+  const ensureLocalVoicePackReady = async () => {
+    if (localVoicePackSessionRef.current) {
+      setVoicePackReady(true);
+      setVoicePackDownloadProgress(100);
+      setVoicePackStatusText('离线语音包已就绪');
+      return localVoicePackSessionRef.current;
+    }
+
+    const voicePackModule = await loadLocalVoicePackModule();
+    const storedVoices = await voicePackModule.stored();
+    const hasDownloadedVoicePack = storedVoices.includes(LOCAL_VOICE_PACK_ID);
+
+    setIsPreparingVoicePack(true);
+
+    if (!hasDownloadedVoicePack) {
+      setVoicePackDownloadProgress(0);
+      setVoicePackStatusText(`正在下载离线语音包（约 ${LOCAL_VOICE_PACK_SIZE_MB}MB）`);
+      await voicePackModule.download(LOCAL_VOICE_PACK_ID, (progress) => {
+        updateVoicePackProgress(progress, '正在下载离线语音包');
+      });
+    }
+
+    setVoicePackStatusText('正在加载离线语音包');
+    const session = await voicePackModule.TtsSession.create({
+      voiceId: LOCAL_VOICE_PACK_ID,
+      progress: (progress) => {
+        updateVoicePackProgress(progress, '正在初始化离线语音包');
+      },
+    });
+
+    localVoicePackSessionRef.current = session;
+    setVoicePackReady(true);
+    setVoicePackDownloadProgress(100);
+    setVoicePackStatusText('离线语音包已就绪');
+    setIsPreparingVoicePack(false);
+    return session;
+  };
+
+  const playGeneratedVoiceBlob = async (blob: Blob, runId: number) => {
+    if (runId !== voicePackRunIdRef.current || !isAudioPlayingRef.current) {
+      return;
+    }
+
+    const audioContext = await ensureAudioContextReady();
+    if (audioContext) {
+      const arrayBuffer = await blob.arrayBuffer();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+
+      await new Promise<void>((resolve, reject) => {
+        if (runId !== voicePackRunIdRef.current || !isAudioPlayingRef.current) {
+          resolve();
+          return;
+        }
+
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioContext.destination);
+        currentBufferSourceRef.current = source;
+        source.onended = () => {
+          if (currentBufferSourceRef.current === source) {
+            currentBufferSourceRef.current = null;
+          }
+          resolve();
+        };
+
+        try {
+          source.start(0);
+        } catch (error) {
+          reject(error);
+        }
+      });
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(blob);
+    await new Promise<void>((resolve, reject) => {
+      const audio = new Audio();
+      audio.dataset.objectUrl = objectUrl;
+      audio.src = objectUrl;
+      audio.preload = 'auto';
+      audio.playsInline = true;
+      audioQueueRef.current = [audio];
+
+      audio.onended = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve();
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('离线语音片段播放失败'));
+      };
+      audio.play().catch((error) => {
+        URL.revokeObjectURL(objectUrl);
+        reject(error);
+      });
+    });
+  };
+
+  const handleDownloadVoicePack = async () => {
+    setTtsError('');
+
+    try {
+      await ensureLocalVoicePackReady();
+    } catch (error) {
+      console.error('离线语音包下载失败:', error);
+      setIsPreparingVoicePack(false);
+      setVoicePackReady(false);
+      setVoicePackDownloadProgress(0);
+      setVoicePackStatusText(`离线语音包下载失败，可稍后在网络更稳定时重试`);
+      setTtsError('离线语音包下载失败，请稍后重试');
+    }
+  };
+
+  const playWithDownloadedVoicePack = async (text: string) => {
+    const chunks = splitTextForTTS(text, 90);
+    if (chunks.length === 0) {
+      setTtsError('暂无可播报内容');
+      return;
+    }
+
+    setTtsError('');
+    stopAudioQueue();
+    await ensureAudioContextReady();
+
+    const runId = voicePackRunIdRef.current;
+    isAudioPlayingRef.current = true;
+    setIsSpeaking(true);
+    setIsPreparingVoicePack(true);
+
+    try {
+      const session = await ensureLocalVoicePackReady();
+      if (runId !== voicePackRunIdRef.current || !isAudioPlayingRef.current) {
+        return;
+      }
+
+      setIsPreparingVoicePack(false);
+      for (let idx = 0; idx < chunks.length; idx += 1) {
+        if (runId !== voicePackRunIdRef.current || !isAudioPlayingRef.current) {
+          return;
+        }
+
+        currentAudioIndexRef.current = idx;
+        setVoicePackStatusText(`离线语音包播报中 ${idx + 1}/${chunks.length}`);
+        const voiceBlob = await session.predict(chunks[idx]);
+        if (runId !== voicePackRunIdRef.current || !isAudioPlayingRef.current) {
+          return;
+        }
+        await playGeneratedVoiceBlob(voiceBlob, runId);
+      }
+
+      if (runId !== voicePackRunIdRef.current) {
+        return;
+      }
+
+      setIsSpeaking(false);
+      isAudioPlayingRef.current = false;
+      setVoicePackStatusText('离线语音包已就绪');
+    } catch (error) {
+      console.error('离线语音包播放失败:', error);
+      if (runId !== voicePackRunIdRef.current) {
+        return;
+      }
+
+      setIsPreparingVoicePack(false);
+      setIsSpeaking(false);
+      isAudioPlayingRef.current = false;
+      setTtsError('离线语音包暂时不可用，已切换备用语音源');
+      playWithAudioFallback(text);
+    } finally {
+      if (runId === voicePackRunIdRef.current) {
+        setIsPreparingVoicePack(false);
+      }
+    }
+  };
+
   const getTtsCandidateUrls = (chunk: string) => {
     const normalizedSpeed = Math.min(Math.max(Math.round(speechRate * 5), 1), 9);
     const encodedText = encodeURIComponent(chunk);
     const candidates: string[] = [];
 
-    if (!isPagesDeployment()) {
+    if (canUseLocalTtsApi()) {
       const params = new URLSearchParams({
         text: chunk,
         speed: String(normalizedSpeed),
@@ -513,9 +793,11 @@ export function DetailPage() {
           return;
         }
 
-        console.warn(`TTS音频片段 ${idx + 1}/${audioElements.length} 全部语音源加载失败，跳过`);
-        currentAudioIndexRef.current++;
-        playNext();
+        console.warn(`TTS音频片段 ${idx + 1}/${audioElements.length} 全部语音源加载失败`);
+        setTtsError(shouldPreferServerTts() ? '当前语音包加载失败，请重试或换系统浏览器打开' : '当前浏览器语音播放失败，请重试或换系统浏览器打开');
+        setIsSpeaking(false);
+        isAudioPlayingRef.current = false;
+        stopAudioQueue();
       };
 
       audio.onended = () => {
@@ -527,9 +809,7 @@ export function DetailPage() {
       };
       audio.play().catch(err => {
         console.error('音频播放失败:', err);
-        setTtsError(shouldPreferServerTts() ? '当前语音包加载失败，请重试或换系统浏览器打开' : '音频播放失败，请重试');
-        setIsSpeaking(false);
-        isAudioPlayingRef.current = false;
+        tryNextSource();
       });
     };
 
@@ -722,10 +1002,12 @@ export function DetailPage() {
       text = text.substring(0, maxLength) + '。后续内容省略。';
     }
 
-    if (shouldPreferServerTts()) {
-      playWithAudioFallback(text);
+    if (shouldPreferDownloadedVoicePack()) {
+      void playWithDownloadedVoicePack(text);
     } else if (supportsSpeechSynthesis()) {
       playWithNativeTTS(text);
+    } else if (supportsDownloadedVoicePack()) {
+      void playWithDownloadedVoicePack(text);
     } else {
       playWithAudioFallback(text);
     }
@@ -1284,11 +1566,66 @@ export function DetailPage() {
                 ))}
               </div>
             </div>
+
+            {supportsDownloadedVoicePack() && (
+              <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-amber-900">中文离线语音包</p>
+                    <p className="text-xs text-amber-800">
+                      适合华为手机和微信环境，首次下载约 {LOCAL_VOICE_PACK_SIZE_MB}MB，之后会保存在当前浏览器里
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="border-amber-300 text-amber-700 bg-white">
+                    {voicePackReady ? '已就绪' : '未下载'}
+                  </Badge>
+                </div>
+
+                {voicePackStatusText && (
+                  <p className="text-xs text-amber-900">{voicePackStatusText}</p>
+                )}
+
+                {(isPreparingVoicePack || voicePackDownloadProgress > 0) && (
+                  <div className="space-y-1">
+                    <Progress value={voicePackDownloadProgress} className="h-2 bg-amber-100" />
+                    <p className="text-[11px] text-amber-700 text-right">{voicePackDownloadProgress}%</p>
+                  </div>
+                )}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    void handleDownloadVoicePack();
+                  }}
+                  disabled={isPreparingVoicePack || voicePackReady}
+                  className="w-full border-amber-300 text-amber-900 hover:bg-amber-100"
+                >
+                  {isPreparingVoicePack ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      正在准备语音包
+                    </>
+                  ) : voicePackReady ? (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      语音包已下载
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      下载语音包
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
             
             {/* 播放控制 */}
             <div className="flex gap-2">
               <Button
                 onClick={handleSpeak}
+                disabled={isPreparingVoicePack && !isSpeaking}
                 className={`flex-1 ${isSpeaking ? 'bg-amber-600 hover:bg-amber-700' : 'bg-red-600 hover:bg-red-700'}`}
               >
                 {isSpeaking ? (
@@ -1312,7 +1649,7 @@ export function DetailPage() {
               </p>
             )}
             <p className="text-xs text-gray-500 text-center">
-              手机端与微信环境会优先尝试浏览器内置语音，先播放标题和摘要，再继续正文
+              华为和微信环境会优先尝试离线语音包，其余环境优先尝试浏览器内置语音，先播放标题和摘要，再继续正文
             </p>
           </div>
         </DialogContent>
