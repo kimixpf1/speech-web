@@ -349,6 +349,8 @@ export function DetailPage() {
 
   const isMobileDevice = () => isAndroidDevice() || isIOSDevice();
 
+  const shouldPreferServerTts = () => isMobileDevice() || isWeChatBrowser();
+
   const shouldAvoidFallbackAudio = () => isMobileDevice() || isWeChatBrowser();
 
   const splitTextForTTS = (text: string, maxLen: number = 300): string[] => {
@@ -435,19 +437,27 @@ export function DetailPage() {
     setIsSpeaking(false);
   }, []);
 
+  const getServerTtsUrl = (chunk: string) => {
+    const params = new URLSearchParams({
+      text: chunk,
+      speed: String(Math.min(Math.max(Math.round(speechRate * 5), 1), 9)),
+    });
+
+    return `/api/tts?${params.toString()}`;
+  };
+
   const playWithAudioFallback = (text: string) => {
     setTtsError('');
     stopAudioQueue();
 
-    const chunks = splitTextForTTS(text, 300);
+    const chunks = splitTextForTTS(text, shouldPreferServerTts() ? 120 : 220);
     if (chunks.length === 0) return;
 
-    // 为每个文本段创建音频 URL（使用百度翻译TTS，免费且支持中文）
     const audioElements: HTMLAudioElement[] = chunks.map(chunk => {
       const audio = new Audio();
-      const encodedText = encodeURIComponent(chunk);
-      audio.src = `https://fanyi.baidu.com/gettts?lan=zh&text=${encodedText}&spd=${Math.min(Math.max(Math.round(speechRate * 5), 1), 9)}&source=web`;
+      audio.src = getServerTtsUrl(chunk);
       audio.preload = 'auto';
+      audio.playsInline = true;
       return audio;
     });
 
@@ -479,7 +489,7 @@ export function DetailPage() {
       };
       audio.play().catch(err => {
         console.error('音频播放失败:', err);
-        setTtsError('音频播放失败，请重试');
+        setTtsError(shouldPreferServerTts() ? '当前语音包加载失败，请重试' : '音频播放失败，请重试');
         setIsSpeaking(false);
         isAudioPlayingRef.current = false;
       });
@@ -674,7 +684,9 @@ export function DetailPage() {
       text = text.substring(0, maxLength) + '。后续内容省略。';
     }
 
-    if (supportsSpeechSynthesis()) {
+    if (shouldPreferServerTts()) {
+      playWithAudioFallback(text);
+    } else if (supportsSpeechSynthesis()) {
       playWithNativeTTS(text);
     } else {
       playWithAudioFallback(text);
