@@ -138,9 +138,12 @@ export function DetailPage() {
   const [ttsError, setTtsError] = useState('');
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const utteranceQueueRef = useRef<SpeechSynthesisUtterance[]>([]);
   const audioQueueRef = useRef<HTMLAudioElement[]>([]);
   const currentAudioIndexRef = useRef(0);
   const isAudioPlayingRef = useRef(false);
+  const nativeTtsActiveRef = useRef(false);
+  const startTimeoutRef = useRef<number | null>(null);
 
   // AI生成状态
   const [isGenerating, setIsGenerating] = useState(false);
@@ -298,40 +301,33 @@ export function DetailPage() {
     navigate(targetPath, { replace: true });
   };
 
-  // 初始化语音合成
   useEffect(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       synthRef.current = window.speechSynthesis;
-      // 某些移动浏览器需要等待 voiceschanged 事件
       window.speechSynthesis.onvoiceschanged = () => {
         synthRef.current = window.speechSynthesis;
       };
     }
     
     return () => {
-      // 清理：停止语音播放
+      if (startTimeoutRef.current) {
+        window.clearTimeout(startTimeoutRef.current);
+      }
       if (synthRef.current) {
         synthRef.current.cancel();
       }
-      // 清理音频队列
+      utteranceQueueRef.current = [];
+      nativeTtsActiveRef.current = false;
       stopAudioQueue();
     };
   }, []);
 
-  // 检测是否在微信浏览器中
-  const isWeChatBrowser = () => {
-    const ua = navigator.userAgent.toLowerCase();
-    return ua.includes('micromessenger') || ua.includes('wechat');
-  };
-
-  // 检测是否支持原生 speechSynthesis
   const supportsSpeechSynthesis = () => {
     return typeof window !== 'undefined' 
       && 'speechSynthesis' in window 
       && typeof SpeechSynthesisUtterance !== 'undefined';
   };
 
-  // 将文本分割成适合TTS的小段（每段不超过maxLen字符）
   const splitTextForTTS = (text: string, maxLen: number = 300): string[] => {
     const chunks: string[] = [];
     // 按句号、问号、感叹号、换行分割
@@ -351,7 +347,26 @@ export function DetailPage() {
     return chunks.filter(c => c.length > 0);
   };
 
-  // 停止音频队列播放
+  const clearSpeakStartTimeout = () => {
+    if (startTimeoutRef.current) {
+      window.clearTimeout(startTimeoutRef.current);
+      startTimeoutRef.current = null;
+    }
+  };
+
+  const getPreferredVoice = () => {
+    const voices = synthRef.current?.getVoices() || [];
+    if (!voices.length) {
+      return null;
+    }
+
+    return (
+      voices.find(v => /zh|cmn|CN/i.test(v.lang) && /xiaoxiao|xiaoyi|yunxi|xiaomo|zh/i.test(v.name)) ||
+      voices.find(v => /zh|cmn|CN/i.test(v.lang)) ||
+      voices[0]
+    );
+  };
+
   const stopAudioQueue = () => {
     isAudioPlayingRef.current = false;
     audioQueueRef.current.forEach(audio => {
@@ -362,7 +377,17 @@ export function DetailPage() {
     currentAudioIndexRef.current = 0;
   };
 
-  // 使用 Audio 元素的降级 TTS（适用于微信等不支持speechSynthesis的浏览器）
+  const stopSpeaking = useCallback(() => {
+    clearSpeakStartTimeout();
+    nativeTtsActiveRef.current = false;
+    utteranceQueueRef.current = [];
+    if (synthRef.current) {
+      synthRef.current.cancel();
+    }
+    stopAudioQueue();
+    setIsSpeaking(false);
+  }, []);
+
   const playWithAudioFallback = (text: string) => {
     setTtsError('');
     stopAudioQueue();
@@ -416,72 +441,140 @@ export function DetailPage() {
     playNext();
   };
 
-  // 语音播报功能 - 兼容手机端和微信浏览器
+  const playWithNativeTTS = (text: string) => {
+    if (!supportsSpeechSynthesis()) {
+      playWithAudioFallback(text);
+      return;
+    }
+
+    if (!synthRef.current) {
+      synthRef.current = window.speechSynthesis;
+    }
+
+    const synth = synthRef.current;
+    if (!synth) {
+      playWithAudioFallback(text);
+      return;
+    }
+
+    const chunks = splitTextForTTS(text, 180);
+    if (chunks.length === 0) {
+      setTtsError('暂无可播报内容');
+      return;
+    }
+
+    synth.cancel();
+    utteranceQueueRef.current = [];
+    nativeTtsActiveRef.current = true;
+    setIsSpeaking(true);
+
+    const selectedVoice = getPreferredVoice();
+    let index = 0;
+    let hasStarted = false;
+
+    const speakNext = () => {
+      if (!nativeTtsActiveRef.current) {
+        return;
+      }
+
+      if (index >= chunks.length) {
+        clearSpeakStartTimeout();
+        nativeTtsActiveRef.current = false;
+        utteranceQueueRef.current = [];
+        setIsSpeaking(false);
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(chunks[index]);
+      utterance.rate = speechRate;
+      utterance.pitch = 1;
+      utterance.lang = selectedVoice?.lang || 'zh-CN';
+
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+
+      utterance.onstart = () => {
+        hasStarted = true;
+        clearSpeakStartTimeout();
+      };
+      utterance.onend = () => {
+        if (!nativeTtsActiveRef.current) {
+          return;
+        }
+        index += 1;
+        window.setTimeout(speakNext, 60);
+      };
+      utterance.onerror = (e) => {
+        const errorType = (e as SpeechSynthesisErrorEvent & { error?: string }).error;
+        if (errorType === 'canceled' || errorType === 'interrupted' || errorType === 'aborted') {
+          return;
+        }
+        clearSpeakStartTimeout();
+        nativeTtsActiveRef.current = false;
+        utteranceQueueRef.current = [];
+        setIsSpeaking(false);
+        if (!hasStarted) {
+          playWithAudioFallback(text);
+          return;
+        }
+        setTtsError('当前浏览器语音播报中断，请重试');
+      };
+
+      utteranceQueueRef.current = [utterance];
+      utteranceRef.current = utterance;
+
+      try {
+        synth.cancel();
+        synth.speak(utterance);
+        synth.resume();
+      } catch {
+        clearSpeakStartTimeout();
+        nativeTtsActiveRef.current = false;
+        utteranceQueueRef.current = [];
+        setIsSpeaking(false);
+        playWithAudioFallback(text);
+      }
+    };
+
+    clearSpeakStartTimeout();
+    startTimeoutRef.current = window.setTimeout(() => {
+      if (nativeTtsActiveRef.current && !hasStarted) {
+        synth.cancel();
+        nativeTtsActiveRef.current = false;
+        utteranceQueueRef.current = [];
+        setIsSpeaking(false);
+        playWithAudioFallback(text);
+      }
+    }, 1500);
+
+    speakNext();
+  };
+
   const handleSpeak = () => {
     if (!speech) return;
     setTtsError('');
     
-    // 如果正在播放，停止
     if (isSpeaking) {
-      if (synthRef.current) {
-        synthRef.current.cancel();
-      }
-      stopAudioQueue();
-      setIsSpeaking(false);
+      stopSpeaking();
       return;
     }
     
-    // 准备文本
     let text = `${speech.title}。${speech.abstract}`;
     if (speech.fullText && !speech.fullText.includes('正在整理中')) {
-      text += `。${speech.fullText}`;
+      text += `。${speech.fullText.substring(0, 2400)}`;
     }
     if (speech.analysis && !speech.analysis.includes('正在整理中')) {
-      text += `。${speech.analysis}`;
+      text += `。${speech.analysis.substring(0, 1600)}`;
     }
     text = text.replace(/\s+/g, ' ').replace(/\n+/g, '。').trim();
-    if (text.length > 5000) {
-      text = text.substring(0, 5000) + '。后续内容省略。';
+    if (text.length > 4200) {
+      text = text.substring(0, 4200) + '。后续内容省略。';
     }
 
-    // 方案1：尝试使用原生 speechSynthesis（非微信浏览器）
-    if (supportsSpeechSynthesis() && !isWeChatBrowser()) {
-      if (!synthRef.current) {
-        synthRef.current = window.speechSynthesis;
-      }
-
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = speechRate;
-      utterance.pitch = 1;
-      
-      const voices = synthRef.current?.getVoices() || [];
-      const zhVoice = voices.find(v => 
-        v.lang.includes('zh') || v.lang.includes('CN') || v.lang.includes('cmn')
-      );
-      if (zhVoice) {
-        utterance.voice = zhVoice;
-      }
-      
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = (e) => {
-        const errorType = (e as any).error;
-        if (errorType === 'canceled' || errorType === 'interrupted' || errorType === 'aborted') {
-          return;
-        }
-        console.warn('原生TTS失败，尝试降级方案:', errorType);
-        playWithAudioFallback(text);
-      };
-      
-      utteranceRef.current = utterance;
-      
-      try {
-        synthRef.current?.speak(utterance);
-        setIsSpeaking(true);
-      } catch {
-        playWithAudioFallback(text);
-      }
+    if (supportsSpeechSynthesis()) {
+      playWithNativeTTS(text);
     } else {
-      // 方案2：微信浏览器或不支持speechSynthesis，使用音频降级
       playWithAudioFallback(text);
     }
   };
@@ -1067,9 +1160,7 @@ export function DetailPage() {
               </p>
             )}
             <p className="text-xs text-gray-500 text-center">
-              {isWeChatBrowser() 
-                ? '微信浏览器将使用在线语音服务播报，需联网' 
-                : '语音播报使用浏览器内置语音合成技术'}
+              优先使用浏览器内置语音播报；若当前环境不支持，会自动切换备用方案
             </p>
           </div>
         </DialogContent>
