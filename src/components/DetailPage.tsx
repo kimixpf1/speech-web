@@ -349,6 +349,14 @@ export function DetailPage() {
 
   const isMobileDevice = () => isAndroidDevice() || isIOSDevice();
 
+  const isPagesDeployment = () => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    return /github\.io$/i.test(window.location.hostname);
+  };
+
   const shouldPreferServerTts = () => isMobileDevice() || isWeChatBrowser();
 
   const shouldAvoidFallbackAudio = () => isMobileDevice() || isWeChatBrowser();
@@ -437,13 +445,24 @@ export function DetailPage() {
     setIsSpeaking(false);
   }, []);
 
-  const getServerTtsUrl = (chunk: string) => {
-    const params = new URLSearchParams({
-      text: chunk,
-      speed: String(Math.min(Math.max(Math.round(speechRate * 5), 1), 9)),
-    });
+  const getTtsCandidateUrls = (chunk: string) => {
+    const normalizedSpeed = Math.min(Math.max(Math.round(speechRate * 5), 1), 9);
+    const encodedText = encodeURIComponent(chunk);
+    const candidates: string[] = [];
 
-    return `/api/tts?${params.toString()}`;
+    if (!isPagesDeployment()) {
+      const params = new URLSearchParams({
+        text: chunk,
+        speed: String(normalizedSpeed),
+      });
+      candidates.push(`/api/tts?${params.toString()}`);
+    }
+
+    candidates.push(`https://fanyi.baidu.com/gettts?lan=zh&text=${encodedText}&spd=${normalizedSpeed}&source=web`);
+    candidates.push(`https://dict.youdao.com/dictvoice?audio=${encodedText}&type=2&rate=${Math.min(Math.max(Math.round(speechRate * 3), 1), 5)}`);
+    candidates.push(`https://translate.google.com/translate_tts?ie=UTF-8&q=${encodedText}&tl=zh-CN&client=tw-ob`);
+
+    return candidates;
   };
 
   const playWithAudioFallback = (text: string) => {
@@ -455,7 +474,10 @@ export function DetailPage() {
 
     const audioElements: HTMLAudioElement[] = chunks.map(chunk => {
       const audio = new Audio();
-      audio.src = getServerTtsUrl(chunk);
+      const candidates = getTtsCandidateUrls(chunk);
+      audio.dataset.ttsCandidates = JSON.stringify(candidates);
+      audio.dataset.ttsIndex = '0';
+      audio.src = candidates[0];
       audio.preload = 'auto';
       audio.playsInline = true;
       return audio;
@@ -477,19 +499,35 @@ export function DetailPage() {
       }
 
       const audio = audioElements[idx];
+      const tryNextSource = () => {
+        const candidates = JSON.parse(audio.dataset.ttsCandidates || '[]') as string[];
+        const nextIndex = Number(audio.dataset.ttsIndex || '0') + 1;
+
+        if (nextIndex < candidates.length) {
+          audio.dataset.ttsIndex = String(nextIndex);
+          audio.src = candidates[nextIndex];
+          audio.load();
+          audio.play().catch(() => {
+            tryNextSource();
+          });
+          return;
+        }
+
+        console.warn(`TTS音频片段 ${idx + 1}/${audioElements.length} 全部语音源加载失败，跳过`);
+        currentAudioIndexRef.current++;
+        playNext();
+      };
+
       audio.onended = () => {
         currentAudioIndexRef.current++;
         playNext();
       };
       audio.onerror = () => {
-        // 单个片段失败，跳过继续
-        console.warn(`TTS音频片段 ${idx + 1}/${audioElements.length} 加载失败，跳过`);
-        currentAudioIndexRef.current++;
-        playNext();
+        tryNextSource();
       };
       audio.play().catch(err => {
         console.error('音频播放失败:', err);
-        setTtsError(shouldPreferServerTts() ? '当前语音包加载失败，请重试' : '音频播放失败，请重试');
+        setTtsError(shouldPreferServerTts() ? '当前语音包加载失败，请重试或换系统浏览器打开' : '音频播放失败，请重试');
         setIsSpeaking(false);
         isAudioPlayingRef.current = false;
       });
