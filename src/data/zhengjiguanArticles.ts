@@ -56,7 +56,7 @@ export const zhengjiguanArticles: Speech[] = [
     zhengjiguanLevel: 'central',
     source: '人民日报',
     summary: '习近平总书记在参加江苏代表团审议时强调："要认真组织开展树立和践行正确政绩观学习教育，引导广大党员干部树立和践行正确政绩观。"',
-    url: 'http://paper.people.com.cn/rmrb/pc/content/202603/08/content_30143971.html'
+    url: 'https://paper.people.com.cn/rmrb/pc/content/202603/08/content_30143971.html'
   },
 
   {
@@ -135,7 +135,7 @@ export const zhengjiguanArticles: Speech[] = [
     zhengjiguanLevel: 'central',
     source: '人民网',
     summary: '要提高站位学，更加坚决有力贯彻落实党中央决策部署和习近平总书记重要指示要求，增强树立和践行正确政绩观的自觉性。',
-    url: 'http://paper.people.com.cn/rmrb/pc/content/202603/18/content_30145794.html'
+    url: 'https://paper.people.com.cn/rmrb/pc/content/202603/18/content_30145794.html'
   },
   {
     id: 'ZJG-C14',
