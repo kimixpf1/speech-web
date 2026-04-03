@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { Document, Paragraph, TextRun, AlignmentType, HeadingLevel, Packer } from 'docx';
 import { saveAs } from 'file-saver';
-import { normalizeSummaryText } from '@/lib/utils';
+import { normalizeArticleUrl, normalizeSummaryText, openExternalUrl } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import type { Progress as PiperProgress, TtsSession as PiperTtsSession } from '@mintplex-labs/piper-tts-web';
 
@@ -124,6 +124,33 @@ function normalizeAbstractPreview(text: string): string {
   return normalizeSummaryText(text);
 }
 
+function hasMeaningfulText(text?: string): boolean {
+  const trimmed = text?.trim() || '';
+  return Boolean(trimmed) && !trimmed.includes('加载中') && !trimmed.includes('整理中');
+}
+
+function getPreferredAbstract(primaryText: string | undefined, fallbackText: string | undefined): string {
+  const normalizedPrimary = normalizeAbstractPreview(primaryText || '');
+  if (normalizedPrimary && normalizedPrimary.length >= 20 && !normalizedPrimary.includes('整理中')) {
+    return normalizedPrimary;
+  }
+
+  const normalizedFallback = normalizeAbstractPreview(fallbackText || '');
+  if (normalizedFallback) {
+    return normalizedFallback;
+  }
+
+  return '摘要正在整理中...';
+}
+
+function getFallbackFullText(speech: Speech): string {
+  return speech.fullText?.trim() || '暂未收录全文，请点击上方原文链接查看。';
+}
+
+function getFallbackAnalysis(speech: Speech): string {
+  return speech.analysis?.trim() || '解读内容正在补充中，可先结合摘要和原文阅读。';
+}
+
 const LOCAL_VOICE_PACK_ID = 'zh_CN-huayan-x_low';
 const LOCAL_VOICE_PACK_SIZE_MB = 20;
 
@@ -164,6 +191,7 @@ export function DetailPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState('');
   const [hasGeneratedContent, setHasGeneratedContent] = useState(false);
+  const normalizedSpeechUrl = normalizeArticleUrl(speech?.url);
 
   useEffect(() => {
     // 进入详情页时直接跳转到顶部（无动画）
@@ -181,9 +209,9 @@ export function DetailPage() {
             // 一次性更新状态，避免中间状态
             setSpeech({
               ...baseSpeech,
-              abstract: normalizeAbstractPreview(cloudDetail.abstract || baseSpeech.summary || '摘要正在整理中...'),
-              fullText: cloudDetail.fullText || '原文加载中...',
-              analysis: cloudDetail.analysis || '解读分析正在整理中...',
+              abstract: getPreferredAbstract(cloudDetail.abstract, baseSpeech.summary),
+              fullText: hasMeaningfulText(cloudDetail.fullText) ? cloudDetail.fullText : getFallbackFullText(baseSpeech),
+              analysis: hasMeaningfulText(cloudDetail.analysis) ? cloudDetail.analysis : getFallbackAnalysis(baseSpeech),
             } as SpeechDetail);
             setIsLoading(false);
             return;
@@ -196,8 +224,8 @@ export function DetailPage() {
         setSpeech({
           ...baseSpeech,
           abstract: normalizeAbstractPreview(baseSpeech.summary || '摘要正在整理中...'),
-          fullText: '原文加载中...',
-          analysis: '解读分析正在整理中...',
+          fullText: getFallbackFullText(baseSpeech),
+          analysis: getFallbackAnalysis(baseSpeech),
         } as SpeechDetail);
         setIsLoading(false);
       };
@@ -1336,13 +1364,17 @@ export function DetailPage() {
             </div>
 
             {/* 原文链接 */}
-            {speech.url && speech.url !== 'http://www.news.cn/' && speech.url !== 'https://www.qstheory.cn/' ? (
+            {normalizedSpeechUrl && normalizedSpeechUrl !== 'https://www.news.cn/' && normalizedSpeechUrl !== 'https://www.qstheory.cn/' ? (
               <div className="flex items-center gap-2 text-xl mb-5">
                 <span className="font-medium text-gray-600">原文链接：</span>
                 <a
-                  href={speech.url}
+                  href={normalizedSpeechUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    openExternalUrl(normalizedSpeechUrl);
+                  }}
                   className="text-red-600 hover:text-red-700 flex items-center gap-2 underline"
                 >
                   点击阅读原文
@@ -1418,14 +1450,18 @@ export function DetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              {speech.url && speech.url !== 'http://www.news.cn/' && speech.url !== 'https://www.qstheory.cn/' ? (
+              {normalizedSpeechUrl && normalizedSpeechUrl !== 'https://www.news.cn/' && normalizedSpeechUrl !== 'https://www.qstheory.cn/' ? (
                 <div className="bg-gray-50 rounded-lg p-6 text-center">
                   <BookOpen className="w-10 h-10 mx-auto mb-3 text-blue-500" />
                   <p className="text-gray-600 mb-4">点击下方按钮在新窗口中阅读官方原文</p>
                   <a
-                    href={speech.url}
+                    href={normalizedSpeechUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openExternalUrl(normalizedSpeechUrl);
+                    }}
                     className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     <ExternalLink className="w-5 h-5" />
