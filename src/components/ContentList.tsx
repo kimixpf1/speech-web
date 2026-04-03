@@ -4,6 +4,7 @@ import { Calendar, MapPin, ExternalLink, ChevronDown, ChevronUp, Mic, FileText, 
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { Speech } from '@/data/speeches';
+import { normalizeArticleUrl, openExternalUrl } from '@/lib/utils';
 
 interface ContentListProps {
   speeches: Speech[];
@@ -35,6 +36,7 @@ function SpeechCard({ speech }: { speech: Speech }) {
   const navigate = useNavigate();
   const config = categoryConfig[speech.category] || categoryConfig.speech;
   const Icon = config.icon;
+  const originalUrl = normalizeArticleUrl(speech.url);
 
   const handleNavigateToDetail = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -124,12 +126,16 @@ function SpeechCard({ speech }: { speech: Speech }) {
                 查看详情
               </a>
 
-              {speech.url && (
+              {originalUrl && (
                 <a
-                  href={speech.url}
+                  href={originalUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openExternalUrl(originalUrl);
+                  }}
                   className="text-sm text-gray-500 hover:text-red-600 flex items-center gap-1 transition-colors"
                 >
                   <ExternalLink className="w-4 h-4" />
