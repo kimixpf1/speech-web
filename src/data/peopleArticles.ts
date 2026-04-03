@@ -24,7 +24,7 @@ export const peopleArticles: Speech[] = [
     domain: 'politics', domainName: '政治',
     source: '新华社',
     summary: '很高兴与大家欢聚一堂，畅叙友情、共商国是，共同迎接新的一年。',
-    url: 'http://www.cppcc.gov.cn/zxww/2025/12/31/ARTI1767168160430186.shtml'
+    url: 'https://www.cppcc.gov.cn/zxww/2025/12/31/ARTI1767168160430186.shtml'
   },
 
   // ===== 2025年 =====

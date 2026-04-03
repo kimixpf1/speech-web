@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getZhengjiguanArticles, type Speech } from '@/services/articleServiceEnhanced';
 import { zhengjiguanLevels } from '@/data/speeches';
+import { normalizeArticleUrl, openExternalUrl } from '@/lib/utils';
 
 interface ContentListProps {
   speeches: Speech[];
@@ -29,6 +30,7 @@ function SpeechCard({ speech }: { speech: Speech }) {
   const config = categoryConfig[speech.category] || categoryConfig.speech;
   const Icon = config.icon;
   const levelCfg = speech.zhengjiguanLevel ? levelConfig[speech.zhengjiguanLevel] : null;
+  const originalUrl = normalizeArticleUrl(speech.url);
 
   return (
     <Card className="group hover:shadow-lg transition-all duration-200 border-gray-100 overflow-hidden">
@@ -104,12 +106,16 @@ function SpeechCard({ speech }: { speech: Speech }) {
                 查看详情
               </a>
 
-              {speech.url && (
+              {originalUrl && (
                 <a
-                  href={speech.url}
+                  href={originalUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openExternalUrl(originalUrl);
+                  }}
                   className="text-sm text-gray-500 hover:text-red-600 flex items-center gap-1 transition-colors"
                 >
                   <ExternalLink className="w-4 h-4" />

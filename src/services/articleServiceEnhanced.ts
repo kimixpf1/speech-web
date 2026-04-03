@@ -7,7 +7,7 @@ import {
   saveArticleDetail,
   type ArticleDetailContent,
 } from '@/services/articleDetailService';
-import { normalizeSummaryText } from '@/lib/utils';
+import { normalizeArticleUrl, normalizeSummaryText } from '@/lib/utils';
 
 // 表名
 const ARTICLES_TABLE = 'articles';
@@ -55,7 +55,7 @@ function toDbFormat(article: Speech): Record<string, unknown> {
     source: article.source,
     location: article.location || '',
     summary: article.summary,
-    url: article.url || '',
+    url: normalizeArticleUrl(article.url || ''),
   };
 }
 
@@ -80,7 +80,7 @@ function fromDbFormat(dbArticle: Record<string, unknown>): Speech {
     source: (dbArticle.source || '') as string,
     location: (dbArticle.location || '') as string,
     summary: normalizeSummaryText((dbArticle.summary || '') as string),
-    url: (dbArticle.url || '') as string,
+    url: normalizeArticleUrl((dbArticle.url || '') as string),
   };
 }
 
@@ -91,6 +91,7 @@ export function ensureDomainField(article: Speech): Speech {
     domain: article.domain || 'economy',
     domainName: article.domainName || '经济',
     summary: normalizeSummaryText(article.summary || ''),
+    url: normalizeArticleUrl(article.url || ''),
     isZhengjiguan: article.isZhengjiguan || false,
   };
 }
@@ -104,6 +105,7 @@ function saveLocalCache(articles: Speech[]): void {
         articles.map(article => ({
           ...article,
           summary: normalizeSummaryText(article.summary || ''),
+          url: normalizeArticleUrl(article.url || ''),
         }))
       )
     );
@@ -121,6 +123,7 @@ function getLocalCache(): Speech[] {
       ? (JSON.parse(cached) as Speech[]).map(article => ({
           ...article,
           summary: normalizeSummaryText(article.summary || ''),
+          url: normalizeArticleUrl(article.url || ''),
         }))
       : [];
   } catch {

@@ -210,7 +210,7 @@ export const speechesData: Speech[] = [
     source: '人民日报',
     location: '北京',
     summary: '习近平在参加江苏代表团审议时强调，完成"十五五"经济社会发展目标任务，需要应对更加复杂的环境、解决更多深层次矛盾。江苏等经济大省处在改革开放前沿，要在研究新情况、解决新问题上下功夫、出经验。发展新质生产力对于推动高质量发展、增强经济竞争力至关重要，江苏这方面基础较好，要努力走在前列。',
-    url: 'https://js.people.com.cn/n2/2026/0306/c358232-41516244.html'
+    url: 'https://cpc.people.com.cn/n1/2026/0306/c435113-40676004.html'
   },
 
   // 2025年内容
@@ -765,7 +765,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '重庆',
     summary: '习近平总书记在重庆考察，来到重庆国际物流枢纽园区，强调物流是实体经济的"筋络"，建设西部陆海新通道对于推动形成"陆海内外联动、东西双向互济"的对外开放格局具有重要意义。',
-    url: 'http://www.news.cn/politics/leaders/20240424/84305235338744fd833e447a002574e4/c.html'
+    url: 'https://www.news.cn/politics/leaders/20240424/84305235338744fd833e447a002574e4/c.html'
   },
   {
     id: '2024-10',
@@ -781,7 +781,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '湖南长沙、常德',
     summary: '习近平总书记在湖南考察，走进常德市鼎城区谢家铺镇港中坪村，了解当地为基层减负、提升基层治理效能等情况，强调要把保障国家粮食安全摆在突出位置。',
-    url: 'http://www.news.cn/politics/20240321/c280965c8ddd41ff9659dbeb0d9e51b6/c.html'
+    url: 'https://www.news.cn/politics/20240321/c280965c8ddd41ff9659dbeb0d9e51b6/c.html'
   },
   {
     id: '2024-11',
@@ -1011,7 +1011,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '北京',
     summary: '习近平主席出席中非合作论坛北京峰会开幕式并发表主旨讲话，题为《携手推进现代化，共筑命运共同体》。',
-    url: 'http://www.news.cn/20240908/53d07ce1b0ba47e8a45bb75022109cc9/c.html'
+    url: 'https://www.news.cn/20240908/53d07ce1b0ba47e8a45bb75022109cc9/c.html'
   }
 ];
 
