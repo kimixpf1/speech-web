@@ -107,3 +107,56 @@ export function safeSetStorageItem(storageType: StorageType, key: string, value:
   } catch {
   }
 }
+
+export function normalizeArticleUrl(url?: string): string {
+  const trimmed = (url || '').trim()
+
+  if (!trimmed) {
+    return ''
+  }
+
+  const replacementMap: Record<string, string> = {
+    'http://paper.people.com.cn/rmrb/pc/content/202603/08/content_30143971.html':
+      'https://paper.people.com.cn/rmrb/pc/content/202603/08/content_30143971.html',
+    'http://paper.people.com.cn/rmrb/pc/content/202603/18/content_30145794.html':
+      'https://paper.people.com.cn/rmrb/pc/content/202603/18/content_30145794.html',
+    'http://www.news.cn/politics/leaders/20240424/84305235338744fd833e447a002574e4/c.html':
+      'https://www.news.cn/politics/leaders/20240424/84305235338744fd833e447a002574e4/c.html',
+    'http://www.news.cn/politics/20240321/c280965c8ddd41ff9659dbeb0d9e51b6/c.html':
+      'https://www.news.cn/politics/20240321/c280965c8ddd41ff9659dbeb0d9e51b6/c.html',
+    'http://www.news.cn/20240908/53d07ce1b0ba47e8a45bb75022109cc9/c.html':
+      'https://www.news.cn/20240908/53d07ce1b0ba47e8a45bb75022109cc9/c.html',
+    'http://www.cppcc.gov.cn/zxww/2025/12/31/ARTI1767168160430186.shtml':
+      'https://www.cppcc.gov.cn/zxww/2025/12/31/ARTI1767168160430186.shtml',
+    'https://js.people.com.cn/n2/2026/0306/c358232-41516244.html':
+      'https://cpc.people.com.cn/n1/2026/0306/c435113-40676004.html',
+    'http://js.people.com.cn/n2/2026/0306/c358232-41516244.html':
+      'https://cpc.people.com.cn/n1/2026/0306/c435113-40676004.html',
+    'http://paper.people.com.cn/rmrb/pc/content/20260306/content_30143971.html':
+      'https://cpc.people.com.cn/n1/2026/0306/c435113-40676004.html',
+  }
+
+  const replaced = replacementMap[trimmed]
+  if (replaced) {
+    return replaced
+  }
+
+  if (trimmed.startsWith('http://')) {
+    return `https://${trimmed.slice('http://'.length)}`
+  }
+
+  return trimmed
+}
+
+export function openExternalUrl(url?: string): void {
+  const normalizedUrl = normalizeArticleUrl(url)
+
+  if (!normalizedUrl || typeof window === 'undefined') {
+    return
+  }
+
+  const openedWindow = window.open(normalizedUrl, '_blank', 'noopener,noreferrer')
+  if (!openedWindow) {
+    window.location.href = normalizedUrl
+  }
+}
