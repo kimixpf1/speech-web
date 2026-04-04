@@ -129,16 +129,48 @@ export function normalizeArticleUrl(url?: string): string {
     'http://www.cppcc.gov.cn/zxww/2025/12/31/ARTI1767168160430186.shtml':
       'https://www.cppcc.gov.cn/zxww/2025/12/31/ARTI1767168160430186.shtml',
     'https://js.people.com.cn/n2/2026/0306/c358232-41516244.html':
-      'https://cpc.people.com.cn/n1/2026/0306/c435113-40676004.html',
+      'http://jhsjk.people.cn/article/40675966',
     'http://js.people.com.cn/n2/2026/0306/c358232-41516244.html':
-      'https://cpc.people.com.cn/n1/2026/0306/c435113-40676004.html',
+      'http://jhsjk.people.cn/article/40675966',
+    'https://cpc.people.com.cn/n1/2026/0306/c435113-40676004.html':
+      'http://jhsjk.people.cn/article/40675966',
+    'http://cpc.people.com.cn/n1/2026/0306/c435113-40676004.html':
+      'http://jhsjk.people.cn/article/40675966',
+    'https://lianghui.people.com.cn/2026/n1/2026/0306/c461827-40675801.html':
+      'http://jhsjk.people.cn/article/40675966',
+    'http://lianghui.people.com.cn/2026/n1/2026/0306/c461827-40675801.html':
+      'http://jhsjk.people.cn/article/40675966',
     'http://paper.people.com.cn/rmrb/pc/content/20260306/content_30143971.html':
-      'https://cpc.people.com.cn/n1/2026/0306/c435113-40676004.html',
+      'http://jhsjk.people.cn/article/40675966',
   }
 
   const replaced = replacementMap[trimmed]
   if (replaced) {
     return replaced
+  }
+
+  const keepHttpPrefixes = [
+    'http://lianghui.people.com.cn/',
+    'http://politics.people.com.cn/',
+    'http://opinion.people.com.cn/',
+    'http://cpc.people.com.cn/',
+    'http://js.people.com.cn/'
+  ]
+
+  if (keepHttpPrefixes.some(prefix => trimmed.startsWith(prefix))) {
+    return trimmed
+  }
+
+  const downgradePrefixes = [
+    'https://politics.people.com.cn/',
+    'https://opinion.people.com.cn/',
+    'https://cpc.people.com.cn/',
+    'https://js.people.com.cn/'
+  ]
+
+  const downgradeMatch = downgradePrefixes.find(prefix => trimmed.startsWith(prefix))
+  if (downgradeMatch) {
+    return `http://${trimmed.slice('https://'.length)}`
   }
 
   if (trimmed.startsWith('http://')) {

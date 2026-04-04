@@ -210,7 +210,7 @@ export const speechesData: Speech[] = [
     source: '人民日报',
     location: '北京',
     summary: '习近平在参加江苏代表团审议时强调，完成"十五五"经济社会发展目标任务，需要应对更加复杂的环境、解决更多深层次矛盾。江苏等经济大省处在改革开放前沿，要在研究新情况、解决新问题上下功夫、出经验。发展新质生产力对于推动高质量发展、增强经济竞争力至关重要，江苏这方面基础较好，要努力走在前列。',
-    url: 'https://cpc.people.com.cn/n1/2026/0306/c435113-40676004.html'
+    url: 'http://jhsjk.people.cn/article/40675966'
   },
 
   // 2025年内容
@@ -749,7 +749,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '山东日照、济南',
     summary: '习近平总书记在山东考察期间，主持召开企业和专家座谈会，强调紧扣推进中国式现代化主题，进一步全面深化改革。',
-    url: 'https://www.youtube.com/watch?v=bSnc9GOogkE'
+    url: 'http://cpc.people.com.cn/n1/2024/0524/c64094-40243040.html'
   },
   {
     id: '2024-09',
@@ -995,7 +995,7 @@ export const speechesData: Speech[] = [
     source: '人民网',
     location: '北京',
     summary: '习近平主席出席和平共处五项原则发表70周年纪念大会并发表重要讲话，强调弘扬和平共处五项原则，携手构建人类命运共同体。',
-    url: 'https://www.youtube.com/watch?v=-yY25ojWXoI'
+    url: 'http://politics.people.com.cn/n1/2024/0628/c1024-40266475.html'
   },
   {
     id: '2024-F02',
