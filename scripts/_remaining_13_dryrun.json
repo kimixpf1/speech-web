@@ -1,0 +1,106 @@
+[
+  {
+    "id": "2024-01",
+    "status": "error",
+    "note": "404 Client Error: Not Found for url: https://www.news.cn/fortune/20241213/9b2a9b62a68343e481d688e5b58058b3/c.html",
+    "normalized_url": "https://www.news.cn/fortune/20241213/9b2a9b62a68343e481d688e5b58058b3/c.html",
+    "new_full_text_len": 0,
+    "new_summary_len": 0
+  },
+  {
+    "id": "2024-02",
+    "status": "error",
+    "note": "404 Client Error: Not Found for url: https://www.news.cn/politics/leaders/20241016/fedcba654321/c.html",
+    "normalized_url": "https://www.news.cn/politics/leaders/20241016/fedcba654321/c.html",
+    "new_full_text_len": 0,
+    "new_summary_len": 0
+  },
+  {
+    "id": "2024-06",
+    "status": "error",
+    "note": "404 Client Error: Not Found for url: https://www.news.cn/politics/leaders/20241106/654321fedcba/c.html",
+    "normalized_url": "https://www.news.cn/politics/leaders/20241106/654321fedcba/c.html",
+    "new_full_text_len": 0,
+    "new_summary_len": 0
+  },
+  {
+    "id": "2024-09",
+    "status": "error",
+    "note": "正文提取后仍过短",
+    "normalized_url": "https://www.news.cn/politics/leaders/20240424/84305235338744fd833e447a002574e4/c.html",
+    "new_full_text_len": 0,
+    "new_summary_len": 0
+  },
+  {
+    "id": "2024-13",
+    "status": "error",
+    "note": "404 Client Error: Not Found for url: https://www.gov.cn/yaowen/2024-11/28/content_4567890.htm",
+    "normalized_url": "https://www.gov.cn/yaowen/2024-11/28/content_4567890.htm",
+    "new_full_text_len": 0,
+    "new_summary_len": 0
+  },
+  {
+    "id": "2024-22",
+    "status": "error",
+    "note": "404 Client Error: Not Found for url: https://www.news.cn/politics/leaders/20240621/8579b19b2748446da989c10faa60d645/c.html",
+    "normalized_url": "https://www.news.cn/politics/leaders/20240621/8579b19b2748446da989c10faa60d645/c.html",
+    "new_full_text_len": 0,
+    "new_summary_len": 0
+  },
+  {
+    "id": "2025-09",
+    "status": "error",
+    "note": "404 Client Error: Not Found for url: https://cpc.people.com.cn/n1/2025/0521/c64094-40487818.html",
+    "normalized_url": "https://cpc.people.com.cn/n1/2025/0521/c64094-40487818.html",
+    "new_full_text_len": 0,
+    "new_summary_len": 0
+  },
+  {
+    "id": "P2024-0161",
+    "status": "error",
+    "note": "404 Client Error: Not Found for url: https://cpc.people.com.cn/n1/2024/1015/c64094-40339447.html",
+    "normalized_url": "https://cpc.people.com.cn/n1/2024/1015/c64094-40339447.html",
+    "new_full_text_len": 0,
+    "new_summary_len": 0
+  },
+  {
+    "id": "P2024-0184",
+    "status": "error",
+    "note": "404 Client Error: Not Found for url: https://cpc.people.com.cn/n1/2024/0928/c64094-40330012.html",
+    "normalized_url": "https://cpc.people.com.cn/n1/2024/0928/c64094-40330012.html",
+    "new_full_text_len": 0,
+    "new_summary_len": 0
+  },
+  {
+    "id": "P2024-0273",
+    "status": "error",
+    "note": "404 Client Error: Not Found for url: https://cpc.people.com.cn/n1/2024/0713/c64094-40277055.html",
+    "normalized_url": "https://cpc.people.com.cn/n1/2024/0713/c64094-40277055.html",
+    "new_full_text_len": 0,
+    "new_summary_len": 0
+  },
+  {
+    "id": "P2024-0383",
+    "status": "error",
+    "note": "404 Client Error: Not Found for url: https://cpc.people.com.cn/n1/2024/0526/c64094-40243667.html",
+    "normalized_url": "https://cpc.people.com.cn/n1/2024/0526/c64094-40243667.html",
+    "new_full_text_len": 0,
+    "new_summary_len": 0
+  },
+  {
+    "id": "P2024-0440",
+    "status": "error",
+    "note": "404 Client Error: Not Found for url: https://cpc.people.com.cn/n1/2024/0501/c64094-40227752.html",
+    "normalized_url": "https://cpc.people.com.cn/n1/2024/0501/c64094-40227752.html",
+    "new_full_text_len": 0,
+    "new_summary_len": 0
+  },
+  {
+    "id": "ZJG-C05",
+    "status": "error",
+    "note": "502 Server Error: Bad Gateway for url: https://www.cppcc.gov.cn/zxww/2026/02/25/ARTI1771987911651192.shtml",
+    "normalized_url": "https://www.cppcc.gov.cn/zxww/2026/02/25/ARTI1771987911651192.shtml",
+    "new_full_text_len": 0,
+    "new_summary_len": 0
+  }
+]

@@ -1,0 +1,24 @@
+{
+  "finished_at": "2026-04-05T21:34:57.834476",
+  "ids_file": "E:\\ccswitch\\AI编程工作目录\\讲话网站\\app\\scripts\\quality_fix_ids.json",
+  "batch_start": 125,
+  "batch_end": 130,
+  "batch_size": 5,
+  "candidate_count": 5,
+  "ready_count": 4,
+  "error_count": 1,
+  "skipped_count": 0,
+  "ready_ids": [
+    "P2025-0750",
+    "P2025-0753",
+    "P2025-0754",
+    "P2025-0755"
+  ],
+  "error_samples": [
+    {
+      "id": "P2025-0749",
+      "title": "习近平率中央代表团赴拉萨出席西藏自治区成立60周年庆祝活动",
+      "note": "正文提取后仍过短"
+    }
+  ]
+}

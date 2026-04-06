@@ -1,0 +1,39 @@
+{
+  "finished_at": "2026-04-04T12:40:56.119851",
+  "ids_file": "E:\\ccswitch\\AI编程工作目录\\讲话网站\\app\\scripts\\remaining_13_ids_20260404.json",
+  "batch_start": 0,
+  "batch_end": 5,
+  "batch_size": 5,
+  "candidate_count": 5,
+  "ready_count": 0,
+  "error_count": 5,
+  "skipped_count": 0,
+  "ready_ids": [],
+  "error_samples": [
+    {
+      "id": "2024-01",
+      "title": "在2024年中央经济工作会议上的讲话",
+      "note": "404 Client Error: Not Found for url: https://www.news.cn/fortune/20241213/9b2a9b62a68343e481d688e5b58058b3/c.html"
+    },
+    {
+      "id": "2024-06",
+      "title": "在湖北考察时的重要讲话",
+      "note": "404 Client Error: Not Found for url: https://www.news.cn/politics/leaders/20241106/654321fedcba/c.html"
+    },
+    {
+      "id": "2024-13",
+      "title": "在中华全国供销合作总社成立70周年之际作出重要指示",
+      "note": "404 Client Error: Not Found for url: https://www.gov.cn/yaowen/2024-11/28/content_4567890.htm"
+    },
+    {
+      "id": "2025-09",
+      "title": "在河南考察时的重要讲话",
+      "note": "404 Client Error: Not Found for url: https://cpc.people.com.cn/n1/2025/0521/c64094-40487818.html"
+    },
+    {
+      "id": "ZJG-C05",
+      "title": "人民日报评论员：以实干实绩书写中国式现代化新篇章",
+      "note": "502 Server Error: Bad Gateway for url: https://www.cppcc.gov.cn/zxww/2026/02/25/ARTI1771987911651192.shtml"
+    }
+  ]
+}

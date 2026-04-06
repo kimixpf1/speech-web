@@ -1,0 +1,19 @@
+{
+  "finished_at": "2026-04-05T21:42:43.121266",
+  "ids_file": "E:\\ccswitch\\AI编程工作目录\\讲话网站\\app\\scripts\\quality_fix_ids.json",
+  "batch_start": 350,
+  "batch_end": 355,
+  "batch_size": 50,
+  "candidate_count": 5,
+  "ready_count": 5,
+  "error_count": 0,
+  "skipped_count": 0,
+  "ready_ids": [
+    "P2025-0596",
+    "P2025-0597",
+    "P2025-0598",
+    "P2025-0599",
+    "P2025-0607"
+  ],
+  "error_samples": []
+}

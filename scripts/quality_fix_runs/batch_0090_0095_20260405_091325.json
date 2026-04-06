@@ -1,0 +1,24 @@
+{
+  "finished_at": "2026-04-05T09:13:31.318799",
+  "ids_file": "E:\\ccswitch\\AI编程工作目录\\讲话网站\\app\\scripts\\quality_fix_ids.json",
+  "batch_start": 90,
+  "batch_end": 95,
+  "batch_size": 5,
+  "candidate_count": 5,
+  "ready_count": 4,
+  "error_count": 1,
+  "skipped_count": 0,
+  "ready_ids": [
+    "P2025-0682",
+    "P2025-0684",
+    "P2025-0685",
+    "P2025-0687"
+  ],
+  "error_samples": [
+    {
+      "id": "P2025-0683",
+      "title": "习近平率中央代表团赴乌鲁木齐出席新疆维吾尔自治区成立70周年庆祝活动",
+      "note": "正文提取后仍过短"
+    }
+  ]
+}

@@ -130,6 +130,18 @@ export async function saveArticleDetail(detail: ArticleDetailContent): Promise<b
         console.error('Failed to save article detail to cloud:', error);
         // 继续保存到本地
       }
+
+      // 详情摘要变更时，同步主表 summary，避免列表摘要与详情页摘要分叉
+      if (normalizedDetail.abstract) {
+        const { error: articleSummaryError } = await supabase
+          .from('articles')
+          .update({ summary: normalizedDetail.abstract })
+          .eq('id', normalizedDetail.id);
+
+        if (articleSummaryError) {
+          console.error('Failed to sync article summary to cloud:', articleSummaryError);
+        }
+      }
     }
 
     // 更新本地缓存

@@ -1,0 +1,29 @@
+{
+  "finished_at": "2026-04-04T12:41:51.297513",
+  "ids_file": "E:\\ccswitch\\AI编程工作目录\\讲话网站\\app\\scripts\\remaining_13_ids_20260404.json",
+  "batch_start": 10,
+  "batch_end": 13,
+  "batch_size": 5,
+  "candidate_count": 3,
+  "ready_count": 0,
+  "error_count": 3,
+  "skipped_count": 0,
+  "ready_ids": [],
+  "error_samples": [
+    {
+      "id": "2024-09",
+      "title": "在重庆考察时的重要讲话",
+      "note": "正文提取后仍过短"
+    },
+    {
+      "id": "P2024-0383",
+      "title": "习近平将出席中国—阿拉伯国家合作论坛第十届部长级会议开幕式并发表主旨讲话",
+      "note": "404 Client Error: Not Found for url: https://cpc.people.com.cn/n1/2024/0526/c64094-40243667.html"
+    },
+    {
+      "id": "P2024-0440",
+      "title": "中共中央政治局召开会议 决定召开二十届三中全会分析研究当前经济形势和经济工作  审议《关于持续深入推进长三角一体化高质量发展若干政策措施的意见》中共中央总书记习近平主持会议",
+      "note": "404 Client Error: Not Found for url: https://cpc.people.com.cn/n1/2024/0501/c64094-40227752.html"
+    }
+  ]
+}

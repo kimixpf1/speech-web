@@ -1,0 +1,33 @@
+{
+  "finished_at": "2026-04-04T12:01:39.684287",
+  "ids_file": "E:\\ccswitch\\AI编程工作目录\\讲话网站\\app\\scripts\\refill_candidate_ids_20260404.json",
+  "batch_start": 155,
+  "batch_end": 165,
+  "batch_size": 10,
+  "candidate_count": 10,
+  "ready_count": 8,
+  "error_count": 2,
+  "skipped_count": 0,
+  "ready_ids": [
+    "P2024-0046",
+    "P2024-0047",
+    "P2024-0050",
+    "P2024-0053",
+    "P2024-0055",
+    "P2024-0057",
+    "P2024-0058",
+    "P2024-0059"
+  ],
+  "error_samples": [
+    {
+      "id": "2024-01",
+      "title": "在2024年中央经济工作会议上的讲话",
+      "note": "404 Client Error: Not Found for url: https://www.news.cn/fortune/20241213/9b2a9b62a68343e481d688e5b58058b3/c.html"
+    },
+    {
+      "id": "2024-13",
+      "title": "在中华全国供销合作总社成立70周年之际作出重要指示",
+      "note": "404 Client Error: Not Found for url: https://www.gov.cn/yaowen/2024-11/28/content_4567890.htm"
+    }
+  ]
+}

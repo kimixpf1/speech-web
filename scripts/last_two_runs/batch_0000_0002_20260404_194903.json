@@ -1,0 +1,21 @@
+{
+  "finished_at": "2026-04-04T19:49:05.448970",
+  "ids_file": "E:\\ccswitch\\AI编程工作目录\\讲话网站\\app\\scripts\\last_two_ids.json",
+  "batch_start": 0,
+  "batch_end": 2,
+  "batch_size": 2,
+  "candidate_count": 2,
+  "ready_count": 1,
+  "error_count": 1,
+  "skipped_count": 0,
+  "ready_ids": [
+    "2024-20"
+  ],
+  "error_samples": [
+    {
+      "id": "2026-09",
+      "title": "向第39届非洲联盟峰会致贺电",
+      "note": "正文提取后仍过短"
+    }
+  ]
+}

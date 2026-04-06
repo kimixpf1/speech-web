@@ -29,6 +29,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="按批次执行 article_details 回填")
     parser.add_argument("--ids-file", required=True, help="候选 ID 列表 JSON 文件")
     parser.add_argument("--service-role-key", default="", help="仅当前进程内使用的 service role key")
+    parser.add_argument("--service-role-key-file", default="", help="本地 service role key 文本文件")
     parser.add_argument("--batch-size", type=int, default=20, help="每批处理条数")
     parser.add_argument("--start-offset", type=int, default=0, help="从第 N 条候选开始")
     parser.add_argument("--end-offset", type=int, default=-1, help="处理到第 N 条候选为止，-1 表示到末尾")
@@ -63,6 +64,11 @@ def main() -> None:
     args = parse_args()
     if args.service_role_key:
         rad.SERVICE_ROLE_KEY = args.service_role_key.strip()
+    elif args.service_role_key_file:
+        key_path = Path(args.service_role_key_file)
+        if not key_path.is_absolute():
+            key_path = (Path.cwd() / key_path).resolve()
+        rad.SERVICE_ROLE_KEY = key_path.read_text(encoding="utf-8").strip()
 
     ids_path = Path(args.ids_file)
     if not ids_path.is_absolute():

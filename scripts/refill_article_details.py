@@ -123,6 +123,10 @@ def normalize_article_url(url: str) -> str:
 def normalize_summary_text(summary: str, max_length: int = MAX_SUMMARY_LENGTH) -> str:
     cleaned = re.sub(r"^【摘要】[\s：:]*", "", summary or "").strip()
     cleaned = re.sub(r"\s+", " ", cleaned)
+    cleaned = re.sub(r"^\s*\d{4}[-/年]\d{1,2}[-/月]\d{1,2}日?(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?\s*", "", cleaned)
+    cleaned = re.sub(r"^(新华社|人民网|新华网|中新网|本报)[^。！？；]{0,30}(电|讯)\s*", "", cleaned)
+    cleaned = re.sub(r"^(新华社记者|本报记者)[^。！？；]{0,30}", "", cleaned)
+    cleaned = re.sub(r"^3月\d{1,2}日[，,]?", "", cleaned)
     if not cleaned:
         return ""
     if len(cleaned) <= max_length:
@@ -203,28 +207,53 @@ def detect_html_encoding(content: bytes, lowered_url: str, response: requests.Re
 
 def build_extractive_summary(title: str, full_text: str) -> str:
     normalized_title = re.sub(r"\s+", "", title or "")
-    sentences = [
-        sentence.strip()
-        for sentence in re.split(r"(?<=[。！？；])", full_text.replace("\r", ""))
-        if sentence.strip()
+    paragraphs = [
+        re.sub(r"\s+", " ", paragraph).strip()
+        for paragraph in re.split(r"\n{2,}", full_text.replace("\r", ""))
+        if paragraph.strip()
     ]
+
     filtered: List[str] = []
-    for sentence in sentences:
-        normalized_sentence = re.sub(r"^[■●•]\s*", "", sentence).strip()
-        compact = re.sub(r"\s+", "", normalized_sentence)
-        if len(normalized_sentence) < 12:
+    for paragraph in paragraphs:
+        normalized_paragraph = re.sub(r"^[■●•]\s*", "", paragraph).strip()
+        compact = re.sub(r"\s+", "", normalized_paragraph)
+        if len(normalized_paragraph) < 12:
             continue
         if compact == normalized_title:
             continue
-        if re.match(r"^(来源|原标题|责任编辑|编辑|打印|分享|微信|微博|本报)", normalized_sentence):
+        if re.match(r"^\d{4}[-/年]\d{1,2}[-/月]\d{1,2}日?(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?$", normalized_paragraph):
             continue
-        filtered.append(normalized_sentence)
+        if "新华社记者" in normalized_paragraph and "摄" in normalized_paragraph:
+            continue
+        if re.match(r"^这是\d{1,2}日", normalized_paragraph):
+            continue
+        if re.match(r"^(来源|原标题|责任编辑|编辑|打印|分享|微信|微博)", normalized_paragraph):
+            continue
+        if not re.search(r"[。！？；]", normalized_paragraph) and len(normalized_paragraph) <= 90:
+            continue
+
+        normalized_paragraph = re.sub(r"^(新华社|人民网|新华网|中新网|本报).{0,30}(电|讯)\s*", "", normalized_paragraph)
+        normalized_paragraph = re.sub(r"^\d{4}[-/年]\d{1,2}[-/月]\d{1,2}日?(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?\s*", "", normalized_paragraph)
+        normalized_paragraph = re.sub(r"^\d{1,2}月\d{1,2}日[，,]?", "", normalized_paragraph).strip()
+        if len(normalized_paragraph) < 12:
+            continue
+        filtered.append(normalized_paragraph)
 
     if not filtered:
         fallback = re.sub(r"\s+", " ", full_text).strip()
         return normalize_summary_text(fallback[:MAX_SUMMARY_LENGTH])
 
-    summary = normalize_summary_text("".join(filtered), max_length=MAX_SUMMARY_LENGTH)
+    summary = normalize_summary_text("".join(filtered[:2]), max_length=MAX_SUMMARY_LENGTH)
+    for pattern in (
+        r"(\d{1,2}月\d{1,2}日[，,].*)",
+        r"((新华社|人民网|新华网|中新网|本报).{0,20}(电|讯).*)",
+    ):
+        match = re.search(pattern, summary)
+        if match:
+            prefix = summary[: match.start()].strip()
+            if prefix and not re.search(r"[。！？；]", prefix) and len(prefix) <= 120:
+                summary = match.group(1).strip()
+                break
     return summary
 
 

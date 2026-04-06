@@ -8,8 +8,12 @@ import {
   Users,
   Eye,
   TrendingUp,
+  Trash2,
   Check,
   RefreshCw,
+  Plus,
+  Edit,
+  Search,
   MessageSquare,
   ExternalLink,
   CheckSquare,
@@ -59,13 +63,20 @@ import {
   type VisitRecord as SupabaseVisitRecord
 } from '@/services/supabaseAnalytics';
 import {
+  updateArticle,
+  deleteArticle,
+  addArticle,
+  generateArticleId,
   getArticles,
+  getLocalArticlesSync,
   syncArticles,
   type Speech
 } from '@/services/articleServiceEnhanced';
 import {
   getPendingArticles,
+  approveArticle,
   rejectArticle,
+  deletePendingArticle,
   getSearchLogs,
   type PendingArticle,
   type SearchLog
@@ -87,6 +98,21 @@ import {
   hasGitHubToken,
 } from '@/services/githubActionsTrigger';
 import {
+  extractArticleWithKimi,
+  extractArticleFromText,
+  saveKimiApiKey,
+  getKimiApiKey,
+  clearKimiApiKey,
+  validateKimiApiKey,
+  isValidUrl,
+  type ExtractedArticle
+} from '@/services/kimiArticleService';
+import {
+  saveArticleDetail,
+  getArticleDetail,
+  type ArticleDetailContent
+} from '@/services/articleDetailService';
+import {
   searchArticles,
   saveDeepSeekApiKey,
   getDeepSeekApiKey,
@@ -94,8 +120,6 @@ import {
   validateDeepSeekApiKey,
   setPreferredApi,
   getPreferredApi,
-  setPreferredExtractionApi,
-  getPreferredExtractionApi,
   shouldAutoSearch,
   setLastSearchTime,
   getLastSearchTime,
@@ -110,15 +134,6 @@ import {
   getCurrentAIProvider,
 } from '@/services/aiSummaryService';
 
-import { AdminAnalyticsTab } from './admin/AdminAnalyticsTab';
-import { AdminAddArticleDialog } from './admin/AdminAddArticleDialog';
-import { AdminApiConfigDialog } from './admin/AdminApiConfigDialog';
-import { AdminArticlesTab } from './admin/AdminArticlesTab';
-import { AdminEditArticleDialog } from './admin/AdminEditArticleDialog';
-import { AdminSuggestionsTab } from './admin/AdminSuggestionsTab';
-import { AdminPendingTab } from './admin/AdminPendingTab';
-import { useAdminArticleManagement } from '@/hooks/useAdminArticleManagement';
-
 interface AdminDashboardProps {
   onLogout: () => void;
 }
@@ -131,6 +146,49 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [articles, setArticles] = useState<Speech[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // 编辑文章对话框
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingArticle, setEditingArticle] = useState<Speech | null>(null);
+  const [editingDetail, setEditingDetail] = useState<ArticleDetailContent | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  
+  // 新增文章对话框
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [newArticle, setNewArticle] = useState<Partial<Speech>>({
+    category: 'speech',
+    categoryName: '重要讲话',
+    domain: 'economy',
+    domainName: '经济',
+    isZhengjiguan: false,
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1,
+    day: new Date().getDate(),
+  });
+
+  // URL自动提取状态
+  const [fetchUrl, setFetchUrl] = useState('');
+  const [fetchingArticle, setFetchingArticle] = useState(false);
+  const [fetchError, setFetchError] = useState('');
+  const [fetchedContent, setFetchedContent] = useState('');
+  const [fetchedAnalysis, setFetchedAnalysis] = useState('');
+
+  // Kimi API Key 状态
+  const [kimiApiKey, setKimiApiKey] = useState(getKimiApiKey() || '');
+  const [showKimiKeyDialog, setShowKimiKeyDialog] = useState(false);
+  const [kimiKeyInput, setKimiKeyInput] = useState('');
+  const [kimiKeyValidating, setKimiKeyValidating] = useState(false);
+
+  // 手动粘贴内容状态
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [manualContent, setManualContent] = useState('');
+  const [manualUrl, setManualUrl] = useState('');
+  const [processingManual, setProcessingManual] = useState(false);
+
+  // 删除确认对话框
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingArticle, setDeletingArticle] = useState<Speech | null>(null);
   
   // 操作成功提示
   const [successMessage, setSuccessMessage] = useState('');
@@ -166,7 +224,6 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   // AI 搜索状态（新增）
   const [deepSeekApiKey, setDeepSeekApiKeyState] = useState(getDeepSeekApiKey() || '');
   const [preferredApi, setPreferredApiState] = useState<'kimi' | 'deepseek'>(getPreferredApi());
-  const [preferredExtractionApi, setPreferredExtractionApiState] = useState<'kimi' | 'deepseek'>(getPreferredExtractionApi());
   const [showApiConfigDialog, setShowApiConfigDialog] = useState(false);
   const [deepSeekKeyInput, setDeepSeekKeyInput] = useState('');
   const [deepSeekKeyValidating, setDeepSeekKeyValidating] = useState(false);
@@ -198,129 +255,42 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   }, [navigate]);
 
   const loadData = async () => {
-    const tasks = await Promise.allSettled([
-      isSupabaseConfigured()
-        ? Promise.all([getSupabaseStats(), getSupabaseRecentVisits(100)])
-        : Promise.resolve(null),
-      getSuggestions(),
-      getUnreadCount(),
-      getArticles(),
-      getPendingArticles(),
-      getSearchLogs(5),
-      getTodaySearchStats(),
-    ]);
+    try {
+      // 从 Supabase 获取访问统计
+      if (isSupabaseConfigured()) {
+        const stats = await getSupabaseStats();
+        const records = await getSupabaseRecentVisits(100);
+        setVisitStats(stats);
+        setVisitRecords(records);
+      }
+      setSuggestions(await getSuggestions());
+      setUnreadCount(await getUnreadCount());
 
-    const [visitTask, suggestionsTask, unreadTask, articlesTask, pendingTask, logsTask, todayStatsTask] = tasks;
+      // 从云端获取文章
+      const articles = await getArticles();
+      console.log('Loaded articles from cloud:', articles.length);
+      setArticles(articles);
 
-    if (visitTask.status === 'fulfilled' && visitTask.value) {
-      const [stats, records] = visitTask.value;
-      setVisitStats(stats);
-      setVisitRecords(records);
-    } else if (visitTask.status === 'rejected') {
-      console.error('Failed to load visit data:', visitTask.reason);
+      const pending = await getPendingArticles();
+      setPendingArticles(pending);
+      setPendingCount(pending.length);
+
+      // 加载搜索日志
+      const logs = await getSearchLogs(5);
+      setSearchLogs(logs);
+
+      // 加载今日统计
+      const stats = await getTodaySearchStats();
+      setTodayStats(stats);
+
+      // 检查是否需要自动搜索
+      if (shouldAutoSearch()) {
+        setShowAutoSearchPrompt(true);
+      }
+    } catch (error) {
+      console.error('Failed to load data:', error);
     }
-
-    if (suggestionsTask.status === 'fulfilled') {
-      setSuggestions(suggestionsTask.value);
-    } else {
-      console.error('Failed to load suggestions:', suggestionsTask.reason);
-    }
-
-    if (unreadTask.status === 'fulfilled') {
-      setUnreadCount(unreadTask.value);
-    } else {
-      console.error('Failed to load unread suggestion count:', unreadTask.reason);
-    }
-
-    if (articlesTask.status === 'fulfilled') {
-      console.log('Loaded articles from cloud:', articlesTask.value.length);
-      setArticles(articlesTask.value);
-    } else {
-      console.error('Failed to load articles:', articlesTask.reason);
-    }
-
-    if (pendingTask.status === 'fulfilled') {
-      setPendingArticles(pendingTask.value);
-      setPendingCount(pendingTask.value.length);
-    } else {
-      console.error('Failed to load pending articles:', pendingTask.reason);
-    }
-
-    if (logsTask.status === 'fulfilled') {
-      setSearchLogs(logsTask.value);
-    } else {
-      console.error('Failed to load search logs:', logsTask.reason);
-    }
-
-    if (todayStatsTask.status === 'fulfilled') {
-      setTodayStats(todayStatsTask.value);
-    } else {
-      console.error('Failed to load today search stats:', todayStatsTask.reason);
-    }
-
-    setShowAutoSearchPrompt(shouldAutoSearch());
   };
-
-  const showTemporarySuccessMessage = (message: string, duration = 3000) => {
-    setSuccessMessage(message);
-    setTimeout(() => setSuccessMessage(''), duration);
-  };
-
-  const {
-    addDialogOpen,
-    confirmDeleteArticle,
-    deleteDialogOpen,
-    deletingArticle,
-    editDialogOpen,
-    editingArticle,
-    editingDetail,
-    fetchedAnalysis,
-    fetchedContent,
-    fetchError,
-    fetchUrl,
-    fetchingArticle,
-    filteredArticles,
-    hasConfiguredExtractionProvider,
-    handleAddArticle,
-    handleAddDialogOpenChange,
-    handleApprovePending,
-    handleClearKimiKey,
-    handleDeleteArticle,
-    handleEditArticle,
-    handleFetchFromUrl,
-    handleProcessManualContent,
-    handleSaveArticle,
-    handleSaveKimiKey,
-    kimiApiKey,
-    kimiKeyInput,
-    kimiKeyValidating,
-    loadingDetail,
-    manualContent,
-    manualUrl,
-    newArticle,
-    processingManual,
-    preferredExtractionProvider,
-    searchTerm,
-    setDeleteDialogOpen,
-    setEditingArticle,
-    setEditingDetail,
-    setEditDialogOpen,
-    setFetchUrl,
-    setKimiKeyInput,
-    setManualContent,
-    setManualUrl,
-    setNewArticle,
-    setShowKimiKeyDialog,
-    setShowManualInput,
-    showKimiKeyDialog,
-    showManualInput,
-    setSearchTerm,
-  } = useAdminArticleManagement({
-    articles,
-    loadData,
-    onSuccess: showTemporarySuccessMessage,
-    setActiveTab,
-  });
   
   // 手动刷新
   const handleManualSync = async () => {
@@ -338,28 +308,28 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   const handleMarkSuggestionRead = async (id: string) => {
     if (id) {
-      const success = await markAsRead(id);
+      await markAsRead(id);
       await loadData();
-      setSuccessMessage(success ? '标记已读成功' : '标记已读失败');
+      setSuccessMessage('标记已读成功');
       setTimeout(() => setSuccessMessage(''), 3000);
     }
   };
 
   const handleDeleteSuggestion = async (id: string) => {
     if (id && confirm('确定要删除这条建议吗？')) {
-      const success = await deleteSuggestion(id);
+      await deleteSuggestion(id);
       await loadData();
-      setSuccessMessage(success ? '删除成功' : '删除失败');
+      setSuccessMessage('删除成功');
       setTimeout(() => setSuccessMessage(''), 3000);
     }
   };
 
   const handleClearSuggestions = async () => {
     if (confirm('确定要清空所有建议吗？此操作不可恢复！')) {
-      const success = await clearAllSuggestions();
+      await clearAllSuggestions();
       setSelectedSuggestions(new Set());
       await loadData();
-      setSuccessMessage(success ? '清空成功' : '清空失败');
+      setSuccessMessage('清空成功');
       setTimeout(() => setSuccessMessage(''), 3000);
     }
   };
@@ -389,10 +359,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       return;
     }
     const ids = Array.from(selectedSuggestions);
-    const success = await markMultipleAsRead(ids);
+    await markMultipleAsRead(ids);
     setSelectedSuggestions(new Set());
     await loadData();
-    setSuccessMessage(success ? `已标记 ${ids.length} 条建议为已读` : '批量标记已读失败');
+    setSuccessMessage(`已标记 ${ids.length} 条建议为已读`);
     setTimeout(() => setSuccessMessage(''), 3000);
   };
 
@@ -403,10 +373,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     }
     if (confirm(`确定要删除选中的 ${selectedSuggestions.size} 条建议吗？`)) {
       const ids = Array.from(selectedSuggestions);
-      const success = await deleteMultipleSuggestions(ids);
+      await deleteMultipleSuggestions(ids);
       setSelectedSuggestions(new Set());
       await loadData();
-      setSuccessMessage(success ? `已删除 ${ids.length} 条建议` : '批量删除失败');
+      setSuccessMessage(`已删除 ${ids.length} 条建议`);
       setTimeout(() => setSuccessMessage(''), 3000);
     }
   };
@@ -476,6 +446,462 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     }
   };
 
+  const handleEditArticle = async (article: Speech) => {
+    // 创建深拷贝以避免引用问题
+    setEditingArticle(JSON.parse(JSON.stringify(article)));
+    setEditDialogOpen(true);
+    
+    // 加载文章详情
+    setLoadingDetail(true);
+    try {
+      const detail = await getArticleDetail(article.id);
+      if (detail) {
+        setEditingDetail(detail);
+      } else {
+        // 如果没有详情，创建空详情
+        setEditingDetail({
+          id: article.id,
+          abstract: article.summary || '',
+          fullText: '',
+          analysis: '',
+        });
+      }
+    } catch (error) {
+      console.error('Error loading article detail:', error);
+      setEditingDetail({
+        id: article.id,
+        abstract: article.summary || '',
+        fullText: '',
+        analysis: '',
+      });
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  const handleSaveArticle = async () => {
+    if (!editingArticle) return;
+
+    try {
+      const result = await updateArticle(editingArticle);
+      if (result.success) {
+        // 保存文章详情
+        if (editingDetail) {
+          await saveArticleDetail(editingDetail);
+        }
+        setEditDialogOpen(false);
+        setEditingArticle(null);
+        setEditingDetail(null);
+        await loadData();
+        setSuccessMessage('保存成功');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        alert('保存失败：' + (result.error || '请重试'));
+      }
+    } catch (error) {
+      console.error('Save article error:', error);
+      alert('保存失败：' + (error instanceof Error ? error.message : '未知错误'));
+    }
+  };
+
+  const handleDeleteArticle = (article: Speech) => {
+    // 创建深拷贝以避免引用问题
+    setDeletingArticle(JSON.parse(JSON.stringify(article)));
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteArticle = async () => {
+    if (!deletingArticle) return;
+
+    try {
+      const success = await deleteArticle(deletingArticle.id);
+      if (success) {
+        setDeleteDialogOpen(false);
+        setDeletingArticle(null);
+        await loadData();
+        setSuccessMessage('删除成功');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        alert('删除失败，请重试');
+      }
+    } catch (error) {
+      console.error('Delete article error:', error);
+      alert('删除失败：' + (error instanceof Error ? error.message : '未知错误'));
+    }
+  };
+
+  // 从URL自动提取文章内容（使用Kimi AI）
+  const handleFetchFromUrl = async () => {
+    if (!fetchUrl.trim()) {
+      setFetchError('请输入文章URL');
+      return;
+    }
+
+    if (!isValidUrl(fetchUrl.trim())) {
+      setFetchError('请输入有效的URL地址');
+      return;
+    }
+
+    if (!kimiApiKey) {
+      setShowKimiKeyDialog(true);
+      return;
+    }
+
+    setFetchingArticle(true);
+    setFetchError('');
+    setFetchedContent('');
+    setFetchedAnalysis('');
+
+    try {
+      const article = await extractArticleWithKimi(fetchUrl.trim());
+
+      // 从日期字符串中提取年月日
+      let year = new Date().getFullYear();
+      let month = new Date().getMonth() + 1;
+      let day = new Date().getDate();
+
+      if (article.date) {
+        // 支持多种日期格式：YYYY-MM-DD 或 YYYY年M月D日
+        const dateMatch = article.date.match(/(\d{4})[-年](\d{1,2})[-月](\d{1,2})/);
+        if (dateMatch) {
+          year = parseInt(dateMatch[1]);
+          month = parseInt(dateMatch[2]);
+          day = parseInt(dateMatch[3]);
+        } else {
+          // 尝试标准格式
+          const parts = article.date.split('-');
+          if (parts.length === 3) {
+            year = parseInt(parts[0]);
+            month = parseInt(parts[1]);
+            day = parseInt(parts[2]);
+          }
+        }
+      }
+
+      // 自动填充表单
+      setNewArticle({
+        ...newArticle,
+        title: article.title,
+        date: article.date,
+        year,
+        month,
+        day,
+        source: article.source,
+        summary: article.summary,
+        url: article.url,
+        category: article.category || 'speech',
+        categoryName: article.categoryName || '重要讲话',
+        domain: article.domain || 'politics',
+        domainName: article.domainName || '政治',
+        location: article.location,
+      });
+
+      // 保存全文内容和解读分析用于详情页
+      setFetchedContent(article.fullText);
+      setFetchedAnalysis(article.analysis);
+
+      setSuccessMessage(`文章内容已精准提取！标题: ${article.title}`);
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (error) {
+      console.error('Fetch article error:', error);
+      setFetchError(error instanceof Error ? error.message : '提取文章失败，请手动填写');
+    } finally {
+      setFetchingArticle(false);
+    }
+  };
+
+  // Kimi API Key 配置
+  const handleSaveKimiKey = async () => {
+    if (!kimiKeyInput.trim()) return;
+
+    setKimiKeyValidating(true);
+    const result = await validateKimiApiKey(kimiKeyInput.trim());
+    setKimiKeyValidating(false);
+
+    if (result.valid) {
+      saveKimiApiKey(kimiKeyInput.trim());
+      setKimiApiKey(kimiKeyInput.trim());
+      setShowKimiKeyDialog(false);
+      setSuccessMessage('Kimi API Key 配置成功！');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } else {
+      setFetchError(result.error || 'API Key验证失败');
+      setTimeout(() => setFetchError(''), 5000);
+    }
+  };
+
+  const handleClearKimiKey = () => {
+    clearKimiApiKey();
+    setKimiApiKey('');
+    setSuccessMessage('已清除Kimi API Key');
+    setTimeout(() => setSuccessMessage(''), 3000);
+  };
+
+  // 处理手动粘贴的内容
+  const handleProcessManualContent = async () => {
+    if (!manualContent.trim()) {
+      alert('请粘贴网页内容');
+      return;
+    }
+
+    if (!kimiApiKey) {
+      setShowKimiKeyDialog(true);
+      return;
+    }
+
+    setProcessingManual(true);
+    try {
+      const url = manualUrl.trim() || 'https://example.com/article';
+      const article = await extractArticleFromText(manualContent, url);
+
+      setNewArticle({
+        ...newArticle,
+        title: article.title,
+        date: article.date,
+        source: article.source,
+        summary: article.summary,
+        url: article.url,
+        category: article.category || 'speech',
+        categoryName: article.categoryName || '重要讲话',
+        location: article.location,
+      });
+
+      setFetchedContent(article.fullText);
+      setFetchedAnalysis(article.analysis);
+      setShowManualInput(false);
+      setManualContent('');
+      setManualUrl('');
+
+      setSuccessMessage(`内容提取成功！标题: ${article.title}`);
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (error) {
+      console.error('Process manual content error:', error);
+      alert('提取失败：' + (error instanceof Error ? error.message : '未知错误'));
+    } finally {
+      setProcessingManual(false);
+    }
+  };
+
+  const handleAddArticle = async () => {
+    if (!newArticle.title || !newArticle.date || !newArticle.source || !newArticle.summary) {
+      alert('请填写完整信息');
+      return;
+    }
+
+    try {
+      // 从日期字符串中提取年月日（防止为空或格式错误）
+      let year = newArticle.year;
+      let month = newArticle.month;
+      let day = newArticle.day;
+
+      if (newArticle.date) {
+        const dateMatch = newArticle.date.match(/(\d{4})[-年](\d{1,2})[-月](\d{1,2})/);
+        if (dateMatch) {
+          year = parseInt(dateMatch[1]);
+          month = parseInt(dateMatch[2]);
+          day = parseInt(dateMatch[3]);
+        } else {
+          const parts = newArticle.date.split('-');
+          if (parts.length === 3) {
+            year = parseInt(parts[0]);
+            month = parseInt(parts[1]);
+            day = parseInt(parts[2]);
+          }
+        }
+      }
+
+      // 确保year/month/day有效
+      if (!year || isNaN(year)) year = new Date().getFullYear();
+      if (!month || isNaN(month)) month = new Date().getMonth() + 1;
+      if (!day || isNaN(day)) day = new Date().getDate();
+
+      const articleId = generateArticleId(year);
+      const article: Speech = {
+        id: articleId,
+        title: newArticle.title,
+        date: newArticle.date,
+        year,
+        month,
+        day,
+        category: newArticle.category as 'speech' | 'article' | 'meeting' | 'inspection',
+        categoryName: newArticle.categoryName || '重要讲话',
+        domain: newArticle.domain || 'economy',
+        domainName: newArticle.domainName || '经济',
+        isZhengjiguan: newArticle.isZhengjiguan || false,
+        zhengjiguanLevel: newArticle.zhengjiguanLevel,
+        source: newArticle.source,
+        summary: newArticle.summary,
+        url: newArticle.url || '',
+        location: newArticle.location,
+      };
+
+      const result = await addArticle(article);
+      if (result.success) {
+        // 如果有抓取到的全文内容，保存到详情页
+        if (fetchedContent) {
+          const detail: ArticleDetailContent = {
+            id: articleId,
+            abstract: newArticle.summary,
+            fullText: fetchedContent,
+            analysis: fetchedAnalysis || '解读分析正在整理中...'
+          };
+          await saveArticleDetail(detail);
+        }
+
+        // 如果是从审批流程进来的，自动审批
+        const wasApproval = !!pendingToApprove;
+        if (pendingToApprove) {
+          await approveArticle(pendingToApprove);
+          setPendingToApprove(null);
+        }
+
+        setAddDialogOpen(false);
+        setNewArticle({
+          category: 'speech',
+          categoryName: '重要讲话',
+          domain: 'economy',
+          domainName: '经济',
+          isZhengjiguan: false,
+          year: new Date().getFullYear(),
+          month: new Date().getMonth() + 1,
+          day: new Date().getDate(),
+        });
+        setFetchUrl('');
+        setFetchError('');
+        setFetchedContent('');
+        setFetchedAnalysis('');
+        await loadData();
+        
+        if (result.error) {
+          setSuccessMessage(`添加成功（警告：${result.error}）`);
+        } else {
+          setSuccessMessage(wasApproval ? '已发布！' : '添加成功！');
+        }
+        setTimeout(() => setSuccessMessage(''), 5000);
+      } else {
+        alert('添加失败：' + (result.error || '未知错误'));
+      }
+    } catch (error) {
+      console.error('Add article error:', error);
+      alert('添加失败：' + (error instanceof Error ? error.message : '未知错误'));
+    }
+  };
+
+  const handleApprovePending = async (pending: PendingArticle) => {
+    // 记录当前审批的 pending 文章 ID，以便添加后自动审批
+    setPendingToApprove(pending.id);
+    
+    // 先设置 URL（用于 AI 提取框）
+    if (pending.url) {
+      setFetchUrl(pending.url);
+    }
+    
+    // 打开对话框
+    setAddDialogOpen(true);
+    
+    // 设置文章基本信息
+    const articleData = {
+      title: pending.title,
+      date: pending.date,
+      year: pending.year || new Date().getFullYear(),
+      month: pending.month || new Date().getMonth() + 1,
+      day: pending.day || new Date().getDate(),
+      category: (pending.category as Speech['category']) || 'speech',
+      categoryName: pending.categoryName || '重要讲话',
+      domain: (pending.domain as Speech['domain']) || 'politics',
+      domainName: pending.domainName || '政治',
+      source: pending.source || '',
+      summary: pending.summary || '',
+      url: pending.url || '',
+      location: pending.location,
+    };
+    setNewArticle(articleData);
+    
+    // 如果有 URL，自动触发 AI 提取
+    if (pending.url) {
+      // 延迟确保对话框已渲染
+      setTimeout(() => {
+        handleFetchFromUrlAuto(pending.url || '', pending.title, pending.summary);
+      }, 300);
+    }
+  };
+
+  // 待审批文章 ID（用于添加后自动审批）
+  const [pendingToApprove, setPendingToApprove] = useState<string | null>(null);
+
+  // 自动触发 AI 提取（审批时调用）
+  const handleFetchFromUrlAuto = async (url: string, title?: string, summary?: string) => {
+    console.log('handleFetchFromUrlAuto 被调用:', url);
+    
+    if (!url.trim()) {
+      console.log('URL 为空，跳过提取');
+      return;
+    }
+    
+    // 检查是否有 API Key
+    const kimiKey = getKimiApiKey();
+    const deepSeekKey = getDeepSeekApiKey();
+    
+    console.log('API Key 状态:', { kimi: !!kimiKey, deepseek: !!deepSeekKey });
+    
+    if (!kimiKey && !deepSeekKey) {
+      console.log('没有 API Key，只填入基本信息');
+      // 没有 API Key，只填入 URL，不自动提取
+      setFetchUrl(url);
+      setNewArticle(prev => ({
+        ...prev,
+        title: title || prev.title,
+        summary: summary || prev.summary,
+        url: url,
+      }));
+      setFetchError('未配置 Kimi/DeepSeek API Key，请手动填写或配置 API Key');
+      return;
+    }
+    
+    setFetchingArticle(true);
+    setFetchError('');
+    setFetchUrl(url);
+    
+    try {
+      console.log('开始 AI 提取...');
+      const article = await extractArticleWithKimi(url, kimiKey || deepSeekKey || '');
+      console.log('AI 提取成功:', article.title);
+      
+      setNewArticle(prev => ({
+        ...prev,
+        title: article.title || title || prev.title,
+        date: article.date || prev.date,
+        year: article.date ? parseInt(article.date.split('-')[0]) : prev.year,
+        month: article.date ? parseInt(article.date.split('-')[1]) : prev.month,
+        day: article.date ? parseInt(article.date.split('-')[2]) : prev.day,
+        source: article.source || prev.source,
+        summary: article.summary || summary || prev.summary,
+        url: article.url || url,
+        category: (article.category as Speech['category']) || prev.category,
+        categoryName: article.categoryName || prev.categoryName,
+        location: article.location || prev.location,
+      }));
+      
+      setFetchedContent(article.fullText || '');
+      setFetchedAnalysis(article.analysis || '');
+      
+      setSuccessMessage(`AI提取成功！标题: ${article.title}`);
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (error) {
+      console.error('Fetch article error:', error);
+      setFetchError(error instanceof Error ? error.message : '提取文章失败，请手动填写');
+      // 即使提取失败，也填入基本信息
+      setNewArticle(prev => ({
+        ...prev,
+        title: title || prev.title,
+        summary: summary || prev.summary,
+        url: url,
+      }));
+    } finally {
+      setFetchingArticle(false);
+    }
+  };
+
   const handleRejectPending = async (id: string) => {
     await rejectArticle(id);
     await loadData();
@@ -500,6 +926,22 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       setCopiedUrl(url);
       setTimeout(() => setCopiedUrl(null), 2000);
     }
+  };
+
+  // 快速新增到系统：预填数据并跳转到文章管理Tab
+  const handleQuickAdd = (article: PendingArticle) => {
+    setNewArticle({
+      title: article.title || '',
+      date: article.date || '',
+      category: (article.category as Speech['category']) || 'speech',
+      categoryName: article.categoryName || '重要讲话',
+      source: article.source || '',
+      summary: article.summary || '',
+      url: article.url || '',
+      location: article.location || '',
+    });
+    setActiveTab('articles');
+    setAddDialogOpen(true);
   };
 
   // GitHub Token 配置
@@ -717,12 +1159,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
       if (result.success) {
         setSearchStage('completed');
-        setSearchMessage(
-          result.message ||
-            (result.newCount > 0
-              ? `后台搜索完成！新增 ${result.newCount} 篇待审核文章`
-              : '后台搜索完成！暂无新文章（可能已存在或工作流未找到）')
-        );
+        if (result.newCount > 0) {
+          setSearchMessage(`后台搜索完成！新增 ${result.newCount} 篇待审核文章`);
+        } else {
+          setSearchMessage('后台搜索完成！暂无新文章（可能已存在或工作流未找到）');
+        }
         
         // 刷新数据
         await loadData();
@@ -767,14 +1208,10 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     setTimeout(() => setSuccessMessage(''), 3000);
   };
 
+  // 切换首选 API
   const handleSwitchPreferredApi = (api: 'kimi' | 'deepseek') => {
     setPreferredApi(api);
     setPreferredApiState(api);
-  };
-
-  const handleSwitchPreferredExtractionApi = (api: 'kimi' | 'deepseek') => {
-    setPreferredExtractionApi(api);
-    setPreferredExtractionApiState(api);
   };
 
   // 加载最近的workflow运行记录
@@ -798,6 +1235,11 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       }
     };
   }, [pollInterval]);
+
+  const filteredArticles = articles.filter(a => 
+    a.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    a.summary.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const formatNumber = (num: number) => num.toLocaleString('zh-CN');
 
@@ -883,82 +1325,870 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
             {/* 访问统计 */}
             <TabsContent value="analytics" className="space-y-6">
-              <AdminAnalyticsTab
-                visitStats={visitStats as any}
-                visitRecords={visitRecords}
-                selectedVisits={selectedVisits}
-                onLoadData={loadData}
-                onClearVisits={handleClearVisits}
-                onClearAllVisits={handleClearAllVisits}
-                onToggleSelectAll={toggleSelectAllVisits}
-                onToggleSelectVisit={toggleSelectVisit}
-              />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-xl font-bold text-gray-900">访问统计</h2>
+                  <a 
+                    href={getBaiduStatsUrl()} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    百度统计后台
+                  </a>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={loadData}>
+                    <RefreshCw className="w-4 h-4 mr-1" />
+                    刷新
+                  </Button>
+                  {selectedVisits.size > 0 && (
+                    <Button variant="outline" size="sm" onClick={handleClearVisits} className="text-red-600">
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      删除选中 ({selectedVisits.size})
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" onClick={handleClearAllVisits} className="text-red-600">
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    清空全部
+                  </Button>
+                </div>
+              </div>
+
+              {visitStats && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white border-0">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-red-100 text-sm">总访问量</p>
+                          <p className="text-3xl font-bold">{formatNumber(visitStats.totalVisits)}</p>
+                        </div>
+                        <Eye className="w-10 h-10 text-red-200" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-blue-100 text-sm">今日访问</p>
+                          <p className="text-3xl font-bold">{formatNumber(visitStats.todayVisits)}</p>
+                        </div>
+                        <TrendingUp className="w-10 h-10 text-blue-200" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-green-100 text-sm">本周访问</p>
+                          <p className="text-3xl font-bold">{formatNumber(visitStats.weekVisits)}</p>
+                        </div>
+                        <TrendingUp className="w-10 h-10 text-green-200" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-purple-100 text-sm">独立访客</p>
+                          <p className="text-3xl font-bold">{formatNumber(visitStats.uniqueVisitors)}</p>
+                        </div>
+                        <Users className="w-10 h-10 text-purple-200" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>最近访问记录</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {visitRecords.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-gray-200">
+                            <th className="text-left py-3 px-2 text-sm font-medium text-gray-500 w-10">
+                              <button 
+                                onClick={toggleSelectAllVisits}
+                                className="flex items-center justify-center"
+                              >
+                                {selectedVisits.size === visitRecords.length && visitRecords.length > 0 ? (
+                                  <CheckSquare className="w-5 h-5 text-red-600" />
+                                ) : (
+                                  <Square className="w-5 h-5" />
+                                )}
+                              </button>
+                            </th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">时间</th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">设备</th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">浏览器</th>
+                            <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">系统</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {visitRecords.slice(0, 20).map((record, index) => (
+                            <tr key={index} className={`border-b border-gray-100 hover:bg-gray-50 ${selectedVisits.has(record.timestamp) ? 'bg-red-50' : ''}`}>
+                              <td className="py-3 px-2">
+                                <button 
+                                  onClick={() => toggleSelectVisit(record.timestamp)}
+                                  className="flex items-center justify-center"
+                                >
+                                  {selectedVisits.has(record.timestamp) ? (
+                                    <CheckSquare className="w-5 h-5 text-red-600" />
+                                  ) : (
+                                    <Square className="w-5 h-5" />
+                                  )}
+                                </button>
+                              </td>
+                              <td className="py-3 px-4 text-sm">{record.date} {record.time}</td>
+                              <td className="py-3 px-4 text-sm">{record.device}</td>
+                              <td className="py-3 px-4 text-sm">{record.browser}</td>
+                              <td className="py-3 px-4 text-sm">{record.os}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-center py-8">暂无访问记录</p>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
 
+            {/* 近期新增文章 */}
             <TabsContent value="pending" className="space-y-6">
-              <AdminPendingTab
-                showAutoSearchPrompt={showAutoSearchPrompt}
-                hasApiKey={Boolean(kimiApiKey || deepSeekApiKey)}
-                preferredApi={preferredApi}
-                searching={searching}
-                searchMessage={searchMessage}
-                searchStage={searchStage}
-                todayStats={todayStats}
-                searchLogs={searchLogs}
-                pendingArticles={pendingArticles}
-                copiedUrl={copiedUrl}
-                kimiApiKey={kimiApiKey}
-                deepSeekApiKey={deepSeekApiKey}
-                onDismissAutoSearchPrompt={() => setShowAutoSearchPrompt(false)}
-                onOpenApiConfig={() => setShowApiConfigDialog(true)}
-                onLoadData={loadData}
-                onSearch={handleBackendSearch}
-                onCopyUrl={handleCopyUrl}
-                onApprovePending={handleApprovePending}
-                onRejectPending={handleRejectPending}
-              />
+              {/* 自动搜索提示 */}
+              {showAutoSearchPrompt && (kimiApiKey || deepSeekApiKey) && (
+                <Card className="border-blue-200 bg-blue-50">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Bell className="w-5 h-5 text-blue-600" />
+                        <span className="text-blue-800">距离上次搜索已超过 12 小时，是否立即搜索最新文章？</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => setShowAutoSearchPrompt(false)}>
+                          稍后
+                        </Button>
+                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={handleBackendSearch}>
+                          立即搜索
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* 区域1: 顶部操作栏 */}
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">AI 文章搜索</h2>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setShowApiConfigDialog(true)}
+                    title="配置 AI API Key"
+                  >
+                    <Settings className="w-4 h-4 mr-1" />
+                    API配置
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={loadData}
+                  >
+                    <RefreshCw className="w-4 h-4 mr-1" />
+                    刷新
+                  </Button>
+                  <Button 
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                    size="sm"
+                    onClick={handleBackendSearch}
+                    disabled={searching}
+                    title="触发 GitHub Actions 工作流搜索最新文章"
+                  >
+                    {searching ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                        搜索中...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-1" />
+                        AI搜索
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* 搜索进度 */}
+              {searching && (
+                <Card className="border-blue-200 bg-blue-50">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <Loader2 className="w-5 h-5 text-blue-600 animate-spin flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-blue-800 font-medium mb-1">{searchMessage}</p>
+                        <div className="flex items-center gap-2 text-sm text-blue-600">
+                          <span>使用 {preferredApi === 'kimi' ? 'Kimi' : 'DeepSeek'} API 搜索中...</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* 搜索完成/失败提示 */}
+              {(searchStage === 'completed' || searchStage === 'failed') && !searching && (
+                <Card className={searchStage === 'completed' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      {searchStage === 'completed' ? (
+                        <Check className="w-5 h-5 text-green-600" />
+                      ) : (
+                        <X className="w-5 h-5 text-red-600" />
+                      )}
+                      <p className={searchStage === 'completed' ? 'text-green-700' : 'text-red-700'}>
+                        {searchMessage}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* 区域2: 搜索执行记录 + 每日总结 */}
+              <>
+                {/* 定时任务说明 */}
+                <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className="w-4 h-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-800">自动定时搜索</span>
+                      <Badge variant="outline" className="text-xs bg-green-100 text-green-700 border-green-300">
+                        每日 8:00 / 20:00
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-green-700 space-y-1">
+                      <p>• <strong>Kimi API</strong> 联网搜索习近平总书记最新讲话</p>
+                      <p>• <strong>百度搜索</strong> 人民网、新华网、求是网验证</p>
+                      <p>• 两个来源自动去重，新文章进入待审核</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* 每日总结卡片 */}
+                <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm text-blue-800 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4" />
+                      今日运行总结
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    {todayStats.runCount === 0 ? (
+                      <div className="text-center py-4 text-gray-500 text-sm">
+                        今日暂无搜索记录，点击"立即搜索"开始
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <div className="text-2xl font-bold text-blue-700">
+                            {todayStats.runCount}
+                          </div>
+                          <div className="text-xs text-blue-600">运行次数</div>
+                        </div>
+                        <div>
+                          <div className="text-2xl font-bold text-green-700">
+                            {todayStats.totalFound}
+                          </div>
+                          <div className="text-xs text-green-600">搜索到文章</div>
+                        </div>
+                        <div>
+                          <div className="text-2xl font-bold text-purple-700">
+                            {todayStats.totalNew}
+                          </div>
+                          <div className="text-xs text-purple-600">新增待审核</div>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* 详细执行记录 */}
+                {searchLogs.length > 0 && (
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm text-gray-600 flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        自动搜索执行记录（最近5次）
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="space-y-3">
+                        {searchLogs.map((log) => (
+                          <div key={log.id} className="bg-gray-50 rounded-lg p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                  log.status === 'success' ? 'bg-green-500' :
+                                  log.status === 'partial_fail' ? 'bg-yellow-500' : 'bg-red-500'
+                                }`}></span>
+                                <span className="text-sm font-medium text-gray-700">
+                                  {(() => {
+                                    // 正确处理时区：确保时间戳被解析为北京时间
+                                    const date = new Date(log.executed_at);
+                                    // 使用 toLocaleString 并明确指定时区
+                                    return date.toLocaleString('zh-CN', {
+                                      month: 'short', day: 'numeric',
+                                      hour: '2-digit', minute: '2-digit',
+                                      timeZone: 'Asia/Shanghai'
+                                    });
+                                  })()}
+                                </span>
+                                <span className={`text-xs px-2 py-0.5 rounded ${
+                                  log.status === 'success' ? 'bg-green-100 text-green-700' :
+                                  log.status === 'partial_fail' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                                }`}>
+                                  {log.status === 'success' ? '成功' : log.status === 'partial_fail' ? '部分失败' : '失败'}
+                                </span>
+                              </div>
+                              <span className="text-xs text-gray-500">{log.duration_seconds}秒</span>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 text-xs">
+                              <div className="bg-white rounded p-2 text-center">
+                                <div className="text-gray-500">爬取</div>
+                                <div className="font-bold text-gray-700">{log.crawl_count}条</div>
+                              </div>
+                              <div className="bg-white rounded p-2 text-center">
+                                <div className="text-gray-500">搜索</div>
+                                <div className="font-bold text-gray-700">{log.search_count}条</div>
+                              </div>
+                              <div className="bg-white rounded p-2 text-center">
+                                <div className="text-gray-500">新增</div>
+                                <div className="font-bold text-green-600">{log.new_count}条</div>
+                              </div>
+                            </div>
+                            {/* 详细日志 */}
+                            {log.details?.crawler_results && (
+                              <div className="mt-2 pt-2 border-t border-gray-200">
+                                <div className="text-xs text-gray-500 mb-1">爬虫详情：</div>
+                                <div className="flex flex-wrap gap-1">
+                                  {Object.entries(log.details.crawler_results).map(([key, val]: [string, any]) => (
+                                    <span key={key} className={`text-xs px-2 py-0.5 rounded ${
+                                      val.status === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                                    }`}>
+                                      {val.name || key}: {val.count}条
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {/* Kimi+百度搜索详情 */}
+                            {(log.details?.kimi !== undefined || log.details?.baidu !== undefined) && (
+                              <div className="mt-2 pt-2 border-t border-gray-200">
+                                <div className="text-xs text-gray-500 mb-1">搜索来源：</div>
+                                <div className="flex flex-wrap gap-1">
+                                  {log.details?.kimi !== undefined && (
+                                    <span className={`text-xs px-2 py-0.5 rounded ${log.details.kimi > 0 ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+                                      Kimi: {log.details.kimi}条
+                                    </span>
+                                  )}
+                                  {log.details?.baidu !== undefined && (
+                                    <span className={`text-xs px-2 py-0.5 rounded ${log.details.baidu > 0 ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                      百度: {log.details.baidu}条
+                                    </span>
+                                  )}
+                                  {log.details?.search_date && (
+                                    <span className="text-xs px-2 py-0.5 rounded bg-purple-50 text-purple-700">
+                                      {log.details.search_date === 'yesterday' ? '搜昨日' : '搜今日'}
+                                    </span>
+                                  )}
+                                  {log.details?.api_used && (
+                                    <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">
+                                      {log.details.api_used}
+                                    </span>
+                                  )}
+                                  {log.details?.search_type && (
+                                    <span className={`text-xs px-2 py-0.5 rounded ${log.details.search_type === 'auto' ? 'bg-orange-50 text-orange-700' : 'bg-cyan-50 text-cyan-700'}`}>
+                                      {log.details.search_type === 'auto' ? '定时任务' : '手动搜索'}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            {log.details?.search_results && (
+                              <div className="mt-2 pt-2 border-t border-gray-200">
+                                <div className="text-xs text-gray-500 mb-1">搜索详情：</div>
+                                <div className="text-xs text-gray-600">
+                                  {log.details.search_results.overall_status === 'skipped' ? '跳过（Playwright未安装）' :
+                                   log.details.search_results.overall_status === 'failed' ? `失败: ${log.details.search_results.error || '未知错误'}` :
+                                   `状态: ${log.details.search_results.overall_status || '完成'}`}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+
+              {/* API Key 未配置提示 */}
+              {!kimiApiKey && !deepSeekApiKey && (
+                <Card className="border-yellow-200 bg-yellow-50">
+                  <CardContent className="p-4">
+                    <p className="text-yellow-700 text-sm">
+                      未配置 AI API Key，点击"API配置"按钮设置 Kimi 或 DeepSeek API Key 以使用 AI 搜索功能。
+                    </p>
+                    <Button 
+                      size="sm" 
+                      className="mt-2"
+                      onClick={() => setShowApiConfigDialog(true)}
+                    >
+                      <Settings className="w-4 h-4 mr-1" />
+                      立即配置
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* 区域3: API配置状态面板 */}
+              <Card className="border-purple-200 bg-purple-50">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-purple-600" />
+                      <span className="font-medium text-purple-800">AI API 状态</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${kimiApiKey ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                        <span className="text-sm text-gray-600">Kimi {kimiApiKey ? '已配置' : '未配置'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${deepSeekApiKey ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                        <span className="text-sm text-gray-600">DeepSeek {deepSeekApiKey ? '已配置' : '未配置'}</span>
+                      </div>
+                      {(kimiApiKey || deepSeekApiKey) && (
+                        <Badge variant="outline" className="text-xs">
+                          优先: {preferredApi === 'kimi' ? 'Kimi' : 'DeepSeek'}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 区域4: 文章列表 */}
+              {pendingArticles.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">暂无新发现的文章</p>
+                    <p className="text-gray-400 text-sm mt-1">点击"立即搜索"使用 AI 搜索最新文章</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-500">共 {pendingArticles.length} 篇待处理</p>
+                  {pendingArticles.map((article) => (
+                    <Card key={article.id} className="border-l-4 border-l-purple-400 hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            {/* 元信息行 */}
+                            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                              <span className="text-sm font-medium text-gray-600">{article.date}</span>
+                              <Badge variant="outline" className="text-xs">{article.categoryName || '重要讲话'}</Badge>
+                              <Badge variant="secondary" className="text-xs">{article.source || '官方媒体'}</Badge>
+                              {article.discovered_by && (
+                                <Badge variant="outline" className="text-xs bg-purple-50 text-purple-600 border-purple-200">
+                                  {article.discovered_by === 'crawl' ? '自动爬取' : '搜索发现'}
+                                </Badge>
+                              )}
+                            </div>
+                            {/* 标题 */}
+                            <h3 className="font-medium text-gray-900 mb-1">{article.title}</h3>
+                            {/* 摘要 */}
+                            {article.summary && article.summary !== article.title && (
+                              <p className="text-sm text-gray-600 line-clamp-2 mb-1">{article.summary}</p>
+                            )}
+                            {/* URL */}
+                            {article.url && (
+                              <div className="flex items-center gap-2 mt-1">
+                                <a href={article.url} target="_blank" rel="noopener noreferrer"
+                                  className="text-xs text-blue-500 hover:underline flex items-center gap-1 truncate max-w-md">
+                                  <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                                  {article.url}
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                          {/* 操作按钮 */}
+                          <div className="flex flex-col gap-2 flex-shrink-0">
+                            {article.url && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs"
+                                onClick={() => handleCopyUrl(article.url!)}
+                              >
+                                <Copy className="w-3 h-3 mr-1" />
+                                {copiedUrl === article.url ? '已复制' : '复制URL'}
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              className="bg-purple-600 hover:bg-purple-700 text-white text-xs"
+                              onClick={() => handleApprovePending(article)}
+                            >
+                              <ArrowRight className="w-3 h-3 mr-1" />
+                              新增到系统
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-xs text-gray-400 hover:text-red-600"
+                              onClick={() => handleRejectPending(article.id)}
+                            >
+                              <X className="w-3 h-3 mr-1" />
+                              忽略
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </TabsContent>
 
+            {/* 文章管理 */}
             <TabsContent value="articles" className="space-y-6">
-              <AdminArticlesTab
-                articles={filteredArticles}
-                searchTerm={searchTerm}
-                onSearchTermChange={setSearchTerm}
-                onAddArticle={() => handleAddDialogOpenChange(true)}
-                onEditArticle={handleEditArticle}
-                onDeleteArticle={handleDeleteArticle}
-              />
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">文章管理</h2>
+                <div className="flex gap-2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      placeholder="搜索文章..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 w-64"
+                    />
+                  </div>
+                  <Button className="bg-red-600 hover:bg-red-700" onClick={() => setAddDialogOpen(true)}>
+                    <Plus className="w-4 h-4 mr-1" />
+                    新增文章
+                  </Button>
+                </div>
+              </div>
+
+              <Card>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200 bg-gray-50">
+                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">标题</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">日期</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">分类</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">来源</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredArticles.map((article) => (
+                          <tr key={article.id} className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="py-3 px-4 text-sm font-medium max-w-md truncate">{article.title}</td>
+                            <td className="py-3 px-4 text-sm">{article.date}</td>
+                            <td className="py-3 px-4 text-sm">{article.categoryName}</td>
+                            <td className="py-3 px-4 text-sm">{article.source}</td>
+                            <td className="py-3 px-4 text-sm">
+                              <div className="flex gap-2">
+                                <Button variant="ghost" size="sm" onClick={() => handleEditArticle(article)}>
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => handleDeleteArticle(article)} className="text-red-600">
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             {/* 建议信箱 */}
             <TabsContent value="suggestions" className="space-y-6">
-              <AdminSuggestionsTab
-                suggestions={suggestions}
-                selectedSuggestions={selectedSuggestions}
-                onLoadData={loadData}
-                onBatchMarkAsRead={handleBatchMarkAsRead}
-                onBatchDelete={handleBatchDelete}
-                onClearSuggestions={handleClearSuggestions}
-                onToggleSelectAll={toggleSelectAll}
-                onToggleSelectSuggestion={toggleSelectSuggestion}
-                onMarkSuggestionRead={handleMarkSuggestionRead}
-                onDeleteSuggestion={handleDeleteSuggestion}
-              />
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">建议信箱</h2>
+                <div className="flex gap-2 flex-wrap">
+                  <Button variant="outline" size="sm" onClick={loadData}>
+                    <RefreshCw className="w-4 h-4 mr-1" />
+                    刷新
+                  </Button>
+                  {selectedSuggestions.size > 0 && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={handleBatchMarkAsRead} className="text-blue-600">
+                        <Check className="w-4 h-4 mr-1" />
+                        标记已读 ({selectedSuggestions.size})
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={handleBatchDelete} className="text-red-600">
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        删除 ({selectedSuggestions.size})
+                      </Button>
+                    </>
+                  )}
+                  <Button variant="outline" size="sm" onClick={handleClearSuggestions} className="text-red-600">
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    清空
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {suggestions.length > 0 ? (
+                  <>
+                    {/* 全选按钮 */}
+                    <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
+                      <button 
+                        onClick={toggleSelectAll}
+                        className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+                      >
+                        {selectedSuggestions.size === suggestions.length ? (
+                          <CheckSquare className="w-5 h-5 text-red-600" />
+                        ) : (
+                          <Square className="w-5 h-5" />
+                        )}
+                        全选 ({selectedSuggestions.size}/{suggestions.length})
+                      </button>
+                    </div>
+                    
+                    {suggestions.map((suggestion) => (
+                      <Card key={suggestion.id} className={`${suggestion.status === 'unread' ? 'border-l-4 border-l-red-500' : ''} ${selectedSuggestions.has(suggestion.id) ? 'ring-2 ring-red-200' : ''}`}>
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-start gap-3 flex-1">
+                              {/* 选择框 */}
+                              <button 
+                                onClick={() => toggleSelectSuggestion(suggestion.id)}
+                                className="mt-1 flex-shrink-0"
+                              >
+                                {selectedSuggestions.has(suggestion.id) ? (
+                                  <CheckSquare className="w-5 h-5 text-red-600" />
+                                ) : (
+                                  <Square className="w-5 h-5 text-gray-400" />
+                                )}
+                              </button>
+                              
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                  <span className="font-medium text-gray-900">{suggestion.name}</span>
+                                  <span className="text-sm text-gray-400">{suggestion.date} {suggestion.time}</span>
+                                  {suggestion.status === 'unread' && (
+                                    <Badge variant="destructive">未读</Badge>
+                                  )}
+                                  {suggestion.status === 'read' && (
+                                    <Badge variant="outline" className="text-gray-500">已读</Badge>
+                                  )}
+                                </div>
+                                <p className="text-gray-700 whitespace-pre-wrap">{suggestion.content}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex gap-1 ml-2 flex-shrink-0">
+                              {suggestion.status === 'unread' && (
+                                <Button variant="ghost" size="sm" onClick={() => handleMarkSuggestionRead(suggestion.id)} title="标记为已读">
+                                  <Check className="w-4 h-4 text-green-600" />
+                                </Button>
+                              )}
+                              <Button variant="ghost" size="sm" onClick={() => handleDeleteSuggestion(suggestion.id)} className="text-red-600" title="删除">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </>
+                ) : (
+                  <Card>
+                    <CardContent className="p-8 text-center">
+                      <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">暂无建议</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             </TabsContent>
           </Tabs>
         </div>
       </main>
 
-      <AdminEditArticleDialog
-        open={editDialogOpen}
-        editingArticle={editingArticle}
-        editingDetail={editingDetail}
-        loadingDetail={loadingDetail}
-        onOpenChange={setEditDialogOpen}
-        onEditingArticleChange={setEditingArticle}
-        onEditingDetailChange={setEditingDetail}
-        onSave={handleSaveArticle}
-      />
+      {/* 编辑文章对话框 */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>编辑文章</DialogTitle>
+            <DialogDescription>修改文章信息</DialogDescription>
+          </DialogHeader>
+          {editingArticle && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">标题</label>
+                <Input 
+                  value={editingArticle.title} 
+                  onChange={(e) => setEditingArticle({...editingArticle, title: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">日期</label>
+                <Input 
+                  value={editingArticle.date} 
+                  onChange={(e) => setEditingArticle({...editingArticle, date: e.target.value})}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">类型</label>
+                  <select 
+                    className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                    value={editingArticle.category}
+                    onChange={(e) => {
+                      const category = e.target.value as 'speech' | 'article' | 'meeting' | 'inspection';
+                      const categoryNames: Record<string, string> = {
+                        speech: '重要讲话',
+                        article: '发表文章',
+                        meeting: '重要会议',
+                        inspection: '考察调研'
+                      };
+                      setEditingArticle({...editingArticle, category, categoryName: categoryNames[category]});
+                    }}
+                  >
+                    <option value="speech">重要讲话</option>
+                    <option value="article">发表文章</option>
+                    <option value="meeting">重要会议</option>
+                    <option value="inspection">考察调研</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">领域</label>
+                  <select 
+                    className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                    value={editingArticle.domain || 'economy'}
+                    onChange={(e) => {
+                      const domain = e.target.value as 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy';
+                      const domainNames: Record<string, string> = {
+                        economy: '经济',
+                        politics: '政治',
+                        culture: '文化',
+                        society: '社会',
+                        ecology: '生态',
+                        party: '党建',
+                        defense: '国防',
+                        diplomacy: '外交'
+                      };
+                      setEditingArticle({...editingArticle, domain, domainName: domainNames[domain]});
+                    }}
+                  >
+                    <option value="economy">经济</option>
+                    <option value="politics">政治</option>
+                    <option value="culture">文化</option>
+                    <option value="society">社会</option>
+                    <option value="ecology">生态</option>
+                    <option value="party">党建</option>
+                    <option value="defense">国防</option>
+                    <option value="diplomacy">外交</option>
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">来源</label>
+                <Input 
+                  value={editingArticle.source} 
+                  onChange={(e) => setEditingArticle({...editingArticle, source: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">原文链接</label>
+                <Input 
+                  value={editingArticle.url || ''} 
+                  onChange={(e) => setEditingArticle({...editingArticle, url: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">地点</label>
+                <Input 
+                  value={editingArticle.location || ''} 
+                  onChange={(e) => setEditingArticle({...editingArticle, location: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">摘要</label>
+                <Textarea 
+                  value={editingArticle.summary} 
+                  onChange={(e) => setEditingArticle({...editingArticle, summary: e.target.value})}
+                  rows={4}
+                />
+              </div>
+              
+              {/* 文章详情编辑 */}
+              <div className="border-t pt-4 mt-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">详情页内容</h4>
+                {loadingDetail ? (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600"></div>
+                    <span className="ml-2 text-sm text-gray-500">加载详情中...</span>
+                  </div>
+                ) : editingDetail && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">原文内容</label>
+                      <Textarea 
+                        value={editingDetail.fullText} 
+                        onChange={(e) => setEditingDetail({...editingDetail, fullText: e.target.value})}
+                        rows={8}
+                        placeholder="输入或粘贴文章原文内容..."
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-xs text-gray-400">当前字数：{editingDetail.fullText.length}</p>
+                    </div>
+                    <div className="space-y-2 mt-4">
+                      <label className="text-sm font-medium">解读</label>
+                      <Textarea 
+                        value={editingDetail.analysis} 
+                        onChange={(e) => setEditingDetail({...editingDetail, analysis: e.target.value})}
+                        rows={4}
+                        placeholder="输入文章解读..."
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>取消</Button>
+            <Button onClick={handleSaveArticle} className="bg-red-600 hover:bg-red-700">保存</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 删除确认对话框 */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -974,58 +2204,426 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         </DialogContent>
       </Dialog>
 
-      <AdminAddArticleDialog
-        open={addDialogOpen}
-        newArticle={newArticle}
-        fetchUrl={fetchUrl}
-        fetchingArticle={fetchingArticle}
-        fetchError={fetchError}
-        fetchedContent={fetchedContent}
-        fetchedAnalysis={fetchedAnalysis}
-        hasConfiguredExtractionProvider={hasConfiguredExtractionProvider}
-        preferredExtractionProvider={preferredExtractionProvider}
-        showManualInput={showManualInput}
-        manualUrl={manualUrl}
-        manualContent={manualContent}
-        processingManual={processingManual}
-        onOpenChange={handleAddDialogOpenChange}
-        onNewArticleChange={setNewArticle}
-        onFetchUrlChange={setFetchUrl}
-        onFetchFromUrl={handleFetchFromUrl}
-        onOpenKimiKeyDialog={() => setShowApiConfigDialog(true)}
-        onToggleManualInput={() => setShowManualInput(!showManualInput)}
-        onManualUrlChange={setManualUrl}
-        onManualContentChange={setManualContent}
-        onProcessManualContent={handleProcessManualContent}
-        onAddArticle={handleAddArticle}
-      />
+      {/* 新增文章对话框 */}
+      <Dialog open={addDialogOpen} onOpenChange={(open) => {
+        setAddDialogOpen(open);
+        if (!open) {
+          // 关闭时重置URL提取状态
+          setFetchUrl('');
+          setFetchError('');
+          setFetchedContent('');
+          setFetchedAnalysis('');
+          setShowManualInput(false);
+          setManualContent('');
+          setManualUrl('');
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>新增文章</DialogTitle>
+            <DialogDescription>添加新文章，或输入原文链接自动提取</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* URL自动提取区域 */}
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-800">AI智能提取</span>
+                    {kimiApiKey && (
+                      <Badge variant="outline" className="text-green-600 border-green-300">已配置API</Badge>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowKimiKeyDialog(true)}
+                    className="text-blue-600"
+                  >
+                    <Settings className="w-4 h-4 mr-1" />
+                    {kimiApiKey ? '更换Key' : '配置Kimi API'}
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="粘贴原文链接，AI将精准提取标题、日期、摘要、全文、解读等内容"
+                    value={fetchUrl}
+                    onChange={(e) => setFetchUrl(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleFetchFromUrl}
+                    disabled={fetchingArticle || !fetchUrl.trim()}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {fetchingArticle ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                        提取中
+                      </>
+                    ) : (
+                      '提取'
+                    )}
+                  </Button>
+                </div>
+                {fetchError && (
+                  <p className="text-sm text-red-600 mt-2">{fetchError}</p>
+                )}
+                {fetchedContent && (
+                  <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <p className="text-sm text-green-700 font-medium mb-1">
+                      提取成功！已获取：
+                    </p>
+                    <ul className="text-sm text-green-600 space-y-1">
+                      <li>• 全文内容（{fetchedContent.length}字）</li>
+                      {fetchedAnalysis && <li>• 解读分析（{fetchedAnalysis.length}字）</li>}
+                    </ul>
+                  </div>
+                )}
+                {/* 手动粘贴入口 */}
+                <div className="mt-3 pt-3 border-t border-blue-200">
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={() => setShowManualInput(!showManualInput)}
+                    className="text-blue-600 p-0"
+                  >
+                    {showManualInput ? '隐藏手动输入' : '自动提取失败？点击手动粘贴内容'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-      <AdminApiConfigDialog
-        open={showApiConfigDialog}
-        kimiApiKey={kimiApiKey}
-        kimiKeyInput={kimiKeyInput}
-        kimiKeyValidating={kimiKeyValidating}
-        deepSeekApiKey={deepSeekApiKey}
-        deepSeekKeyInput={deepSeekKeyInput}
-        deepSeekKeyValidating={deepSeekKeyValidating}
-        githubToken={githubToken}
-        tokenInput={tokenInput}
-        tokenValidating={tokenValidating}
-        preferredSearchApi={preferredApi}
-        preferredExtractionApi={preferredExtractionApi}
-        onOpenChange={setShowApiConfigDialog}
-        onKimiKeyInputChange={setKimiKeyInput}
-        onSaveKimiKey={handleSaveKimiKey}
-        onClearKimiKey={handleClearKimiKey}
-        onDeepSeekKeyInputChange={setDeepSeekKeyInput}
-        onSaveDeepSeekKey={handleSaveDeepSeekKey}
-        onClearDeepSeekKey={handleClearDeepSeekKey}
-        onTokenInputChange={setTokenInput}
-        onSaveToken={handleSaveToken}
-        onClearToken={handleClearToken}
-        onSwitchPreferredSearchApi={handleSwitchPreferredApi}
-        onSwitchPreferredExtractionApi={handleSwitchPreferredExtractionApi}
-      />
+            {/* 手动粘贴内容区域 */}
+            {showManualInput && (
+              <Card className="bg-yellow-50 border-yellow-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="w-4 h-4 text-yellow-600" />
+                    <span className="text-sm font-medium text-yellow-800">手动粘贴内容</span>
+                  </div>
+                  <div className="space-y-3">
+                    <Input
+                      placeholder="原文链接（可选）"
+                      value={manualUrl}
+                      onChange={(e) => setManualUrl(e.target.value)}
+                    />
+                    <Textarea
+                      placeholder="请从网页复制粘贴文章内容到这里，AI将自动提取标题、日期、摘要等信息..."
+                      value={manualContent}
+                      onChange={(e) => setManualContent(e.target.value)}
+                      rows={8}
+                    />
+                    <Button
+                      onClick={handleProcessManualContent}
+                      disabled={processingManual || !manualContent.trim()}
+                      className="bg-yellow-600 hover:bg-yellow-700"
+                    >
+                      {processingManual ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                          处理中...
+                        </>
+                      ) : (
+                        'AI提取'
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-gray-500">或手动填写</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">标题 <span className="text-red-500">*</span></label>
+              <Input 
+                placeholder="请输入文章标题"
+                value={newArticle.title || ''} 
+                onChange={(e) => setNewArticle({...newArticle, title: e.target.value})}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">日期 <span className="text-red-500">*</span></label>
+                <Input 
+                  type="date"
+                  value={newArticle.date || ''} 
+                  onChange={(e) => setNewArticle({...newArticle, date: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">类型 <span className="text-red-500">*</span></label>
+                <select 
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                  value={newArticle.category}
+                  onChange={(e) => {
+                    const category = e.target.value as 'speech' | 'article' | 'meeting' | 'inspection';
+                    const categoryNames: Record<string, string> = {
+                      speech: '重要讲话',
+                      article: '发表文章',
+                      meeting: '重要会议',
+                      inspection: '考察调研'
+                    };
+                    setNewArticle({...newArticle, category, categoryName: categoryNames[category]});
+                  }}
+                >
+                  <option value="speech">重要讲话</option>
+                  <option value="article">发表文章</option>
+                  <option value="meeting">重要会议</option>
+                  <option value="inspection">考察调研</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">领域 <span className="text-red-500">*</span></label>
+                <select 
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background"
+                  value={newArticle.domain || 'economy'}
+                  onChange={(e) => {
+                    const domain = e.target.value as 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy';
+                    const domainNames: Record<string, string> = {
+                      economy: '经济',
+                      politics: '政治',
+                      culture: '文化',
+                      society: '社会',
+                      ecology: '生态',
+                      party: '党建',
+                      defense: '国防',
+                      diplomacy: '外交'
+                    };
+                    setNewArticle({...newArticle, domain, domainName: domainNames[domain]});
+                  }}
+                >
+                  <option value="economy">经济</option>
+                  <option value="politics">政治</option>
+                  <option value="culture">文化</option>
+                  <option value="society">社会</option>
+                  <option value="ecology">生态</option>
+                  <option value="party">党建</option>
+                  <option value="defense">国防</option>
+                  <option value="diplomacy">外交</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">政绩观专题</label>
+                <div className="flex items-center gap-4 h-10">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={newArticle.isZhengjiguan || false}
+                      onChange={(e) => setNewArticle({...newArticle, isZhengjiguan: e.target.checked})}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">是政绩观文章</span>
+                  </label>
+                  {newArticle.isZhengjiguan && (
+                    <select 
+                      className="flex-1 h-8 px-2 rounded-md border border-input bg-background text-sm"
+                      value={newArticle.zhengjiguanLevel || 'central'}
+                      onChange={(e) => setNewArticle({...newArticle, zhengjiguanLevel: e.target.value as 'central' | 'jiangsu' | 'suzhou'})}
+                    >
+                      <option value="central">中央</option>
+                      <option value="jiangsu">江苏省</option>
+                      <option value="suzhou">苏州市</option>
+                    </select>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">来源 <span className="text-red-500">*</span></label>
+              <Input 
+                placeholder="如：人民网、求是杂志等"
+                value={newArticle.source || ''} 
+                onChange={(e) => setNewArticle({...newArticle, source: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">原文链接</label>
+              <Input 
+                placeholder="请输入原文链接"
+                value={newArticle.url || ''} 
+                onChange={(e) => setNewArticle({...newArticle, url: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">地点（考察调研类请填写）</label>
+              <Input 
+                placeholder="如：北京、上海等"
+                value={newArticle.location || ''} 
+                onChange={(e) => setNewArticle({...newArticle, location: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">摘要 <span className="text-red-500">*</span></label>
+              <Textarea 
+                placeholder="请输入文章摘要"
+                value={newArticle.summary || ''} 
+                onChange={(e) => setNewArticle({...newArticle, summary: e.target.value})}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddDialogOpen(false)}>取消</Button>
+            <Button onClick={handleAddArticle} className="bg-red-600 hover:bg-red-700">添加</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI API 配置对话框 */}
+      <Dialog open={showApiConfigDialog} onOpenChange={setShowApiConfigDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>AI API 配置</DialogTitle>
+            <DialogDescription>
+              配置 Kimi 或 DeepSeek API Key 以使用 AI 搜索功能
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {/* Kimi API Key */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-2">
+                Kimi API Key
+                {kimiApiKey && <span className="text-xs text-green-600">已配置</span>}
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  type="password"
+                  placeholder="sk-xxxxxxxxxxxxxxxxxxxx"
+                  value={kimiKeyInput}
+                  onChange={(e) => setKimiKeyInput(e.target.value)}
+                  className="flex-1"
+                />
+                {kimiApiKey ? (
+                  <Button variant="outline" size="sm" onClick={handleClearKimiKey}>
+                    清除
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={handleSaveKimiKey}
+                    disabled={!kimiKeyInput.trim() || kimiKeyValidating}
+                  >
+                    {kimiKeyValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : '保存'}
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">
+                在 <a href="https://platform.moonshot.cn/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Kimi开放平台</a> 获取
+              </p>
+            </div>
+
+            {/* DeepSeek API Key */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-2">
+                DeepSeek API Key
+                {deepSeekApiKey && <span className="text-xs text-green-600">已配置</span>}
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  type="password"
+                  placeholder="sk-xxxxxxxxxxxxxxxxxxxx"
+                  value={deepSeekKeyInput}
+                  onChange={(e) => setDeepSeekKeyInput(e.target.value)}
+                  className="flex-1"
+                />
+                {deepSeekApiKey ? (
+                  <Button variant="outline" size="sm" onClick={handleClearDeepSeekKey}>
+                    清除
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={handleSaveDeepSeekKey}
+                    disabled={!deepSeekKeyInput.trim() || deepSeekKeyValidating}
+                  >
+                    {deepSeekKeyValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : '保存'}
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">
+                在 <a href="https://platform.deepseek.com/" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">DeepSeek平台</a> 获取
+              </p>
+            </div>
+
+            {/* GitHub Token - 用于触发AI搜索工作流 */}
+            <div className="space-y-2 pt-4 border-t">
+              <label className="text-sm font-medium flex items-center gap-2">
+                GitHub Token
+                <span className="text-xs text-gray-500">(用于AI搜索)</span>
+                {githubToken && <span className="text-xs text-green-600">已配置</span>}
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  type="password"
+                  placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                  value={tokenInput}
+                  onChange={(e) => setTokenInput(e.target.value)}
+                  className="flex-1"
+                />
+                {githubToken ? (
+                  <Button variant="outline" size="sm" onClick={handleClearToken}>
+                    清除
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={handleSaveToken}
+                    disabled={!tokenInput.trim() || tokenValidating}
+                  >
+                    {tokenValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : '保存'}
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">
+                需要 <code>repo</code> 和 <code>workflow</code> 权限。
+                在 <a href="https://github.com/settings/tokens/new?scopes=repo,workflow" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">GitHub</a> 创建
+              </p>
+            </div>
+
+            {/* 优先使用 */}
+            {(kimiApiKey || deepSeekApiKey) && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">搜索时优先使用</label>
+                <div className="flex gap-2">
+                  <Button
+                    variant={preferredApi === 'kimi' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleSwitchPreferredApi('kimi')}
+                    disabled={!kimiApiKey}
+                  >
+                    Kimi
+                  </Button>
+                  <Button
+                    variant={preferredApi === 'deepseek' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleSwitchPreferredApi('deepseek')}
+                    disabled={!deepSeekApiKey}
+                  >
+                    DeepSeek
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowApiConfigDialog(false)}>
+              关闭
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Kimi API Key 配置对话框 */}
       <Dialog open={showKimiKeyDialog} onOpenChange={setShowKimiKeyDialog}>

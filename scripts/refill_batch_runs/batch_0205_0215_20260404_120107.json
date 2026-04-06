@@ -1,0 +1,37 @@
+{
+  "finished_at": "2026-04-04T12:01:17.968194",
+  "ids_file": "E:\\ccswitch\\AI编程工作目录\\讲话网站\\app\\scripts\\refill_candidate_ids_20260404.json",
+  "batch_start": 205,
+  "batch_end": 215,
+  "batch_size": 10,
+  "candidate_count": 10,
+  "ready_count": 7,
+  "error_count": 3,
+  "skipped_count": 0,
+  "ready_ids": [
+    "P2024-0146",
+    "P2024-0148",
+    "P2024-0160",
+    "P2024-0162",
+    "P2024-0163",
+    "P2024-0167",
+    "P2024-0183"
+  ],
+  "error_samples": [
+    {
+      "id": "2024-02",
+      "title": "在福建考察时的重要讲话",
+      "note": "404 Client Error: Not Found for url: https://www.news.cn/politics/leaders/20241016/fedcba654321/c.html"
+    },
+    {
+      "id": "P2024-0161",
+      "title": "吴邦国同志遗体在京火化习近平赵乐际王沪宁蔡奇丁薛祥李希韩正等到八宝山革命公墓送别。胡锦涛送花圈表示哀悼吴邦国同志病重期间和逝世后，习近平李强赵乐际王沪宁蔡奇丁薛祥李希韩正胡锦涛等同志，前往医院看望或通过各种形式对吴邦国同志逝世表示沉痛哀悼并向其亲属表示深切慰问",
+      "note": "404 Client Error: Not Found for url: https://cpc.people.com.cn/n1/2024/1015/c64094-40339447.html"
+    },
+    {
+      "id": "P2024-0184",
+      "title": "在全国民族团结进步表彰大会上的讲话（2024年9月27日）",
+      "note": "404 Client Error: Not Found for url: https://cpc.people.com.cn/n1/2024/0928/c64094-40330012.html"
+    }
+  ]
+}

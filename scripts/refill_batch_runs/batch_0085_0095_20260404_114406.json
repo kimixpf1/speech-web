@@ -1,0 +1,29 @@
+{
+  "finished_at": "2026-04-04T11:44:18.361510",
+  "ids_file": "E:\\ccswitch\\AI编程工作目录\\讲话网站\\app\\scripts\\refill_candidate_ids_20260404.json",
+  "batch_start": 85,
+  "batch_end": 95,
+  "batch_size": 10,
+  "candidate_count": 10,
+  "ready_count": 9,
+  "error_count": 1,
+  "skipped_count": 0,
+  "ready_ids": [
+    "P2025-0842",
+    "P2025-0843",
+    "P2025-0845",
+    "P2025-0849",
+    "P2025-0852",
+    "P2025-0853",
+    "P2025-0854",
+    "P2025-0857",
+    "P2025-0865"
+  ],
+  "error_samples": [
+    {
+      "id": "2025-09",
+      "title": "在河南考察时的重要讲话",
+      "note": "404 Client Error: Not Found for url: https://cpc.people.com.cn/n1/2025/0521/c64094-40487818.html"
+    }
+  ]
+}

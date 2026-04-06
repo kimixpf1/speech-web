@@ -1,0 +1,24 @@
+{
+  "finished_at": "2026-04-04T19:10:51.811473",
+  "ids_file": "E:\\ccswitch\\AI编程工作目录\\讲话网站\\app\\scripts\\noise_rescan_ids.json",
+  "batch_start": 0,
+  "batch_end": 5,
+  "batch_size": 5,
+  "candidate_count": 5,
+  "ready_count": 4,
+  "error_count": 1,
+  "skipped_count": 0,
+  "ready_ids": [
+    "2024-12",
+    "2024-14",
+    "2024-15",
+    "2024-16"
+  ],
+  "error_samples": [
+    {
+      "id": "2024-20",
+      "title": "在党的二十届三中全会第二次全体会议上的讲话",
+      "note": "正文提取后仍过短"
+    }
+  ]
+}

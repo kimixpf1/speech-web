@@ -273,6 +273,12 @@
 - [x] 已补做全库复查：正文尾部噪音复扫为 `0`，最终 `needs_refill()` 候选仍为 `0`
 - [x] 已补做链接治理：`YouTube` 外链已替换、人民网高风险子域改为保留 `http`、江苏代表团最终改为 `http://jhsjk.people.cn/article/40675966`
 - [x] 已补做乱码复查：`scripts/_fulltext_mojibake_scan.json` 为 `0`，数据库 `full_text` 中已无本轮扫描命中的乱码正文
+- [ ] 按更严格的数据库原值口径继续修复质量问题：当前 `scripts/_db_content_quality_scan.json` 扫出 `455` 条需重刷文章
+- [x] 已验证关键样本：`2026-12` 当前数据库原文链接为 `http://jhsjk.people.cn/article/40675966`
+- [x] 已验证摘要修复策略生效：`2026-16` 的 `summary / abstract` 已去掉时间戳与标题串，改为简洁摘要
+- [x] 已完成严格口径首批 `0:20` 重刷，结果文件为 `scripts/quality_fix_runs/batch_0000_0020_20260404_222710.json`
+- [ ] 明天第一优先级：把“江苏代表团审议”详情页里仍残留的两个旧原文链接也统一改成 `http://jhsjk.people.cn/article/40675966`
+- [ ] 明天从 `quality_fix_ids.json` 继续按 checkpoint / 分批方式推进剩余 `435` 条
 - [ ] 将本轮新增脚本与记录文件同步远端，并核对远端与本地一致
 
 ## 第十三步优化完成情况

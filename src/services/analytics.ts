@@ -6,52 +6,28 @@ import { supabase } from '@/lib/supabase';
 // 百度统计 Tracking ID
 const BAIDU_TRACKING_ID = 'fde2c5ee85e02a961caa756c4a6e2c88';
 
-const TABLE_NAMES_TO_TRY = ['New table', 'new_table', 'NewTable', 'newtable'];
-const TABLE_NAME_CACHE_KEY = 'supabase_analytics_table_name';
+// 尝试多种表名格式
+const TABLE_NAMES_TO_TRY = ['new_table', 'New table', 'NewTable', 'newtable'];
 let correctTableName: string | null = null;
-
-function getCachedTableName() {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  return localStorage.getItem(TABLE_NAME_CACHE_KEY);
-}
-
-function saveCachedTableName(tableName: string) {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  localStorage.setItem(TABLE_NAME_CACHE_KEY, tableName);
-}
 
 async function findCorrectTableName(): Promise<string> {
   if (correctTableName) return correctTableName;
-
-  const cachedTableName = getCachedTableName();
-  const tableNames = cachedTableName
-    ? [cachedTableName, ...TABLE_NAMES_TO_TRY.filter(name => name !== cachedTableName)]
-    : TABLE_NAMES_TO_TRY;
-
-  for (const tableName of tableNames) {
+  
+  for (const tableName of TABLE_NAMES_TO_TRY) {
     try {
       const result = await supabase
         .from(tableName)
         .select('*', { count: 'exact', head: true });
       
-      if (!result.error && result.count !== null) {
+      if (!result.error && result.count !== null && result.count > 0) {
         correctTableName = tableName;
-        saveCachedTableName(tableName);
         return tableName;
       }
     } catch (e) {
+      // 继续尝试下一个
     }
   }
-
-  correctTableName = TABLE_NAMES_TO_TRY[0];
-  saveCachedTableName(correctTableName);
-  return correctTableName;
+  return 'new_table';
 }
 
 // 访问记录类型
@@ -73,39 +49,6 @@ export interface VisitStats {
 }
 
 /**
- * 简单的浏览器指纹生成器，用于替代真实的 IP，更准确地统计独立访客
- */
-function generateBrowserFingerprint(): string {
-  if (typeof window === 'undefined') return `hash_${Date.now()}`;
-  
-  const screen = window.screen;
-  const nav = navigator;
-  
-  // 收集相对稳定的浏览器特征
-  const components = [
-    nav.userAgent,
-    nav.language,
-    screen.colorDepth,
-    screen.width,
-    screen.height,
-    new Date().getTimezoneOffset(),
-    nav.hardwareConcurrency || 'unknown',
-    nav.deviceMemory || 'unknown',
-  ];
-  
-  const fingerprintString = components.join('|||');
-  
-  // 简单的字符串哈希函数 (djb2)
-  let hash = 5381;
-  for (let i = 0; i < fingerprintString.length; i++) {
-    hash = ((hash << 5) + hash) + fingerprintString.charCodeAt(i);
-  }
-  
-  // 返回正整数的十六进制字符串
-  return `fp_${Math.abs(hash).toString(16)}`;
-}
-
-/**
  * 初始化访问统计
  */
 export function initAnalytics(): void {
@@ -119,23 +62,10 @@ export function initAnalytics(): void {
 async function recordVisit(): Promise<void> {
   try {
     const tableName = await findCorrectTableName();
+    const ipHash = localStorage.getItem('ip_hash') || 
+      `hash_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     
-    // 优先使用长期存储的 localStorage，其次使用指纹，如果都不行再生成随机数
-    let ipHash = localStorage.getItem('visitor_id');
-    
-    if (!ipHash) {
-      // 尝试获取旧版本的 ip_hash
-      const oldHash = localStorage.getItem('ip_hash');
-      if (oldHash && oldHash.startsWith('fp_')) {
-        ipHash = oldHash;
-      } else {
-        // 生成基于浏览器特征的伪指纹
-        ipHash = generateBrowserFingerprint();
-      }
-      localStorage.setItem('visitor_id', ipHash);
-      // 同步更新旧的 key，防止其他地方依赖
-      localStorage.setItem('ip_hash', ipHash);
-    }
+    localStorage.setItem('ip_hash', ipHash);
     
     const now = new Date();
     

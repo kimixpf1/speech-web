@@ -1,0 +1,24 @@
+{
+  "finished_at": "2026-04-04T12:48:35.603734",
+  "ids_file": "E:\\ccswitch\\AI编程工作目录\\讲话网站\\app\\scripts\\remaining_13_ids_20260404.json",
+  "batch_start": 0,
+  "batch_end": 5,
+  "batch_size": 5,
+  "candidate_count": 5,
+  "ready_count": 4,
+  "error_count": 1,
+  "skipped_count": 0,
+  "ready_ids": [
+    "2024-01",
+    "2024-06",
+    "2024-13",
+    "2025-09"
+  ],
+  "error_samples": [
+    {
+      "id": "ZJG-C05",
+      "title": "人民日报评论员：以实干实绩书写中国式现代化新篇章",
+      "note": "502 Server Error: Bad Gateway for url: https://www.cppcc.gov.cn/zxww/2026/02/25/ARTI1771987911651192.shtml"
+    }
+  ]
+}

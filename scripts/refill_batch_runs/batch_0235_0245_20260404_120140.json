@@ -1,0 +1,29 @@
+{
+  "finished_at": "2026-04-04T12:01:52.126645",
+  "ids_file": "E:\\ccswitch\\AI编程工作目录\\讲话网站\\app\\scripts\\refill_candidate_ids_20260404.json",
+  "batch_start": 235,
+  "batch_end": 245,
+  "batch_size": 10,
+  "candidate_count": 10,
+  "ready_count": 9,
+  "error_count": 1,
+  "skipped_count": 0,
+  "ready_ids": [
+    "P2024-0242",
+    "P2024-0249",
+    "P2024-0250",
+    "P2024-0260",
+    "P2024-0264",
+    "P2024-0265",
+    "P2024-0271",
+    "P2024-0272",
+    "P2024-0276"
+  ],
+  "error_samples": [
+    {
+      "id": "P2024-0273",
+      "title": "习近平会见所罗门群岛总理马内莱",
+      "note": "404 Client Error: Not Found for url: https://cpc.people.com.cn/n1/2024/0713/c64094-40277055.html"
+    }
+  ]
+}

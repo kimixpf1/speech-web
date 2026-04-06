@@ -4,7 +4,6 @@
  */
 
 import { supabase } from '@/lib/supabase';
-import type { SearchLog } from './pendingArticleService';
 
 const GITHUB_REPO = 'kimixpf1/speech-web';
 const WORKFLOW_FILE = 'ai-auto-search.yml';
@@ -196,33 +195,15 @@ export async function getWorkflowStatus(): Promise<{
 export async function waitForWorkflowCompletion(
   onProgress?: (message: string) => void,
   maxWaitMs: number = 180000
-): Promise<{ success: boolean; newCount: number; message?: string; log?: SearchLog | null }> {
+): Promise<{ success: boolean; newCount: number }> {
   const startTime = Date.now();
   const pollInterval = 10000; // 10 秒轮询一次
-  const startedAtIso = new Date(startTime - 60 * 1000).toISOString();
   
   // 先获取当前待审核文章数量作为基准
-  const { count: beforeCountRaw } = await supabase
+  const { data: beforeData } = await supabase
     .from('pending_articles')
     .select('id', { count: 'exact', head: true });
-  const beforeCount = beforeCountRaw || 0;
-
-  const getLatestSearchLog = async (): Promise<SearchLog | null> => {
-    const { data, error } = await supabase
-      .from('search_logs')
-      .select('*')
-      .gte('executed_at', startedAtIso)
-      .order('executed_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error) {
-      console.error('获取最新搜索记录失败:', error);
-      return null;
-    }
-
-    return data;
-  };
+  const beforeCount = beforeData?.length || 0;
   
   onProgress?.('等待后台搜索完成...');
   
@@ -233,33 +214,22 @@ export async function waitForWorkflowCompletion(
       onProgress?.('搜索完成，正在获取结果...');
       
       // 等待一下让数据库同步
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       // 获取新的待审核文章数量
-      const { count: afterCountRaw } = await supabase
+      const { data: afterData } = await supabase
         .from('pending_articles')
         .select('id', { count: 'exact', head: true });
-      const afterCount = afterCountRaw || 0;
-      const latestLog = await getLatestSearchLog();
-      const logNewCount = latestLog?.new_count ?? 0;
-      const countDiff = Math.max(0, afterCount - beforeCount);
-      const finalNewCount = Math.max(logNewCount, countDiff);
-      const finalNewArticlesCount = latestLog?.details?.final_new_articles_count ?? finalNewCount;
-      const saveResultCount = latestLog?.details?.save_result?.saved_count ?? finalNewCount;
-      const displayCount = Math.max(finalNewCount, finalNewArticlesCount, saveResultCount);
+      const afterCount = afterData?.length || 0;
       
       return {
         success: status.conclusion === 'success',
-        newCount: displayCount,
-        message: displayCount > 0
-          ? `后台搜索完成！新增 ${displayCount} 篇待审核文章`
-          : '后台搜索完成！暂无新文章（可能已存在或工作流未找到）',
-        log: latestLog,
+        newCount: Math.max(0, afterCount - beforeCount),
       };
     }
     
     if (status.status === 'failed') {
-      return { success: false, newCount: 0, log: null };
+      return { success: false, newCount: 0 };
     }
     
     // 等待下一次轮询
@@ -267,7 +237,7 @@ export async function waitForWorkflowCompletion(
     onProgress?.(`后台搜索进行中... (${Math.floor((Date.now() - startTime) / 1000)}秒)`);
   }
   
-  return { success: false, newCount: 0, log: null };
+  return { success: false, newCount: 0 };
 }
 
 /**

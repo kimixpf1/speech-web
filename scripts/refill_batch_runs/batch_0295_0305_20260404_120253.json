@@ -1,0 +1,29 @@
+{
+  "finished_at": "2026-04-04T12:03:05.220363",
+  "ids_file": "E:\\ccswitch\\AI编程工作目录\\讲话网站\\app\\scripts\\refill_candidate_ids_20260404.json",
+  "batch_start": 295,
+  "batch_end": 305,
+  "batch_size": 10,
+  "candidate_count": 10,
+  "ready_count": 9,
+  "error_count": 1,
+  "skipped_count": 0,
+  "ready_ids": [
+    "P2024-0428",
+    "P2024-0431",
+    "P2024-0433",
+    "P2024-0439",
+    "P2024-0447",
+    "P2024-0448",
+    "P2024-0451",
+    "P2024-0452",
+    "P2024-0453"
+  ],
+  "error_samples": [
+    {
+      "id": "P2024-0440",
+      "title": "中共中央政治局召开会议 决定召开二十届三中全会分析研究当前经济形势和经济工作  审议《关于持续深入推进长三角一体化高质量发展若干政策措施的意见》中共中央总书记习近平主持会议",
+      "note": "404 Client Error: Not Found for url: https://cpc.people.com.cn/n1/2024/0501/c64094-40227752.html"
+    }
+  ]
+}

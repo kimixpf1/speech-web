@@ -1,0 +1,24 @@
+{
+  "finished_at": "2026-04-04T12:06:45.051377",
+  "ids_file": "E:\\ccswitch\\AI编程工作目录\\讲话网站\\app\\scripts\\refill_candidate_ids_20260404.json",
+  "batch_start": 415,
+  "batch_end": 425,
+  "batch_size": 10,
+  "candidate_count": 10,
+  "ready_count": 10,
+  "error_count": 0,
+  "skipped_count": 0,
+  "ready_ids": [
+    "P2024-0559",
+    "P2024-0560",
+    "P2024-0561",
+    "P2024-0562",
+    "P2024-0563",
+    "P2024-0564",
+    "P2024-0565",
+    "P2024-0566",
+    "P2024-0567",
+    "P2024-0568"
+  ],
+  "error_samples": []
+}

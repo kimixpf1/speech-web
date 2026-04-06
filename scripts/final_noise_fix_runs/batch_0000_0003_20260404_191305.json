@@ -1,0 +1,26 @@
+{
+  "finished_at": "2026-04-04T19:13:08.359636",
+  "ids_file": "E:\\ccswitch\\AI编程工作目录\\讲话网站\\app\\scripts\\final_noise_fix_ids.json",
+  "batch_start": 0,
+  "batch_end": 3,
+  "batch_size": 3,
+  "candidate_count": 3,
+  "ready_count": 1,
+  "error_count": 2,
+  "skipped_count": 0,
+  "ready_ids": [
+    "2024-10"
+  ],
+  "error_samples": [
+    {
+      "id": "2024-20",
+      "title": "在党的二十届三中全会第二次全体会议上的讲话",
+      "note": "正文提取后仍过短"
+    },
+    {
+      "id": "2026-09",
+      "title": "向第39届非洲联盟峰会致贺电",
+      "note": "正文提取后仍过短"
+    }
+  ]
+}

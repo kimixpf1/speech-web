@@ -1,0 +1,24 @@
+{
+  "finished_at": "2026-04-04T21:00:04.917312",
+  "ids_file": "E:\\ccswitch\\AI编程工作目录\\讲话网站\\app\\scripts\\mojibake_fix_ids.json",
+  "batch_start": 0,
+  "batch_end": 5,
+  "batch_size": 5,
+  "candidate_count": 5,
+  "ready_count": 4,
+  "error_count": 1,
+  "skipped_count": 0,
+  "ready_ids": [
+    "2024-P01",
+    "2024-P02",
+    "P2024-0282",
+    "P2024-0283"
+  ],
+  "error_samples": [
+    {
+      "id": "P2024-0281",
+      "title": "中央军委举行荣誉称号颁授仪式，习近平向获得荣誉称号的单位颁授奖旗",
+      "note": "正文提取后仍过短"
+    }
+  ]
+}

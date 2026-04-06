@@ -1,9 +1,6 @@
 // Kimi API 服务 - 用于精准提取文章内容
-import { getDeepSeekApiKey, getPreferredExtractionApi } from '@/services/aiSearchService';
-import { normalizeAnalysisText } from '@/lib/utils';
 
 const KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions';
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
 // 本地存储键
 const KIMI_API_KEY_STORAGE = 'kimi_api_key';
@@ -22,310 +19,6 @@ export interface ExtractedArticle {
   categoryName?: string;
   domain?: 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy';
   domainName?: string;
-}
-
-type ArticleExtractionProvider = 'kimi' | 'deepseek';
-
-interface ArticleExtractionApiConfig {
-  apiKey: string;
-  provider: ArticleExtractionProvider;
-  apiUrl: string;
-  model: string;
-}
-
-const DOMAIN_NAME_MAP: Record<NonNullable<ExtractedArticle['domain']>, string> = {
-  economy: '经济',
-  politics: '政治',
-  culture: '文化',
-  society: '社会',
-  ecology: '生态',
-  party: '党建',
-  defense: '国防',
-  diplomacy: '外交',
-};
-
-const CATEGORY_NAME_MAP: Record<NonNullable<ExtractedArticle['category']>, string> = {
-  speech: '重要讲话',
-  article: '发表文章',
-  meeting: '重要会议',
-  inspection: '考察调研',
-};
-
-const DOMAIN_KEYWORDS: Record<NonNullable<ExtractedArticle['domain']>, string[]> = {
-  economy: [
-    '经济', '金融', '高质量发展', '产业', '企业', '科技', '创新', '新质生产力', '制造业', '数字经济', '营商环境',
-    '改革开放', '外贸', '投资', '贸易', '市场', '消费', '工业', '农业', '民营经济', '海洋经济', '自贸', '开发区',
-    '现代化产业体系', '实体经济', '科技创新', '科技自立自强', '产业链', '供应链', '统一大市场', '项目建设',
-    '招商引资', '民营企业', '园区', '工厂', '产业基地', '创新平台', '经济工作', '经济大省', '数字中国',
-  ],
-  politics: [
-    '法治', '治理', '民主', '人大', '政协', '国家治理', '政治局', '制度建设', '依法治国', '统一战线',
-    '国家安全', '总体国家安全观', '民族团结', '宗教工作', '法治中国', '人民当家作主', '协商民主',
-  ],
-  culture: [
-    '文化', '文明', '文艺', '体育', '博物馆', '文物', '出版', '传统文化', '文化遗产', '宣传思想文化',
-    '精神文明', '中华优秀传统文化', '哲学社会科学', '文化自信', '考古', '非物质文化遗产',
-  ],
-  society: [
-    '民生', '教育', '医疗', '卫生', '就业', '养老', '社保', '乡村振兴', '扶贫', '基层治理', '健康中国',
-    '社会保障', '住房保障', '农民增收', '学校', '医院', '共同富裕', '人口高质量发展', '托育', '住房',
-    '义务教育', '高校毕业生', '收入分配',
-  ],
-  ecology: [
-    '生态', '环境', '绿色', '低碳', '碳达峰', '碳中和', '污染防治', '生态文明', '植树', '节能减排',
-    '美丽中国', '荒漠化', '环保', '气候变化', '生物多样性', '河湖', '林草', '黄河流域生态保护',
-  ],
-  party: [
-    '党建', '全面从严治党', '巡视', '纪检', '中央纪委', '党校', '党员', '组织工作', '作风建设', '八项规定',
-    '党内', '反腐', '干部队伍', '自我革命', '学习教育', '政绩观', '中央八项规定精神', '主题教育',
-  ],
-  defense: [
-    '国防', '军事', '军队', '强军', '部队', '军委', '武警', '练兵', '备战', '国防和军队现代化',
-    '战略威慑', '联合作战', '国防动员', '军民融合',
-  ],
-  diplomacy: [
-    '外交', '外事', '出访', '峰会', '总统', '总理', '国王', '会见外宾', '会见外国', '多边', '双边',
-    '命运共同体', '贺电', '贺信', '致电祝贺', '国际社会', '外国', '国际组织', '亚太经合组织',
-    '上海合作组织', '金砖', '二十国集团', '联合国', '中非合作论坛', '东盟', '中欧', '全球南方',
-  ],
-};
-
-function scoreDomainByText(text: string, weight: number, scores: Record<NonNullable<ExtractedArticle['domain']>, number>) {
-  if (!text) {
-    return;
-  }
-
-  for (const [domain, keywords] of Object.entries(DOMAIN_KEYWORDS) as [NonNullable<ExtractedArticle['domain']>, string[]][]) {
-    for (const keyword of keywords) {
-      if (text.includes(keyword)) {
-        scores[domain] += weight;
-      }
-    }
-  }
-}
-
-function inferDomainFromStrongSignals(article: ExtractedArticle): ExtractedArticle['domain'] | null {
-  const title = article.title || '';
-  const summary = article.summary || '';
-  const combined = `${title} ${summary}`;
-
-  if (/(气候变化|生态环境|生物多样性|绿色发展|碳达峰|碳中和|污染防治|美丽中国)/.test(combined)) {
-    return 'ecology';
-  }
-
-  const strongDomainPatterns: Array<[NonNullable<ExtractedArticle['domain']>, RegExp]> = [
-    ['diplomacy', /(外交|外事|出访|国事访问|峰会|亚太经合组织|上海合作组织|金砖|二十国集团|联合国|中非合作论坛|中阿峰会|中拉论坛|全球南方|会见.*(总统|总理|国王|外宾|外国)|致电祝贺.*(总统|总理|国王))/],
-    ['defense', /(国防|军事|军队|强军|军委|武警|备战|练兵|国防和军队现代化)/],
-    ['party', /(党建|全面从严治党|纪检|巡视|党校|组织工作|作风建设|八项规定|反腐|自我革命|学习教育|政绩观)/],
-    ['ecology', /(生态|环境|绿色|气候变化|碳达峰|碳中和|污染防治|美丽中国|荒漠化|植树|生态文明)/],
-    ['culture', /(文化|文明|文艺|体育|博物馆|文物|出版|文化遗产|宣传思想文化|精神文明)/],
-    ['society', /(民生|教育|医疗|卫生|就业|养老|社保|社会保障|住房保障|乡村振兴|扶贫|脱贫|人口高质量发展|共同富裕|健康中国)/],
-    ['economy', /(经济|金融|高质量发展|新质生产力|现代化产业体系|实体经济|数字经济|海洋经济|统一大市场|营商环境|科技创新|科技自立自强|制造业|产业链|供应链|招商引资|项目建设|企业家)/],
-  ];
-
-  for (const [domain, pattern] of strongDomainPatterns) {
-    if (pattern.test(combined)) {
-      return domain;
-    }
-  }
-
-  if (article.category === 'inspection') {
-    if (/(科技园区|企业|工厂|开发区|产业基地|创新平台|项目建设|营商环境)/.test(combined)) {
-      return 'economy';
-    }
-
-    if (/(农业生产|乡村振兴|农民增收|民生保障|学校|医院)/.test(combined)) {
-      return 'society';
-    }
-
-    if (/(生态环境|污染治理|绿色发展|河湖|林草|植树)/.test(combined)) {
-      return 'ecology';
-    }
-  }
-
-  return null;
-}
-
-function isPeopleArticle(articleUrl: string): boolean {
-  try {
-    const { hostname } = new URL(articleUrl);
-    return hostname.toLowerCase().includes('people.com.cn');
-  } catch {
-    return false;
-  }
-}
-
-function inferPeopleCategoryFromArticle(article: ExtractedArticle, articleUrl: string): ExtractedArticle['category'] | null {
-  if (!isPeopleArticle(articleUrl)) {
-    return null;
-  }
-
-  const title = (article.title || '').trim();
-  const source = (article.source || '').trim();
-
-  if (!title) {
-    return null;
-  }
-
-  if (
-    /人民日报评论员|评论员文章|和音|人民论坛|任仲平|钟声|宣言|《求是》|发表文章|署名文章/.test(title) ||
-    /theory\.people\.com\.cn|opinion\.people\.com\.cn/.test(articleUrl.toLowerCase()) ||
-    /《求是》/.test(source)
-  ) {
-    return 'article';
-  }
-
-  if (/考察|调研|视察|植树|看望|慰问/.test(title)) {
-    return 'inspection';
-  }
-
-  if (/回信|复信|贺信|贺电|致电|慰问电|致辞|指示|命令/.test(title)) {
-    return 'speech';
-  }
-
-  if (/召开会议|会议|座谈会|全会|常委会|峰会|论坛|会见|会谈|审议|闭幕|开幕/.test(title)) {
-    return 'meeting';
-  }
-
-  if (/讲话/.test(title)) {
-    return 'speech';
-  }
-
-  return null;
-}
-
-function inferPeopleDomainFromUrl(articleUrl: string): ExtractedArticle['domain'] | null {
-  try {
-    const { hostname, pathname } = new URL(articleUrl);
-    const normalizedHost = hostname.toLowerCase();
-    const normalizedPath = pathname.toLowerCase();
-
-    if (!normalizedHost.includes('people.com.cn')) {
-      return null;
-    }
-
-    const hints = `${normalizedHost}${normalizedPath}`;
-    const hasPeopleChannel = (channels: string[]) =>
-      channels.some(channel =>
-        normalizedHost.includes(`${channel}.people.com.cn`) ||
-        normalizedPath.includes(`/${channel}/`)
-      );
-
-    if (/(world|foreign|overseas|hmrb|military)/.test(hints)) {
-      return hints.includes('military') ? 'defense' : 'diplomacy';
-    }
-
-    if (/(cpc|dangjian|xuexi|fanfu|renshi)/.test(hints)) {
-      return 'party';
-    }
-
-    if (hasPeopleChannel(['finance', 'capital', 'industry', 'tech', 'scitech', 'economy', 'auto', 'house', 'shipin', 'ccn']) || normalizedHost.includes('ent.people.com.cn')) {
-      return 'economy';
-    }
-
-    if (hasPeopleChannel(['society', 'health', 'edu']) || normalizedHost.includes('pic.people.com.cn')) {
-      return 'society';
-    }
-
-    if (hasPeopleChannel(['culture', 'art', 'book', 'history', 'museum'])) {
-      return 'culture';
-    }
-
-    if (hasPeopleChannel(['env', 'energy', 'green'])) {
-      return 'ecology';
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function inferDomainFromArticleContent(article: ExtractedArticle, articleUrl: string): ExtractedArticle['domain'] | null {
-  const strongSignalDomain = inferDomainFromStrongSignals(article);
-  if (strongSignalDomain) {
-    return strongSignalDomain;
-  }
-
-  const scores: Record<NonNullable<ExtractedArticle['domain']>, number> = {
-    economy: 0,
-    politics: 0,
-    culture: 0,
-    society: 0,
-    ecology: 0,
-    party: 0,
-    defense: 0,
-    diplomacy: 0,
-  };
-
-  scoreDomainByText(articleUrl.toLowerCase(), 2, scores);
-  scoreDomainByText(article.source || '', 2, scores);
-  scoreDomainByText(article.title || '', 4, scores);
-  scoreDomainByText(article.summary || '', 2, scores);
-  scoreDomainByText(article.fullText || '', 1, scores);
-
-  if (article.category === 'inspection' && /植树|生态|绿色|环境|河湖|林草|气候变化/.test(`${article.title} ${article.summary} ${article.fullText}`)) {
-    scores.ecology += 4;
-  }
-
-  if (article.category === 'inspection' && /企业|产业|科技|创新|园区|开发区|制造业|项目建设|营商环境|现代化产业体系/.test(`${article.title} ${article.summary} ${article.fullText}`)) {
-    scores.economy += 4;
-  }
-
-  if (article.category === 'meeting' && /会见|会谈|峰会|多边|双边|总统|总理|国王|外国|国际组织|亚太经合组织|上海合作组织|金砖|联合国/.test(article.title || '')) {
-    scores.diplomacy += 5;
-  }
-
-  const sortedDomains = Object.entries(scores)
-    .sort((a, b) => b[1] - a[1]) as [NonNullable<ExtractedArticle['domain']>, number][];
-
-  const [bestDomain, bestScore] = sortedDomains[0];
-  const secondScore = sortedDomains[1]?.[1] ?? 0;
-
-  if (!bestDomain || bestScore <= 0) {
-    return null;
-  }
-
-  if (bestDomain !== 'politics' && bestScore >= 3 && bestScore >= secondScore + 1) {
-    return bestDomain;
-  }
-
-  if (bestDomain === 'politics' && bestScore >= 4 && secondScore === 0) {
-    return bestDomain;
-  }
-
-  return null;
-}
-
-function refineExtractedArticle(article: ExtractedArticle, articleUrl: string): ExtractedArticle {
-  const nextArticle: ExtractedArticle = {
-    ...article,
-    url: articleUrl,
-  };
-
-  const inferredPeopleCategory = inferPeopleCategoryFromArticle(nextArticle, articleUrl);
-  if (
-    inferredPeopleCategory &&
-    (!nextArticle.category || (nextArticle.category === 'speech' && inferredPeopleCategory !== 'speech'))
-  ) {
-    nextArticle.category = inferredPeopleCategory;
-    nextArticle.categoryName = CATEGORY_NAME_MAP[inferredPeopleCategory];
-  } else if (nextArticle.category && !nextArticle.categoryName) {
-    nextArticle.categoryName = CATEGORY_NAME_MAP[nextArticle.category];
-  }
-
-  const inferredPeopleDomain = inferPeopleDomainFromUrl(articleUrl);
-  const inferredContentDomain = inferDomainFromArticleContent(nextArticle, articleUrl);
-  const refinedDomain = inferredPeopleDomain || inferredContentDomain;
-
-  if (refinedDomain && (!nextArticle.domain || nextArticle.domain === 'politics')) {
-    nextArticle.domain = refinedDomain;
-    nextArticle.domainName = DOMAIN_NAME_MAP[refinedDomain];
-  } else if (nextArticle.domain && !nextArticle.domainName) {
-    nextArticle.domainName = DOMAIN_NAME_MAP[nextArticle.domain];
-  }
-
-  return nextArticle;
 }
 
 /**
@@ -378,76 +71,53 @@ export async function validateKimiApiKey(apiKey: string): Promise<{ valid: boole
   }
 }
 
-async function fetchPageContent(sourceUrl: string): Promise<string> {
-  const requestTargets = [
-    {
-      label: 'source',
-      url: sourceUrl,
-      headers: {
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-      },
-    },
-    {
-      label: 'corsproxy',
-      url: `https://corsproxy.io/?${encodeURIComponent(sourceUrl)}`,
-      headers: {
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-      },
-    },
-    {
-      label: 'allorigins',
-      url: `https://api.allorigins.win/raw?url=${encodeURIComponent(sourceUrl)}`,
-      headers: {
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      },
-    },
-    {
-      label: 'codetabs',
-      url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(sourceUrl)}`,
-    },
-    {
-      label: 'codetabs-slash',
-      url: `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(sourceUrl)}`,
-    },
+/**
+ * 使用CORS代理获取网页内容
+ */
+async function fetchWithCorsProxy(url: string): Promise<string> {
+  // 多个CORS代理，按优先级排序
+  const corsProxies = [
+    // 代理1: corsproxy.io
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    // 代理2: allorigins
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    // 代理3: cors-anywhere的替代品
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
   ];
 
   let lastError: Error | null = null;
 
-  for (const target of requestTargets) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
+  for (const proxyUrl of corsProxies) {
     try {
-      console.log(`Trying page fetch via ${target.label}:`, target.url.substring(0, 80));
+      console.log('Trying proxy:', proxyUrl.substring(0, 50) + '...');
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超时
 
-      const response = await fetch(target.url, {
+      const response = await fetch(proxyUrl, {
         signal: controller.signal,
-        headers: target.headers,
+        headers: {
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        }
       });
 
-      if (!response.ok) {
-        lastError = new Error(`${target.label} 返回状态 ${response.status}`);
-        continue;
-      }
-
-      const text = await response.text();
-      if (text && text.trim().length > 100) {
-        console.log(`Fetched page content via ${target.label}, length:`, text.length);
-        return text;
-      }
-
-      lastError = new Error(`${target.label} 返回内容过短`);
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error('Unknown error');
-      console.log(`Page fetch via ${target.label} failed:`, lastError.message);
-    } finally {
       clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const text = await response.text();
+        if (text && text.length > 100) {
+          console.log('Successfully fetched content, length:', text.length);
+          return text;
+        }
+      }
+    } catch (e) {
+      lastError = e instanceof Error ? e : new Error('Unknown error');
+      console.log('Proxy failed:', lastError.message);
     }
   }
 
-  throw new Error(lastError?.message || '所有网页抓取方式都失败了');
+  throw new Error(lastError?.message || '所有代理都无法访问该网页');
 }
 
 /**
@@ -545,125 +215,39 @@ function cleanHtmlContent(html: string): string {
     .trim();
 }
 
-function extractJsonCandidate(content: string): string {
-  const normalized = content
-    .trim()
-    .replace(/^```json\s*/i, '')
-    .replace(/^```\s*/i, '')
-    .replace(/\s*```$/i, '')
-    .trim();
-
-  if (normalized.startsWith('{') && normalized.endsWith('}')) {
-    return normalized;
+/**
+ * 使用Kimi API从网页内容提取文章
+ */
+export async function extractArticleWithKimi(url: string, apiKey?: string): Promise<ExtractedArticle> {
+  const key = apiKey || getKimiApiKey();
+  
+  if (!key) {
+    throw new Error('请先配置Kimi API Key');
   }
 
-  const firstBraceIndex = normalized.indexOf('{');
-  if (firstBraceIndex === -1) {
-    throw new Error('无法解析返回的JSON');
+  // 获取网页内容
+  let pageContent = '';
+  
+  try {
+    pageContent = await fetchWithCorsProxy(url);
+  } catch (e) {
+    console.error('Failed to fetch page:', e);
+    throw new Error('无法获取网页内容。请检查链接是否正确，或尝试手动粘贴网页内容。');
   }
 
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-
-  for (let index = firstBraceIndex; index < normalized.length; index += 1) {
-    const char = normalized[index];
-
-    if (escaped) {
-      escaped = false;
-      continue;
-    }
-
-    if (char === '\\') {
-      escaped = true;
-      continue;
-    }
-
-    if (char === '"') {
-      inString = !inString;
-      continue;
-    }
-
-    if (inString) {
-      continue;
-    }
-
-    if (char === '{') {
-      depth += 1;
-    } else if (char === '}') {
-      depth -= 1;
-      if (depth === 0) {
-        return normalized.slice(firstBraceIndex, index + 1);
-      }
-    }
+  if (!pageContent || pageContent.length < 100) {
+    throw new Error('获取的网页内容太少，请检查链接是否正确');
   }
 
-  throw new Error('无法解析返回的JSON');
-}
-
-function normalizeJsonStringLiterals(candidate: string): string {
-  let normalized = '';
-  let inString = false;
-  let escaped = false;
-
-  for (const char of candidate) {
-    if (escaped) {
-      normalized += char;
-      escaped = false;
-      continue;
-    }
-
-    if (char === '\\') {
-      normalized += char;
-      escaped = true;
-      continue;
-    }
-
-    if (char === '"') {
-      normalized += char;
-      inString = !inString;
-      continue;
-    }
-
-    if (inString) {
-      if (char === '\n') {
-        normalized += '\\n';
-        continue;
-      }
-
-      if (char === '\r') {
-        normalized += '\\r';
-        continue;
-      }
-
-      if (char === '\t') {
-        normalized += '\\t';
-        continue;
-      }
-    }
-
-    normalized += char;
-  }
-
-  return normalized;
-}
-
-function parseExtractedArticleResponse(content: string): ExtractedArticle {
-  const candidate = normalizeJsonStringLiterals(extractJsonCandidate(content))
-    .replace(/,\s*([}\]])/g, '$1')
-    .trim();
-
-  const article = JSON.parse(candidate) as ExtractedArticle;
-  article.analysis = normalizeAnalysisText(article.analysis || '');
-  return article;
-}
-
-function buildArticleExtractionPrompt(url: string, pageContent: string): string {
-  const truncatedContent = pageContent.substring(0, 15000);
+  // 清理HTML
+  const cleanContent = cleanHtmlContent(pageContent);
+  
+  // 截取前15000字符
+  const truncatedContent = cleanContent.substring(0, 15000);
 
   console.log('Cleaned content length:', truncatedContent.length);
 
-  return `你是一个专业的内容提取助手。请从以下网页内容中提取文章信息。
+  const prompt = `你是一个专业的内容提取助手。请从以下网页内容中提取文章信息。
 
 网页URL: ${url}
 
@@ -684,19 +268,14 @@ ${truncatedContent}
   "domainName": "领域中文名",
   "summary": "文章摘要，200-300字，概述主要内容",
   "fullText": "纯净的正文内容（见下方详细要求）",
-  "analysis": "深度解读分析正文，400-600字，分三段书写"
+  "analysis": "深度解读分析，400-600字，必须分为三个段落，每段开头用小标题标注：\n一、政治高度：结合习近平新时代中国特色社会主义思想，阐述讲话在党和国家事业全局中的重大意义。\n二、理论深度：阐释核心要义、精神实质，分析其中蕴含的马克思主义立场观点方法。\n三、历史贯通与实践：联系习近平总书记历次相关重要讲话，分析一脉相承的思想脉络，指出对推动中国式现代化的实践指导意义。"
 }
 
 【解读分析撰写规范】
 解读必须分为三个段落，每段开头用小标题标注：
-一、政治高度：直接写本篇文章在党和国家事业全局中的重大意义分析内容。
-二、理论深度：直接写核心要义、精神实质和马克思主义立场观点方法分析内容。
-三、历史贯通与实践：直接写思想脉络和实践指导意义分析内容。
-
-【禁止写法】
-- 禁止把上面三句要求原样抄进答案
-- 禁止出现“政治高度是指”“所谓政治高度”“这里的政治高度”等先解释标题含义的句子
-- 小标题后必须直接进入正文分析
+一、政治高度：结合习近平新时代中国特色社会主义思想，阐述讲话在党和国家事业全局中的重大意义。
+二、理论深度：阐释核心要义、精神实质，分析其中蕴含的马克思主义立场观点方法。
+三、历史贯通与实践：联系习近平总书记历次相关重要讲话，分析一脉相承的思想脉络，指出对推动中国式现代化的实践指导意义。
 
 【最重要】fullText正文提取规则：
 
@@ -735,8 +314,7 @@ ${truncatedContent}
 5. 标题含"文化/文明/文艺/体育" → culture（文化）
 6. 标题含"民生/扶贫/乡村振兴/医疗/就业/养老" → society（社会）
 7. 标题含"经济/金融/高质量发展/产业/企业/科技/创新/新质生产力/改革开放/营商环境/招商引资/项目建设/产业升级" → economy（经济）
-8. 如果是人民网 politics.people.com.cn 等时政频道文章，不要因为频道名就一律判成 politics，必须结合标题、摘要、正文主题判断是经济/外交/社会/生态等具体领域
-9. 只有确实没有明显领域特征时，才默认 → politics（政治）
+8. 其他默认 → politics（政治）
 
 【重要】考察调研类文章领域判断补充：
 - 分类为"考察调研(inspection)"的文章，需结合内容判断领域：
@@ -745,299 +323,85 @@ ${truncatedContent}
 - 考察内容涉及"农业生产/乡村振兴/农民增收" → society（社会）或 economy（经济）
 - 考察内容涉及"生态环境/污染治理/绿色发展" → ecology（生态）
 - 考察内容涉及"文化遗产/文物保护/文化教育" → culture（文化）`;
-}
 
-function buildArticleExtractionApiConfig(
-  apiKey: string,
-  provider: ArticleExtractionProvider
-): ArticleExtractionApiConfig {
-  return {
-    apiKey,
-    provider,
-    apiUrl: provider === 'deepseek' ? DEEPSEEK_API_URL : KIMI_API_URL,
-    model: provider === 'deepseek' ? 'deepseek-chat' : 'moonshot-v1-8k',
-  };
-}
 
-function resolveArticleExtractionApiConfigs(
-  apiKey?: string,
-  provider?: ArticleExtractionProvider
-): ArticleExtractionApiConfig[] {
-  const kimiApiKey = getKimiApiKey();
-  const deepSeekApiKey = getDeepSeekApiKey();
-  const preferredProvider = getPreferredExtractionApi();
-  const configs: ArticleExtractionApiConfig[] = [];
-  const seenProviders = new Set<ArticleExtractionProvider>();
-
-  const appendConfig = (nextProvider: ArticleExtractionProvider, nextApiKey: string | null) => {
-    if (!nextApiKey || seenProviders.has(nextProvider)) {
-      return;
-    }
-
-    seenProviders.add(nextProvider);
-    configs.push(buildArticleExtractionApiConfig(nextApiKey, nextProvider));
-  };
-
-  if (apiKey) {
-    const primaryProvider = provider || 'kimi';
-    appendConfig(primaryProvider, apiKey);
-
-    if (primaryProvider === 'kimi') {
-      appendConfig('deepseek', deepSeekApiKey);
-    } else {
-      appendConfig('kimi', kimiApiKey);
-    }
-
-    return configs;
-  }
-
-  if (preferredProvider === 'deepseek') {
-    appendConfig('deepseek', deepSeekApiKey);
-    appendConfig('kimi', kimiApiKey);
-  } else {
-    appendConfig('kimi', kimiApiKey);
-    appendConfig('deepseek', deepSeekApiKey);
-  }
-
-  if (!configs.length) {
-    throw new Error('请先配置 Kimi 或 DeepSeek API Key');
-  }
-
-  return configs;
-}
-
-function getProviderDisplayName(provider: ArticleExtractionProvider): string {
-  return provider === 'deepseek' ? 'DeepSeek' : 'Kimi';
-}
-
-function isAuthenticationErrorMessage(message: string): boolean {
-  return /authentication|api key|unauthorized|invalid key|token|余额不足|insufficient/i.test(message);
-}
-
-function normalizeArticleExtractionError(error: unknown, provider: ArticleExtractionProvider): Error {
-  const message = error instanceof Error ? error.message : '未知错误';
-  if (!isAuthenticationErrorMessage(message)) {
-    return error instanceof Error ? error : new Error(message);
-  }
-
-  return new Error(`${getProviderDisplayName(provider)} API Key 无效或不可用，请在“管理 API”中重新配置`);
-}
-
-function shouldTryNextProvider(error: Error): boolean {
-  return isAuthenticationErrorMessage(error.message);
-}
-
-async function requestArticleExtraction(
-  prompt: string,
-  url: string,
-  apiConfig: ArticleExtractionApiConfig
-): Promise<ExtractedArticle> {
-  console.log(`Calling ${getProviderDisplayName(apiConfig.provider)} API...`);
-
-  const response = await fetch(apiConfig.apiUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiConfig.apiKey}`,
-    },
-    body: JSON.stringify({
-      model: apiConfig.model,
-      messages: [
-        {
-          role: 'system',
-          content: '你是一个专业的内容提取助手，擅长从网页内容中精确提取文章信息。请严格按照JSON格式输出，不要输出任何其他内容。'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.3,
-      max_tokens: 8000,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw normalizeArticleExtractionError(
-      new Error(errorData.error?.message || `API请求失败: ${response.status}`),
-      apiConfig.provider
-    );
-  }
-
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-
-  if (!content) {
-    throw new Error('API返回内容为空');
-  }
-
-  console.log('API response received, parsing...');
-
-  let article: ExtractedArticle;
   try {
-    article = parseExtractedArticleResponse(content);
-  } catch (parseError) {
-    console.error('JSON解析错误:', content.substring(0, 500));
-    throw new Error('解析文章内容失败，请重试');
-  }
-
-  article = refineExtractedArticle(article, url);
-
-  if (!article.title || !article.fullText) {
-    throw new Error('提取的内容不完整，请重试');
-  }
-
-  console.log('Article extracted successfully:', article.title);
-  return article;
-}
-
-async function requestArticleExtractionWithKimiBrowser(
-  url: string,
-  apiConfig: ArticleExtractionApiConfig
-): Promise<ExtractedArticle> {
-  const response = await fetch(apiConfig.apiUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiConfig.apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'moonshot-v1-auto',
-      messages: [
-        {
-          role: 'system',
-          content: `你是一个专业的网页文章提取助手。请使用 web_browser 工具打开用户提供的网页，提取文章信息，并且只返回 JSON 对象。
-
-返回格式必须是：
-{
-  "title": "文章完整标题",
-  "date": "发布日期，格式为YYYY-MM-DD",
-  "source": "来源，如：求是杂志、人民网、新华网等",
-  "author": "作者（如果有）",
-  "location": "地点（如果是考察调研类文章）",
-  "category": "speech/article/meeting/inspection 之一",
-  "categoryName": "分类中文名",
-  "domain": "economy/politics/culture/society/ecology/party/defense/diplomacy 之一",
-  "domainName": "领域中文名",
-  "summary": "文章摘要，200-300字",
-  "fullText": "纯净正文，不要包含标题、来源、日期、作者、责任编辑、相关阅读、页脚、版权和分享文案",
-  "analysis": "深度解读分析，400-600字，分为三段：一、政治高度；二、理论深度；三、历史贯通与实践"
-}
-
-不要返回 markdown，不要返回解释，只返回 JSON。`
-        },
-        {
-          role: 'user',
-          content: `请打开这个网页并提取文章信息：${url}`
-        }
-      ],
-      tools: [
-        {
-          type: 'builtin_function',
-          function: { name: '$web_browser' },
-        }
-      ],
-      temperature: 0.1,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw normalizeArticleExtractionError(
-      new Error(errorData.error?.message || `API请求失败: ${response.status}`),
-      apiConfig.provider
-    );
-  }
-
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-
-  if (!content) {
-    throw new Error('Kimi 浏览网页后未返回内容');
-  }
-
-  const article = refineExtractedArticle(parseExtractedArticleResponse(content), url);
-
-  if (!article.title || !article.fullText) {
-    throw new Error('Kimi 浏览网页后返回的内容不完整');
-  }
-
-  return article;
-}
-
-/**
- * 使用Kimi API从网页内容提取文章
- */
-export async function extractArticleWithKimi(
-  url: string,
-  apiKey?: string,
-  provider?: ArticleExtractionProvider
-): Promise<ExtractedArticle> {
-  const apiConfigs = resolveArticleExtractionApiConfigs(apiKey, provider);
-  let lastError: Error | null = null;
-  let cachedPrompt: string | null = null;
-
-  for (let index = 0; index < apiConfigs.length; index += 1) {
-    const apiConfig = apiConfigs[index];
-
-    try {
-      if (apiConfig.provider === 'kimi') {
-        try {
-          return await requestArticleExtractionWithKimiBrowser(url, apiConfig);
-        } catch (error) {
-          const browserError = normalizeArticleExtractionError(error, apiConfig.provider);
-          if (shouldTryNextProvider(browserError)) {
-            throw browserError;
+    console.log('Calling Kimi API...');
+    
+    const response = await fetch(KIMI_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model: 'moonshot-v1-8k',
+        messages: [
+          {
+            role: 'system',
+            content: '你是一个专业的内容提取助手，擅长从网页内容中精确提取文章信息。请严格按照JSON格式输出，不要输出任何其他内容。'
+          },
+          {
+            role: 'user',
+            content: prompt
           }
-          console.warn('Kimi web_browser 提取失败，回退到网页内容抓取模式:', browserError.message);
-        }
-      }
+        ],
+        temperature: 0.3,
+        max_tokens: 8000,
+      }),
+    });
 
-      if (!cachedPrompt) {
-        let pageContent = '';
-
-        try {
-          pageContent = await fetchPageContent(url);
-        } catch (error) {
-          console.error('Failed to fetch page:', error);
-          throw new Error('无法获取网页内容。请检查链接是否正确，或尝试手动粘贴网页内容。');
-        }
-
-        if (!pageContent || pageContent.length < 100) {
-          throw new Error('获取的网页内容太少，请检查链接是否正确');
-        }
-
-        const cleanContent = cleanHtmlContent(pageContent);
-        cachedPrompt = buildArticleExtractionPrompt(url, cleanContent);
-      }
-
-      return await requestArticleExtraction(cachedPrompt, url, apiConfig);
-    } catch (error) {
-      const normalizedError = normalizeArticleExtractionError(error, apiConfig.provider);
-      console.error(`${getProviderDisplayName(apiConfig.provider)} API error:`, normalizedError);
-      lastError = normalizedError;
-
-      if (!shouldTryNextProvider(normalizedError) || index === apiConfigs.length - 1) {
-        throw normalizedError;
-      }
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || `API请求失败: ${response.status}`);
     }
-  }
 
-  throw lastError || new Error('提取文章失败，请重试');
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+
+    if (!content) {
+      throw new Error('API返回内容为空');
+    }
+
+    console.log('API response received, parsing...');
+
+    // 解析JSON
+    let article: ExtractedArticle;
+    try {
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        article = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('无法解析返回的JSON');
+      }
+    } catch (parseError) {
+      console.error('JSON解析错误:', content.substring(0, 500));
+      throw new Error('解析文章内容失败，请重试');
+    }
+
+    article.url = url;
+
+    if (!article.title || !article.fullText) {
+      throw new Error('提取的内容不完整，请重试');
+    }
+
+    console.log('Article extracted successfully:', article.title);
+    return article;
+  } catch (error) {
+    console.error('Kimi API error:', error);
+    throw error;
+  }
 }
 
 /**
  * 使用Kimi API从用户粘贴的内容提取文章（备用方案）
  */
-export async function extractArticleFromText(
-  content: string,
-  url: string,
-  apiKey?: string,
-  provider?: ArticleExtractionProvider
-): Promise<ExtractedArticle> {
-  const apiConfigs = resolveArticleExtractionApiConfigs(apiKey, provider);
+export async function extractArticleFromText(content: string, url: string, apiKey?: string): Promise<ExtractedArticle> {
+  const key = apiKey || getKimiApiKey();
+  
+  if (!key) {
+    throw new Error('请先配置Kimi API Key');
+  }
 
   if (!content || content.length < 50) {
     throw new Error('请粘贴更多内容');
@@ -1122,25 +486,55 @@ ${truncatedContent}
 - 考察内容涉及"生态环境/污染治理/绿色发展" → ecology（生态）
 - 考察内容涉及"文化遗产/文物保护/文化教育" → culture（文化）`;
 
-  let lastError: Error | null = null;
+  try {
+    const response = await fetch(KIMI_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model: 'moonshot-v1-8k',
+        messages: [
+          {
+            role: 'system',
+            content: '你是一个专业的内容提取助手。请严格按照JSON格式输出。'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 8000,
+      }),
+    });
 
-  for (let index = 0; index < apiConfigs.length; index += 1) {
-    const apiConfig = apiConfigs[index];
-
-    try {
-      return await requestArticleExtraction(prompt, url, apiConfig);
-    } catch (error) {
-      const normalizedError = normalizeArticleExtractionError(error, apiConfig.provider);
-      console.error('Extract from text error:', normalizedError);
-      lastError = normalizedError;
-
-      if (!shouldTryNextProvider(normalizedError) || index === apiConfigs.length - 1) {
-        throw normalizedError;
-      }
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || `API请求失败`);
     }
-  }
 
-  throw lastError || new Error('提取文章失败，请重试');
+    const data = await response.json();
+    const apiContent = data.choices?.[0]?.message?.content;
+
+    if (!apiContent) {
+      throw new Error('API返回内容为空');
+    }
+
+    const jsonMatch = apiContent.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('解析失败');
+    }
+
+    const article: ExtractedArticle = JSON.parse(jsonMatch[0]);
+    article.url = url;
+
+    return article;
+  } catch (error) {
+    console.error('Extract from text error:', error);
+    throw error;
+  }
 }
 
 /**

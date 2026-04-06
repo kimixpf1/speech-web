@@ -1,0 +1,29 @@
+{
+  "finished_at": "2026-04-04T10:54:16.470493",
+  "ids_file": "E:\\ccswitch\\AI编程工作目录\\讲话网站\\app\\scripts\\refill_candidate_ids_20260404.json",
+  "batch_start": 15,
+  "batch_end": 25,
+  "batch_size": 10,
+  "candidate_count": 10,
+  "ready_count": 9,
+  "error_count": 1,
+  "skipped_count": 0,
+  "ready_ids": [
+    "P2025-0580",
+    "P2025-0586",
+    "P2025-0602",
+    "P2025-0603",
+    "P2026-1047",
+    "P2026-1048",
+    "P2026-1049",
+    "P2026-1052",
+    "P2026-1055"
+  ],
+  "error_samples": [
+    {
+      "id": "P2025-0582",
+      "title": "中华人民共和国主席令  第六十六号",
+      "note": "正文提取后仍过短"
+    }
+  ]
+}

@@ -154,7 +154,8 @@ export function normalizeArticleUrl(url?: string): string {
     'http://politics.people.com.cn/',
     'http://opinion.people.com.cn/',
     'http://cpc.people.com.cn/',
-    'http://js.people.com.cn/'
+    'http://js.people.com.cn/',
+    'http://jhsjk.people.cn/'
   ]
 
   if (keepHttpPrefixes.some(prefix => trimmed.startsWith(prefix))) {

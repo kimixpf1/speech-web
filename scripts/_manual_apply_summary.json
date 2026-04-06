@@ -1,0 +1,13 @@
+{
+  "finished_at": "2026-04-04T10:19:13.266939",
+  "ids_file": "scripts/refill_candidate_ids_20260404.json",
+  "offset": 0,
+  "limit": 1,
+  "candidate_count": 1,
+  "ready_count": 1,
+  "error_count": 0,
+  "ready_ids": [
+    "ZJG-C14"
+  ],
+  "error_samples": []
+}

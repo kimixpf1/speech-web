@@ -1,0 +1,19 @@
+{
+  "finished_at": "2026-04-04T21:00:21.673946",
+  "ids_file": "E:\\ccswitch\\AI编程工作目录\\讲话网站\\app\\scripts\\mojibake_fix_ids.json",
+  "batch_start": 10,
+  "batch_end": 15,
+  "batch_size": 5,
+  "candidate_count": 5,
+  "ready_count": 5,
+  "error_count": 0,
+  "skipped_count": 0,
+  "ready_ids": [
+    "P2024-0390",
+    "P2024-0392",
+    "P2024-0396",
+    "P2024-0400",
+    "P2024-0436"
+  ],
+  "error_samples": []
+}
