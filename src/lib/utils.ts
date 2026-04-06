@@ -174,6 +174,7 @@ export function normalizeArticleUrl(url?: string): string {
     return `http://${trimmed.slice('https://'.length)}`
   }
 
+
   if (trimmed.startsWith('http://')) {
     return `https://${trimmed.slice('http://'.length)}`
   }

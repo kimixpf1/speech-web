@@ -1,1282 +1,2500 @@
 {
-  "checked_at": "2026-04-04 19:07:50",
+  "checked_at": "2026-04-03 21:46:12",
   "article_count": 1144,
   "detail_count": 1144,
-  "broken_urls": [
+  "http_links": [
     {
-      "id": "2024-06",
-      "title": "在湖北考察时的重要讲话",
-      "source": "人民网",
-      "url": "http://politics.people.com.cn/n1/2024/1107/c1024-40355570.html",
-      "normalized_url": "https://politics.people.com.cn/n1/2024/1107/c1024-40355570.html",
-      "status": "ERROR",
-      "final_url": "https://politics.people.com.cn/n1/2024/1107/c1024-40355570.html",
-      "note": "HTTPSConnectionPool(host='politics.people.com.cn', port=443): Max retries exceeded with url: /n1/2024/1107/c1024-40355570.html (Caused by SSLError(SSLCertVerificationError(\"hostname 'politics.people.com.cn' doesn't match either of 'default.chinanetcenter.com', '*.wscdns.com', '*.vxzz.xyz', '*.hnrrco.com', '*.qdllm.online', '*.100ycdn.com', '*.dianping.com', '*.dpfile.com', '*.meituan.net', '*.zservey.net', '*.wslivehls.com', '*.ourhttps.com', '*.wsfdn.com', '*.heesay.com', '*.i3839.com', '*.blued.com', 'm.bbs.3839.com', 'jssdk.3304399.net', '*.lof3.xyz', '*.rax0mai4.xyz', '*.4399.cn', '*.3839.com', 'maangh2.chinanetcenter.com', '*.4399.com', '*.service.kugou.com', 'lvs.lxdns.net', '*.walla-app.com', '*.bldimg.com', '*.5054399.com', '*.4399youpai.com', '*.3839app.com', '*.v.cdn20.com', 'hls.vda.v.cdn20.com', '*.cntv.cdn20.com', '*.img4399.com', '*.cntv.lxdns.com', '*.ourdvsssvip.com', '*.v.wscdns.com', '4399.cn'\")))"
-    },
-    {
-      "id": "2024-08",
-      "title": "在山东考察时的重要讲话",
-      "source": "人民网",
-      "url": "https://www.youtube.com/watch?v=bSnc9GOogkE",
-      "normalized_url": "https://www.youtube.com/watch?v=bSnc9GOogkE",
-      "status": "TIMEOUT",
-      "final_url": "https://www.youtube.com/watch?v=bSnc9GOogkE",
-      "note": "请求超时"
-    },
-    {
-      "id": "2024-13",
-      "title": "在中华全国供销合作总社成立70周年之际作出重要指示",
-      "source": "人民网",
-      "url": "http://politics.people.com.cn/n1/2024/1128/c1024-40371064.html",
-      "normalized_url": "https://politics.people.com.cn/n1/2024/1128/c1024-40371064.html",
-      "status": "ERROR",
-      "final_url": "https://politics.people.com.cn/n1/2024/1128/c1024-40371064.html",
-      "note": "HTTPSConnectionPool(host='politics.people.com.cn', port=443): Max retries exceeded with url: /n1/2024/1128/c1024-40371064.html (Caused by SSLError(SSLCertVerificationError(\"hostname 'politics.people.com.cn' doesn't match either of 'default.chinanetcenter.com', '*.wscdns.com', '*.vxzz.xyz', '*.hnrrco.com', '*.qdllm.online', '*.100ycdn.com', '*.dianping.com', '*.dpfile.com', '*.meituan.net', '*.zservey.net', '*.wslivehls.com', '*.ourhttps.com', '*.wsfdn.com', '*.heesay.com', '*.i3839.com', '*.blued.com', 'm.bbs.3839.com', 'jssdk.3304399.net', '*.lof3.xyz', '*.rax0mai4.xyz', '*.4399.cn', '*.3839.com', 'maangh2.chinanetcenter.com', '*.4399.com', '*.service.kugou.com', 'lvs.lxdns.net', '*.walla-app.com', '*.bldimg.com', '*.5054399.com', '*.4399youpai.com', '*.3839app.com', '*.v.cdn20.com', 'hls.vda.v.cdn20.com', '*.cntv.cdn20.com', '*.img4399.com', '*.cntv.lxdns.com', '*.ourdvsssvip.com', '*.v.wscdns.com', '4399.cn'\")))"
-    },
-    {
-      "id": "2024-F01",
-      "title": "在和平共处五项原则发表70周年纪念大会上的讲话",
-      "source": "人民网",
-      "url": "https://www.youtube.com/watch?v=-yY25ojWXoI",
-      "normalized_url": "https://www.youtube.com/watch?v=-yY25ojWXoI",
-      "status": "TIMEOUT",
-      "final_url": "https://www.youtube.com/watch?v=-yY25ojWXoI",
-      "note": "请求超时"
-    },
-    {
-      "id": "2025-03",
-      "title": "在全国两会期间的重要讲话",
-      "source": "人民网",
-      "url": "https://lianghui.people.com.cn/2025/n1/2025/0305/c460142-40431822.html",
-      "normalized_url": "https://lianghui.people.com.cn/2025/n1/2025/0305/c460142-40431822.html",
-      "status": "ERROR",
-      "final_url": "https://lianghui.people.com.cn/2025/n1/2025/0305/c460142-40431822.html",
-      "note": "HTTPSConnectionPool(host='lianghui.people.com.cn', port=443): Max retries exceeded with url: /2025/n1/2025/0305/c460142-40431822.html (Caused by SSLError(SSLCertVerificationError(\"hostname 'lianghui.people.com.cn' doesn't match either of 'default.chinanetcenter.com', '*.wscdns.com', '*.vxzz.xyz', '*.hnrrco.com', '*.qdllm.online', '*.100ycdn.com', '*.dianping.com', '*.dpfile.com', '*.meituan.net', '*.zservey.net', '*.wslivehls.com', '*.ourhttps.com', '*.wsfdn.com', '*.heesay.com', '*.i3839.com', '*.blued.com', 'm.bbs.3839.com', 'jssdk.3304399.net', '*.lof3.xyz', '*.rax0mai4.xyz', '*.4399.cn', '*.3839.com', 'maangh2.chinanetcenter.com', '*.4399.com', '*.service.kugou.com', 'lvs.lxdns.net', '*.walla-app.com', '*.bldimg.com', '*.5054399.com', '*.4399youpai.com', '*.3839app.com', '*.v.cdn20.com', 'hls.vda.v.cdn20.com', '*.cntv.cdn20.com', '*.img4399.com', '*.cntv.lxdns.com', '*.ourdvsssvip.com', '*.v.wscdns.com', '4399.cn'\")))"
-    },
-    {
-      "id": "P2024-0383",
-      "title": "习近平将出席中国—阿拉伯国家合作论坛第十届部长级会议开幕式并发表主旨讲话",
-      "source": "新华网",
-      "url": "http://politics.people.com.cn/n1/2024/0527/c1024-40243733.html",
-      "normalized_url": "https://politics.people.com.cn/n1/2024/0527/c1024-40243733.html",
-      "status": "ERROR",
-      "final_url": "https://politics.people.com.cn/n1/2024/0527/c1024-40243733.html",
-      "note": "HTTPSConnectionPool(host='politics.people.com.cn', port=443): Max retries exceeded with url: /n1/2024/0527/c1024-40243733.html (Caused by SSLError(SSLCertVerificationError(\"hostname 'politics.people.com.cn' doesn't match either of 'default.chinanetcenter.com', '*.wscdns.com', '*.vxzz.xyz', '*.hnrrco.com', '*.qdllm.online', '*.100ycdn.com', '*.dianping.com', '*.dpfile.com', '*.meituan.net', '*.zservey.net', '*.wslivehls.com', '*.ourhttps.com', '*.wsfdn.com', '*.heesay.com', '*.i3839.com', '*.blued.com', 'm.bbs.3839.com', 'jssdk.3304399.net', '*.lof3.xyz', '*.rax0mai4.xyz', '*.4399.cn', '*.3839.com', 'maangh2.chinanetcenter.com', '*.4399.com', '*.service.kugou.com', 'lvs.lxdns.net', '*.walla-app.com', '*.bldimg.com', '*.5054399.com', '*.4399youpai.com', '*.3839app.com', '*.v.cdn20.com', 'hls.vda.v.cdn20.com', '*.cntv.cdn20.com', '*.img4399.com', '*.cntv.lxdns.com', '*.ourdvsssvip.com', '*.v.wscdns.com', '4399.cn'\")))"
-    },
-    {
-      "id": "ZJG-C06",
-      "title": "学习新语丨树立和践行正确政绩观",
-      "source": "新华社",
-      "url": "https://politics.people.com.cn/n1/2026/0226/c461001-40670389.html",
-      "normalized_url": "https://politics.people.com.cn/n1/2026/0226/c461001-40670389.html",
-      "status": "ERROR",
-      "final_url": "https://politics.people.com.cn/n1/2026/0226/c461001-40670389.html",
-      "note": "HTTPSConnectionPool(host='politics.people.com.cn', port=443): Max retries exceeded with url: /n1/2026/0226/c461001-40670389.html (Caused by SSLError(SSLCertVerificationError(\"hostname 'politics.people.com.cn' doesn't match either of 'default.chinanetcenter.com', '*.wscdns.com', '*.vxzz.xyz', '*.hnrrco.com', '*.qdllm.online', '*.100ycdn.com', '*.dianping.com', '*.dpfile.com', '*.meituan.net', '*.zservey.net', '*.wslivehls.com', '*.ourhttps.com', '*.wsfdn.com', '*.heesay.com', '*.i3839.com', '*.blued.com', 'm.bbs.3839.com', 'jssdk.3304399.net', '*.lof3.xyz', '*.rax0mai4.xyz', '*.4399.cn', '*.3839.com', 'maangh2.chinanetcenter.com', '*.4399.com', '*.service.kugou.com', 'lvs.lxdns.net', '*.walla-app.com', '*.bldimg.com', '*.5054399.com', '*.4399youpai.com', '*.3839app.com', '*.v.cdn20.com', 'hls.vda.v.cdn20.com', '*.cntv.cdn20.com', '*.img4399.com', '*.cntv.lxdns.com', '*.ourdvsssvip.com', '*.v.wscdns.com', '4399.cn'\")))"
-    },
-    {
-      "id": "ZJG-C09",
-      "title": "人民锐评：正确地做正确的事",
-      "source": "人民网",
-      "url": "https://opinion.people.com.cn/n1/2026/0304/c441030-40674325.html",
-      "normalized_url": "https://opinion.people.com.cn/n1/2026/0304/c441030-40674325.html",
-      "status": "ERROR",
-      "final_url": "https://opinion.people.com.cn/n1/2026/0304/c441030-40674325.html",
-      "note": "HTTPSConnectionPool(host='opinion.people.com.cn', port=443): Max retries exceeded with url: /n1/2026/0304/c441030-40674325.html (Caused by SSLError(SSLCertVerificationError(\"hostname 'opinion.people.com.cn' doesn't match either of 'default.chinanetcenter.com', '*.wscdns.com', '*.vxzz.xyz', '*.hnrrco.com', '*.qdllm.online', '*.100ycdn.com', '*.dianping.com', '*.dpfile.com', '*.meituan.net', '*.zservey.net', '*.wslivehls.com', '*.ourhttps.com', '*.wsfdn.com', '*.heesay.com', '*.i3839.com', '*.blued.com', 'm.bbs.3839.com', 'jssdk.3304399.net', '*.lof3.xyz', '*.rax0mai4.xyz', '*.4399.cn', '*.3839.com', 'maangh2.chinanetcenter.com', '*.4399.com', '*.service.kugou.com', 'lvs.lxdns.net', '*.walla-app.com', '*.bldimg.com', '*.5054399.com', '*.4399youpai.com', '*.3839app.com', '*.v.cdn20.com', 'hls.vda.v.cdn20.com', '*.cntv.cdn20.com', '*.img4399.com', '*.cntv.lxdns.com', '*.ourdvsssvip.com', '*.v.wscdns.com', '4399.cn'\")))"
-    },
-    {
-      "id": "ZJG-C11",
-      "title": "正确政绩观增添世界对中国作用的信心（和音）",
-      "source": "人民日报",
-      "url": "https://opinion.people.com.cn/n1/2026/0314/c461529-40681762.html",
-      "normalized_url": "https://opinion.people.com.cn/n1/2026/0314/c461529-40681762.html",
-      "status": "ERROR",
-      "final_url": "https://opinion.people.com.cn/n1/2026/0314/c461529-40681762.html",
-      "note": "HTTPSConnectionPool(host='opinion.people.com.cn', port=443): Max retries exceeded with url: /n1/2026/0314/c461529-40681762.html (Caused by SSLError(SSLCertVerificationError(\"hostname 'opinion.people.com.cn' doesn't match either of 'default.chinanetcenter.com', '*.wscdns.com', '*.vxzz.xyz', '*.hnrrco.com', '*.qdllm.online', '*.100ycdn.com', '*.dianping.com', '*.dpfile.com', '*.meituan.net', '*.zservey.net', '*.wslivehls.com', '*.ourhttps.com', '*.wsfdn.com', '*.heesay.com', '*.i3839.com', '*.blued.com', 'm.bbs.3839.com', 'jssdk.3304399.net', '*.lof3.xyz', '*.rax0mai4.xyz', '*.4399.cn', '*.3839.com', 'maangh2.chinanetcenter.com', '*.4399.com', '*.service.kugou.com', 'lvs.lxdns.net', '*.walla-app.com', '*.bldimg.com', '*.5054399.com', '*.4399youpai.com', '*.3839app.com', '*.v.cdn20.com', 'hls.vda.v.cdn20.com', '*.cntv.cdn20.com', '*.img4399.com', '*.cntv.lxdns.com', '*.ourdvsssvip.com', '*.v.wscdns.com', '4399.cn'\")))"
-    },
-    {
-      "id": "ZJG-C14",
-      "title": "共产党人的政绩，就是做得人心、暖人心、稳人心的事",
-      "source": "人民网",
-      "url": "https://politics.people.com.cn/n1/2026/0319/c461001-40685172.html",
-      "normalized_url": "https://politics.people.com.cn/n1/2026/0319/c461001-40685172.html",
-      "status": "ERROR",
-      "final_url": "https://politics.people.com.cn/n1/2026/0319/c461001-40685172.html",
-      "note": "HTTPSConnectionPool(host='politics.people.com.cn', port=443): Max retries exceeded with url: /n1/2026/0319/c461001-40685172.html (Caused by SSLError(SSLCertVerificationError(\"hostname 'politics.people.com.cn' doesn't match either of 'default.chinanetcenter.com', '*.wscdns.com', '*.vxzz.xyz', '*.hnrrco.com', '*.qdllm.online', '*.100ycdn.com', '*.dianping.com', '*.dpfile.com', '*.meituan.net', '*.zservey.net', '*.wslivehls.com', '*.ourhttps.com', '*.wsfdn.com', '*.heesay.com', '*.i3839.com', '*.blued.com', 'm.bbs.3839.com', 'jssdk.3304399.net', '*.lof3.xyz', '*.rax0mai4.xyz', '*.4399.cn', '*.3839.com', 'maangh2.chinanetcenter.com', '*.4399.com', '*.service.kugou.com', 'lvs.lxdns.net', '*.walla-app.com', '*.bldimg.com', '*.5054399.com', '*.4399youpai.com', '*.3839app.com', '*.v.cdn20.com', 'hls.vda.v.cdn20.com', '*.cntv.cdn20.com', '*.img4399.com', '*.cntv.lxdns.com', '*.ourdvsssvip.com', '*.v.wscdns.com', '4399.cn'\")))"
-    }
-  ],
-  "normalized_urls": [
-    {
-      "id": "2024-01",
-      "title": "在2024年中央经济工作会议上的讲话",
-      "source": "人民网",
-      "url": "http://cpc.people.com.cn/n1/2024/1213/c64094-40381254.html",
-      "normalized_url": "https://cpc.people.com.cn/n1/2024/1213/c64094-40381254.html",
-      "status": "200",
-      "final_url": "https://cpc.people.com.cn/n1/2024/1213/c64094-40381254.html",
-      "note": "已归一化为 https://cpc.people.com.cn/n1/2024/1213/c64094-40381254.html"
-    },
-    {
-      "id": "2024-02",
-      "title": "在福建考察时的重要讲话",
-      "source": "人民网",
-      "url": "http://cpc.people.com.cn/n1/2024/1017/c64094-40341041.html",
-      "normalized_url": "https://cpc.people.com.cn/n1/2024/1017/c64094-40341041.html",
-      "status": "200",
-      "final_url": "https://cpc.people.com.cn/n1/2024/1017/c64094-40341041.html",
-      "note": "已归一化为 https://cpc.people.com.cn/n1/2024/1017/c64094-40341041.html"
-    },
-    {
-      "id": "2024-06",
-      "title": "在湖北考察时的重要讲话",
-      "source": "人民网",
-      "url": "http://politics.people.com.cn/n1/2024/1107/c1024-40355570.html",
-      "normalized_url": "https://politics.people.com.cn/n1/2024/1107/c1024-40355570.html",
-      "status": "ERROR",
-      "final_url": "https://politics.people.com.cn/n1/2024/1107/c1024-40355570.html",
-      "note": "HTTPSConnectionPool(host='politics.people.com.cn', port=443): Max retries exceeded with url: /n1/2024/1107/c1024-40355570.html (Caused by SSLError(SSLCertVerificationError(\"hostname 'politics.people.com.cn' doesn't match either of 'default.chinanetcenter.com', '*.wscdns.com', '*.vxzz.xyz', '*.hnrrco.com', '*.qdllm.online', '*.100ycdn.com', '*.dianping.com', '*.dpfile.com', '*.meituan.net', '*.zservey.net', '*.wslivehls.com', '*.ourhttps.com', '*.wsfdn.com', '*.heesay.com', '*.i3839.com', '*.blued.com', 'm.bbs.3839.com', 'jssdk.3304399.net', '*.lof3.xyz', '*.rax0mai4.xyz', '*.4399.cn', '*.3839.com', 'maangh2.chinanetcenter.com', '*.4399.com', '*.service.kugou.com', 'lvs.lxdns.net', '*.walla-app.com', '*.bldimg.com', '*.5054399.com', '*.4399youpai.com', '*.3839app.com', '*.v.cdn20.com', 'hls.vda.v.cdn20.com', '*.cntv.cdn20.com', '*.img4399.com', '*.cntv.lxdns.com', '*.ourdvsssvip.com', '*.v.wscdns.com', '4399.cn'\")))"
-    },
-    {
-      "id": "2024-09",
-      "title": "在重庆考察时的重要讲话",
-      "source": "人民网",
-      "url": "http://cpc.people.com.cn/n1/2024/0424/c64094-40223174.html",
-      "normalized_url": "https://cpc.people.com.cn/n1/2024/0424/c64094-40223174.html",
-      "status": "200",
-      "final_url": "https://cpc.people.com.cn/n1/2024/0424/c64094-40223174.html",
-      "note": "已归一化为 https://cpc.people.com.cn/n1/2024/0424/c64094-40223174.html"
+      "id": "P2024-0034",
+      "title": "习近平将赴澳门出席庆祝澳门回归祖国25周年大会暨澳门特别行政区第六届政府就职典礼并视察澳门特别行政区",
+      "url": "http://www.news.cn/politics/leaders/20241220/753bab6a3b2047a7b8304855c0086b70/c.html"
     },
     {
       "id": "2024-10",
       "title": "在湖南考察时的重要讲话",
-      "source": "人民网",
-      "url": "http://www.news.cn/politics/20240321/c280965c8ddd41ff9659dbeb0d9e51b6/c.html",
-      "normalized_url": "https://www.news.cn/politics/20240321/c280965c8ddd41ff9659dbeb0d9e51b6/c.html",
-      "status": "200",
-      "final_url": "https://www.news.cn/politics/20240321/c280965c8ddd41ff9659dbeb0d9e51b6/c.html",
-      "note": "已归一化为 https://www.news.cn/politics/20240321/c280965c8ddd41ff9659dbeb0d9e51b6/c.html"
-    },
-    {
-      "id": "2024-13",
-      "title": "在中华全国供销合作总社成立70周年之际作出重要指示",
-      "source": "人民网",
-      "url": "http://politics.people.com.cn/n1/2024/1128/c1024-40371064.html",
-      "normalized_url": "https://politics.people.com.cn/n1/2024/1128/c1024-40371064.html",
-      "status": "ERROR",
-      "final_url": "https://politics.people.com.cn/n1/2024/1128/c1024-40371064.html",
-      "note": "HTTPSConnectionPool(host='politics.people.com.cn', port=443): Max retries exceeded with url: /n1/2024/1128/c1024-40371064.html (Caused by SSLError(SSLCertVerificationError(\"hostname 'politics.people.com.cn' doesn't match either of 'default.chinanetcenter.com', '*.wscdns.com', '*.vxzz.xyz', '*.hnrrco.com', '*.qdllm.online', '*.100ycdn.com', '*.dianping.com', '*.dpfile.com', '*.meituan.net', '*.zservey.net', '*.wslivehls.com', '*.ourhttps.com', '*.wsfdn.com', '*.heesay.com', '*.i3839.com', '*.blued.com', 'm.bbs.3839.com', 'jssdk.3304399.net', '*.lof3.xyz', '*.rax0mai4.xyz', '*.4399.cn', '*.3839.com', 'maangh2.chinanetcenter.com', '*.4399.com', '*.service.kugou.com', 'lvs.lxdns.net', '*.walla-app.com', '*.bldimg.com', '*.5054399.com', '*.4399youpai.com', '*.3839app.com', '*.v.cdn20.com', 'hls.vda.v.cdn20.com', '*.cntv.cdn20.com', '*.img4399.com', '*.cntv.lxdns.com', '*.ourdvsssvip.com', '*.v.wscdns.com', '4399.cn'\")))"
-    },
-    {
-      "id": "2024-22",
-      "title": "在宁夏考察时的重要讲话",
-      "source": "人民网",
-      "url": "http://cpc.people.com.cn/n1/2024/0622/c64094-40261819.html",
-      "normalized_url": "https://cpc.people.com.cn/n1/2024/0622/c64094-40261819.html",
-      "status": "200",
-      "final_url": "https://cpc.people.com.cn/n1/2024/0622/c64094-40261819.html",
-      "note": "已归一化为 https://cpc.people.com.cn/n1/2024/0622/c64094-40261819.html"
-    },
-    {
-      "id": "2024-F02",
-      "title": "在中非合作论坛北京峰会开幕式上的主旨讲话",
-      "source": "人民网",
-      "url": "http://www.news.cn/20240908/53d07ce1b0ba47e8a45bb75022109cc9/c.html",
-      "normalized_url": "https://www.news.cn/20240908/53d07ce1b0ba47e8a45bb75022109cc9/c.html",
-      "status": "200",
-      "final_url": "https://www.news.cn/20240908/53d07ce1b0ba47e8a45bb75022109cc9/c.html",
-      "note": "已归一化为 https://www.news.cn/20240908/53d07ce1b0ba47e8a45bb75022109cc9/c.html"
-    },
-    {
-      "id": "2025-09",
-      "title": "在河南考察时的重要讲话",
-      "source": "人民网",
-      "url": "http://cpc.people.com.cn/n1/2025/0520/c64094-40484072.html",
-      "normalized_url": "https://cpc.people.com.cn/n1/2025/0520/c64094-40484072.html",
-      "status": "200",
-      "final_url": "https://cpc.people.com.cn/n1/2025/0520/c64094-40484072.html",
-      "note": "已归一化为 https://cpc.people.com.cn/n1/2025/0520/c64094-40484072.html"
-    },
-    {
-      "id": "2026-12",
-      "title": "在参加江苏代表团审议时的重要讲话",
-      "source": "人民日报",
-      "url": "https://js.people.com.cn/n2/2026/0306/c358232-41516244.html",
-      "normalized_url": "https://cpc.people.com.cn/n1/2026/0306/c435113-40676004.html",
-      "status": "200",
-      "final_url": "https://cpc.people.com.cn/n1/2026/0306/c435113-40676004.html",
-      "note": "已归一化为 https://cpc.people.com.cn/n1/2026/0306/c435113-40676004.html"
+      "url": "http://www.news.cn/politics/20240321/c280965c8ddd41ff9659dbeb0d9e51b6/c.html"
     },
     {
       "id": "2026-21",
       "title": "中共中央政治局召开会议 审议《中国共产党地方委员会工作条例》中共中央总书记习近平主持会议",
-      "source": "人民网－人民日报",
-      "url": "http://jhsjk.people.cn/article/40690634?isindex=1",
-      "normalized_url": "https://jhsjk.people.cn/article/40690634?isindex=1",
-      "status": "200",
-      "final_url": "https://jhsjk.people.cn/article/40690634?isindex=1",
-      "note": "已归一化为 https://jhsjk.people.cn/article/40690634?isindex=1"
+      "url": "http://jhsjk.people.cn/article/40690634?isindex=1"
     },
     {
       "id": "2026-22",
       "title": "习近平在参加首都义务植树活动时强调为山川大地增添锦绣 让中国式现代化底色更加亮丽",
-      "source": "人民网－人民日报",
-      "url": "http://jhsjk.people.cn/article/40692134?isindex=1",
-      "normalized_url": "https://jhsjk.people.cn/article/40692134?isindex=1",
-      "status": "200",
-      "final_url": "https://jhsjk.people.cn/article/40692134?isindex=1",
-      "note": "已归一化为 https://jhsjk.people.cn/article/40692134?isindex=1"
+      "url": "http://jhsjk.people.cn/article/40692134?isindex=1"
     },
     {
       "id": "2026-23",
       "title": "习近平致电祝贺萨苏当选连任刚果（布）总统",
-      "source": "人民网－人民日报",
-      "url": "http://jhsjk.people.cn/article/40692139?isindex=1",
-      "normalized_url": "https://jhsjk.people.cn/article/40692139?isindex=1",
-      "status": "200",
-      "final_url": "https://jhsjk.people.cn/article/40692139?isindex=1",
-      "note": "已归一化为 https://jhsjk.people.cn/article/40692139?isindex=1"
+      "url": "http://jhsjk.people.cn/article/40692139?isindex=1"
     },
     {
       "id": "2026-24",
       "title": "中共中央和习近平总书记欢迎并邀请中国国民党主席郑丽文率团来访",
-      "source": "人民网－人民日报",
-      "url": "http://jhsjk.people.cn/article/40692140?isindex=1",
-      "normalized_url": "https://jhsjk.people.cn/article/40692140?isindex=1",
-      "status": "200",
-      "final_url": "https://jhsjk.people.cn/article/40692140?isindex=1",
-      "note": "已归一化为 https://jhsjk.people.cn/article/40692140?isindex=1"
+      "url": "http://jhsjk.people.cn/article/40692140?isindex=1"
     },
     {
       "id": "2026-25",
       "title": "习近平向世界数据组织成立致贺信",
-      "source": "人民网－人民日报",
-      "url": "http://jhsjk.people.cn/article/40692137?isindex=1",
-      "normalized_url": "https://jhsjk.people.cn/article/40692137?isindex=1",
-      "status": "200",
-      "final_url": "https://jhsjk.people.cn/article/40692137?isindex=1",
-      "note": "已归一化为 https://jhsjk.people.cn/article/40692137?isindex=1"
+      "url": "http://jhsjk.people.cn/article/40692137?isindex=1"
     },
     {
-      "id": "P2024-0034",
-      "title": "习近平将赴澳门出席庆祝澳门回归祖国25周年大会暨澳门特别行政区第六届政府就职典礼并视察澳门特别行政区",
-      "source": "人民网－人民日报",
-      "url": "http://www.news.cn/politics/leaders/20241220/753bab6a3b2047a7b8304855c0086b70/c.html",
-      "normalized_url": "https://www.news.cn/politics/leaders/20241220/753bab6a3b2047a7b8304855c0086b70/c.html",
-      "status": "200",
-      "final_url": "https://www.news.cn/politics/leaders/20241220/753bab6a3b2047a7b8304855c0086b70/c.html",
-      "note": "已归一化为 https://www.news.cn/politics/leaders/20241220/753bab6a3b2047a7b8304855c0086b70/c.html"
-    },
-    {
-      "id": "P2024-0184",
-      "title": "在全国民族团结进步表彰大会上的讲话（2024年9月27日）",
-      "source": "人民网－人民日报",
-      "url": "http://cpc.people.com.cn/n1/2024/0927/c64094-40329817.html",
-      "normalized_url": "https://cpc.people.com.cn/n1/2024/0927/c64094-40329817.html",
-      "status": "200",
-      "final_url": "https://cpc.people.com.cn/n1/2024/0927/c64094-40329817.html",
-      "note": "已归一化为 https://cpc.people.com.cn/n1/2024/0927/c64094-40329817.html"
-    },
-    {
-      "id": "P2024-0273",
-      "title": "习近平会见所罗门群岛总理马内莱",
-      "source": "人民网－人民日报",
-      "url": "http://paper.people.com.cn/rmrbhwb/html/2024-07/13/content_26068856.htm",
-      "normalized_url": "https://paper.people.com.cn/rmrbhwb/html/2024-07/13/content_26068856.htm",
-      "status": "200",
-      "final_url": "https://paper.people.com.cn/rmrbhwb/html/2024-07/13/content_26068856.htm",
-      "note": "已归一化为 https://paper.people.com.cn/rmrbhwb/html/2024-07/13/content_26068856.htm"
-    },
-    {
-      "id": "P2024-0383",
-      "title": "习近平将出席中国—阿拉伯国家合作论坛第十届部长级会议开幕式并发表主旨讲话",
-      "source": "新华网",
-      "url": "http://politics.people.com.cn/n1/2024/0527/c1024-40243733.html",
-      "normalized_url": "https://politics.people.com.cn/n1/2024/0527/c1024-40243733.html",
-      "status": "ERROR",
-      "final_url": "https://politics.people.com.cn/n1/2024/0527/c1024-40243733.html",
-      "note": "HTTPSConnectionPool(host='politics.people.com.cn', port=443): Max retries exceeded with url: /n1/2024/0527/c1024-40243733.html (Caused by SSLError(SSLCertVerificationError(\"hostname 'politics.people.com.cn' doesn't match either of 'default.chinanetcenter.com', '*.wscdns.com', '*.vxzz.xyz', '*.hnrrco.com', '*.qdllm.online', '*.100ycdn.com', '*.dianping.com', '*.dpfile.com', '*.meituan.net', '*.zservey.net', '*.wslivehls.com', '*.ourhttps.com', '*.wsfdn.com', '*.heesay.com', '*.i3839.com', '*.blued.com', 'm.bbs.3839.com', 'jssdk.3304399.net', '*.lof3.xyz', '*.rax0mai4.xyz', '*.4399.cn', '*.3839.com', 'maangh2.chinanetcenter.com', '*.4399.com', '*.service.kugou.com', 'lvs.lxdns.net', '*.walla-app.com', '*.bldimg.com', '*.5054399.com', '*.4399youpai.com', '*.3839app.com', '*.v.cdn20.com', 'hls.vda.v.cdn20.com', '*.cntv.cdn20.com', '*.img4399.com', '*.cntv.lxdns.com', '*.ourdvsssvip.com', '*.v.wscdns.com', '4399.cn'\")))"
-    },
-    {
-      "id": "P2024-0440",
-      "title": "中共中央政治局召开会议 决定召开二十届三中全会分析研究当前经济形势和经济工作  审议《关于持续深入推进长三角一体化高质量发展若干政策措施的意见》中共中央总书记习近平主持会议",
-      "source": "人民网－人民日报",
-      "url": "http://cpc.people.com.cn/n1/2024/0430/c64094-40227513.html",
-      "normalized_url": "https://cpc.people.com.cn/n1/2024/0430/c64094-40227513.html",
-      "status": "200",
-      "final_url": "https://cpc.people.com.cn/n1/2024/0430/c64094-40227513.html",
-      "note": "已归一化为 https://cpc.people.com.cn/n1/2024/0430/c64094-40227513.html"
-    },
-    {
-      "id": "ZJG-C05",
-      "title": "人民日报评论员：以实干实绩书写中国式现代化新篇章",
-      "source": "人民日报",
-      "url": "http://www.jcrb.com/xztpd/2026/202603/slhjxzqzjg/ywylzjg/202603/t20260318_7637329.html",
-      "normalized_url": "https://www.jcrb.com/xztpd/2026/202603/slhjxzqzjg/ywylzjg/202603/t20260318_7637329.html",
-      "status": "200",
-      "final_url": "https://www.jcrb.com/xztpd/2026/202603/slhjxzqzjg/ywylzjg/202603/t20260318_7637329.html",
-      "note": "已归一化为 https://www.jcrb.com/xztpd/2026/202603/slhjxzqzjg/ywylzjg/202603/t20260318_7637329.html"
-    }
-  ],
-  "redirected_urls": [],
-  "missing_summaries": [],
-  "detail_issues": [
-    {
-      "id": "P2024-0404",
-      "title": "习近平向巴拿马当选总统穆利诺致贺电",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0451",
-      "title": "习近平在视察陆军军医大学时强调 面向战场面向部队面向未来 努力建设世界一流军医大学",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0453",
-      "title": "习近平向首届“中国—拉美和加勒比国家航天合作论坛”致贺信",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0452",
-      "title": "习近平在重庆考察时强调 进一步全面深化改革开放 不断谱写中国式现代化重庆篇章蔡奇陪同考察",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0454",
-      "title": "习近平主持召开新时代推动西部大开发座谈会强调 进一步形成大保护大开放高质量发展新格局 奋力谱写西部大开发新篇章李强蔡奇丁薛祥出席",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "2024-F02",
+      "title": "在中非合作论坛北京峰会开幕式上的主旨讲话",
+      "url": "http://www.news.cn/20240908/53d07ce1b0ba47e8a45bb75022109cc9/c.html"
     },
     {
       "id": "2024-09",
       "title": "在重庆考察时的重要讲话",
-      "issues": [
-        "解读缺失"
-      ]
-    },
+      "url": "http://www.news.cn/politics/leaders/20240424/84305235338744fd833e447a002574e4/c.html"
+    }
+  ],
+  "empty_links": [],
+  "normalized_examples": [
     {
-      "id": "P2024-0455",
-      "title": "习近平同加蓬过渡总统恩圭马就中加建交50周年互致贺电",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0456",
-      "title": "中国人民解放军信息支援部队成立大会在京举行习近平向信息支援部队授予军旗并致训词",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0457",
-      "title": "中国人民解放军信息支援部队成立大会在京举行 习近平向信息支援部队授予军旗并致训词",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "2024-C01",
-      "title": "加强文化遗产保护传承 弘扬中华优秀传统文化",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0458",
-      "title": "习近平向斯洛伐克当选总统佩列格里尼致贺电",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0459",
-      "title": "习近平同苏里南总统单多吉会谈",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0460",
-      "title": "习近平会见马英九一行王沪宁蔡奇等参加会见",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0463",
-      "title": "习近平回信勉励“猎鹰突击队”全体队员 努力锻造世界一流反恐特战劲旅 时刻准备为党和人民再立新功",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0462",
-      "title": "习近平会见俄罗斯外长拉夫罗夫",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0464",
-      "title": "习近平和巴西总统卢拉向中巴两党第七届理论研讨会致贺信",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0461",
-      "title": "习近平同密克罗尼西亚联邦总统西米纳会谈",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0465",
-      "title": "习近平会见越南国会主席王庭惠",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0466",
-      "title": "习近平会见法国梅里埃基金会主席梅里埃夫妇",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0467",
-      "title": "习近平：按照“六个更”既定方向 推动中越命运共同体建设取得更多务实成果",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0468",
-      "title": "习近平向马耳他新任总统德博诺致贺电",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0469",
-      "title": "习近平在参加首都义务植树活动时强调 全民植树增绿  共建美丽中国李强赵乐际王沪宁蔡奇丁薛祥李希韩正参加",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0470",
-      "title": "习近平同美国总统拜登通电话",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0471",
-      "title": "习近平同印度尼西亚当选总统普拉博沃会谈",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0472",
-      "title": "《求是》杂志发表习近平总书记重要文章 必须坚持人民至上",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0473",
-      "title": "必须坚持人民至上",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0474",
-      "title": "习近平向塞内加尔当选总统法耶致贺电",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0475",
-      "title": "习近平同哈萨克斯坦总统托卡耶夫分别向中国“哈萨克斯坦旅游年”开幕式致贺信",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0476",
-      "title": "中共中央政治局召开会议 审议《关于二十届中央第二轮巡视情况的综合报告》中共中央总书记习近平主持会议",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0477",
-      "title": "习近平会见美国工商界和战略学术界代表",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0479",
-      "title": "习近平会见斯里兰卡总理古纳瓦德纳",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0478",
-      "title": "习近平会见荷兰首相吕特",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0480",
-      "title": "习近平同洪都拉斯总统卡斯特罗就中洪建交一周年互致贺电",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0482",
-      "title": "习近平会见多米尼克总理斯凯里特",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0481",
-      "title": "习近平同瑙鲁总统阿迪昂会谈",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0484",
-      "title": "习近平就俄罗斯发生严重恐怖袭击事件向俄罗斯总统普京致慰问电",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0483",
-      "title": "习近平同多米尼克总统伯顿就中多建交20周年互致贺电李强同多米尼克总理斯凯里特互致贺电",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0485",
-      "title": "习近平在湖南考察时强调 坚持改革创新求真务实 奋力谱写中国式现代化湖南篇章蔡奇陪同考察",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0486",
-      "title": "习近平向印尼当选总统普拉博沃致贺电",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0487",
-      "title": "习近平主持召开新时代推动中部地区崛起座谈会强调 在更高起点上扎实推动中部地区崛起李强蔡奇丁薛祥出席",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0488",
-      "title": "习近平致电祝贺普京当选连任俄罗斯总统",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "P2024-0034",
+      "title": "习近平将赴澳门出席庆祝澳门回归祖国25周年大会暨澳门特别行政区第六届政府就职典礼并视察澳门特别行政区",
+      "from": "http://www.news.cn/politics/leaders/20241220/753bab6a3b2047a7b8304855c0086b70/c.html",
+      "to": "https://www.news.cn/politics/leaders/20241220/753bab6a3b2047a7b8304855c0086b70/c.html"
     },
     {
       "id": "2024-10",
       "title": "在湖南考察时的重要讲话",
-      "issues": [
-        "解读缺失"
-      ]
+      "from": "http://www.news.cn/politics/20240321/c280965c8ddd41ff9659dbeb0d9e51b6/c.html",
+      "to": "https://www.news.cn/politics/20240321/c280965c8ddd41ff9659dbeb0d9e51b6/c.html"
     },
     {
-      "id": "P2024-0489",
-      "title": "习近平同安哥拉总统洛伦索会谈",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "2026-21",
+      "title": "中共中央政治局召开会议 审议《中国共产党地方委员会工作条例》中共中央总书记习近平主持会议",
+      "from": "http://jhsjk.people.cn/article/40690634?isindex=1",
+      "to": "https://jhsjk.people.cn/article/40690634?isindex=1"
     },
     {
-      "id": "P2024-0490",
-      "title": "《求是》杂志发表习近平总书记重要文章 时刻保持解决大党独有难题的清醒和坚定，把党的伟大自我革命进行到底",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "2026-22",
+      "title": "习近平在参加首都义务植树活动时强调为山川大地增添锦绣 让中国式现代化底色更加亮丽",
+      "from": "http://jhsjk.people.cn/article/40692134?isindex=1",
+      "to": "https://jhsjk.people.cn/article/40692134?isindex=1"
     },
     {
-      "id": "P2024-0491",
-      "title": "时刻保持解决大党独有难题的清醒和坚定，把党的伟大自我革命进行到底",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "2026-23",
+      "title": "习近平致电祝贺萨苏当选连任刚果（布）总统",
+      "from": "http://jhsjk.people.cn/article/40692139?isindex=1",
+      "to": "https://jhsjk.people.cn/article/40692139?isindex=1"
     },
     {
-      "id": "P2024-0493",
-      "title": "十四届全国人大二次会议在京闭幕批准政府工作报告、全国人大常委会工作报告等通过新修订的国务院组织法  习近平签署主席令予以公布习近平李强王沪宁蔡奇丁薛祥李希韩正等在主席台就座  赵乐际主持并讲话",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "2026-24",
+      "title": "中共中央和习近平总书记欢迎并邀请中国国民党主席郑丽文率团来访",
+      "from": "http://jhsjk.people.cn/article/40692140?isindex=1",
+      "to": "https://jhsjk.people.cn/article/40692140?isindex=1"
     },
     {
-      "id": "P2024-0492",
-      "title": "中华人民共和国主席令第二十一号",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "2026-25",
+      "title": "习近平向世界数据组织成立致贺信",
+      "from": "http://jhsjk.people.cn/article/40692137?isindex=1",
+      "to": "https://jhsjk.people.cn/article/40692137?isindex=1"
     },
     {
-      "id": "P2024-0495",
-      "title": "习近平向巴基斯坦新任总统扎尔达里致贺电",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "2024-F02",
+      "title": "在中非合作论坛北京峰会开幕式上的主旨讲话",
+      "from": "http://www.news.cn/20240908/53d07ce1b0ba47e8a45bb75022109cc9/c.html",
+      "to": "https://www.news.cn/20240908/53d07ce1b0ba47e8a45bb75022109cc9/c.html"
     },
     {
-      "id": "P2024-0494",
-      "title": "全国政协十四届二次会议闭幕习近平李强赵乐际蔡奇丁薛祥李希韩正出席  王沪宁发表讲话",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "2024-09",
+      "title": "在重庆考察时的重要讲话",
+      "from": "http://www.news.cn/politics/leaders/20240424/84305235338744fd833e447a002574e4/c.html",
+      "to": "https://www.news.cn/politics/leaders/20240424/84305235338744fd833e447a002574e4/c.html"
     },
     {
-      "id": "P2024-0496",
-      "title": "十四届全国人大二次会议举行第二次全体会议习近平李强王沪宁蔡奇丁薛祥李希韩正等出席赵乐际作全国人大常委会工作报告听取和审议最高人民法院工作报告和最高人民检察院工作报告",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "2026-12",
+      "title": "在参加江苏代表团审议时的重要讲话",
+      "from": "https://js.people.com.cn/n2/2026/0306/c358232-41516244.html",
+      "to": "https://cpc.people.com.cn/n1/2026/0306/c435113-40676004.html"
+    }
+  ],
+  "short_summaries": [
+    {
+      "id": "P2024-0313",
+      "title": "习近平会见乌兹别克斯坦总统米尔济约耶夫",
+      "summary_len": 19
     },
     {
-      "id": "P2024-0497",
-      "title": "习近平在出席解放军和武警部队代表团全体会议时强调 强化使命担当  深化改革创新 全面提升新兴领域战略能力",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "P2024-0314",
+      "title": "习近平会见阿塞拜疆总统阿利耶夫",
+      "summary_len": 15
     },
     {
-      "id": "P2024-0498",
-      "title": "习近平在看望参加政协会议的民革科技界环境资源界委员时强调 积极建言资政广泛凝聚共识  助力中国式现代化建设王沪宁蔡奇参加看望和讨论",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "P2024-0264",
+      "title": "习近平向第六届中俄能源商务论坛致贺信",
+      "summary_len": 18
     },
     {
-      "id": "P2024-0500",
-      "title": "习近平总书记向女同胞致以节日祝贺和美好祝福",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "P2024-0017",
+      "title": "习近平会见李家超",
+      "summary_len": 8
     },
     {
-      "id": "P2024-0501",
-      "title": "十四届全国人大二次会议在京开幕习近平王沪宁蔡奇丁薛祥李希韩正等在主席台就座李强作政府工作报告  赵乐际主持大会听取关于国务院组织法修订草案的说明等",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "P2024-0020",
+      "title": "习近平会见何厚铧和崔世安",
+      "summary_len": 12
     },
     {
-      "id": "P2024-0499",
-      "title": "习近平在看望参加政协会议的民革科技界环境资源界委员时强调 积极建言资政广泛凝聚共识 助力中国式现代化建设",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "P2024-0021",
+      "title": "习近平考察澳门科技大学",
+      "summary_len": 11
     },
     {
-      "id": "P2024-0502",
-      "title": "全国政协十四届二次会议在京开幕习近平李强赵乐际蔡奇丁薛祥李希韩正到会祝贺王沪宁作政协常委会工作报告  石泰峰主持  高云龙作提案工作情况报告",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "P2024-0136",
+      "title": "习近平向莫桑比克当选总统查波致贺电",
+      "summary_len": 17
     },
     {
-      "id": "P2024-0503",
-      "title": "习近平致电祝贺夏巴兹当选巴基斯坦总理李强向夏巴兹总理致贺电",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "P2024-0334",
+      "title": "习近平同秘鲁总统博鲁阿尔特会谈",
+      "summary_len": 15
+    },
+    {
+      "id": "P2024-0103",
+      "title": "习近平致中山大学建校100周年的贺信",
+      "summary_len": 18
+    },
+    {
+      "id": "P2024-0024",
+      "title": "习近平考察横琴粤澳深度合作区",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0046",
+      "title": "习近平向纳米比亚当选总统恩代特瓦致贺电",
+      "summary_len": 19
+    },
+    {
+      "id": "P2024-0315",
+      "title": "习近平同哈萨克斯坦总统托卡耶夫举行会谈",
+      "summary_len": 19
+    },
+    {
+      "id": "P2024-0105",
+      "title": "习近平复信巴西友好人士",
+      "summary_len": 11
+    },
+    {
+      "id": "P2024-0106",
+      "title": "习近平同印度尼西亚总统普拉博沃会谈",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0108",
+      "title": "中华人民共和国主席令第四十号",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0265",
+      "title": "习近平致电祝贺卡加梅当选连任卢旺达总统",
+      "summary_len": 19
+    },
+    {
+      "id": "P2024-0027",
+      "title": "习近平会见贺一诚",
+      "summary_len": 8
+    },
+    {
+      "id": "P2024-0033",
+      "title": "深入推进党的自我革命",
+      "summary_len": 10
+    },
+    {
+      "id": "P2024-0110",
+      "title": "习近平同意大利总统马塔雷拉会谈",
+      "summary_len": 15
+    },
+    {
+      "id": "P2024-0037",
+      "title": "习近平向“2024从都国际论坛”致贺信",
+      "summary_len": 19
+    },
+    {
+      "id": "P2024-0039",
+      "title": "习近平向加纳当选总统马哈马致贺电",
+      "summary_len": 16
+    },
+    {
+      "id": "P2024-0040",
+      "title": "习近平向毛里求斯新任总统戈库尔致贺电",
+      "summary_len": 18
+    },
+    {
+      "id": "P2024-0042",
+      "title": "习近平会见主要国际经济组织负责人",
+      "summary_len": 16
+    },
+    {
+      "id": "P2024-0113",
+      "title": "习近平会见马来西亚总理安瓦尔",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0114",
+      "title": "习近平致电祝贺桑杜当选连任摩尔多瓦总统",
+      "summary_len": 19
+    },
+    {
+      "id": "P2024-0006",
+      "title": "习近平向中吉乌铁路项目启动仪式致贺信",
+      "summary_len": 18
+    },
+    {
+      "id": "P2024-0008",
+      "title": "中华人民共和国主席令",
+      "summary_len": 10
+    },
+    {
+      "id": "P2024-0115",
+      "title": "习近平向首届世界古典学大会致贺信",
+      "summary_len": 16
+    },
+    {
+      "id": "P2024-0116",
+      "title": "习近平向美国当选总统特朗普致贺电",
+      "summary_len": 16
+    },
+    {
+      "id": "P2024-0055",
+      "title": "习近平向乌拉圭当选总统奥尔西致贺电",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0058",
+      "title": "习近平会见新加坡国务资政李显龙",
+      "summary_len": 15
+    },
+    {
+      "id": "P2024-0013",
+      "title": "习近平会见岑浩辉",
+      "summary_len": 8
+    },
+    {
+      "id": "P2024-0059",
+      "title": "国家主席习近平任免驻外大使",
+      "summary_len": 13
+    },
+    {
+      "id": "P2024-0061",
+      "title": "习近平会见摩洛哥王储哈桑",
+      "summary_len": 12
+    },
+    {
+      "id": "P2024-0050",
+      "title": "习近平会见尼泊尔总理奥利",
+      "summary_len": 12
+    },
+    {
+      "id": "P2024-0053",
+      "title": "必须坚持守正创新",
+      "summary_len": 8
+    },
+    {
+      "id": "P2024-0057",
+      "title": "习近平会见萨摩亚总理菲娅梅",
+      "summary_len": 13
+    },
+    {
+      "id": "P2024-0077",
+      "title": "习近平会见墨西哥总统辛鲍姆",
+      "summary_len": 13
+    },
+    {
+      "id": "P2024-0063",
+      "title": "习近平同巴西总统卢拉共见记者",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0064",
+      "title": "习近平出席巴西总统卢拉举行的欢迎宴会",
+      "summary_len": 18
+    },
+    {
+      "id": "P2024-0065",
+      "title": "习近平同巴西总统卢拉举行会谈",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0098",
+      "title": "习近平同秘鲁总统博鲁阿尔特举行会谈",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0069",
+      "title": "习近平会见玻利维亚总统阿尔塞",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0071",
+      "title": "习近平会见德国总理朔尔茨",
+      "summary_len": 12
+    },
+    {
+      "id": "P2024-0072",
+      "title": "习近平会见阿根廷总统米莱",
+      "summary_len": 12
+    },
+    {
+      "id": "P2024-0073",
+      "title": "习近平会见法国总统马克龙",
+      "summary_len": 12
+    },
+    {
+      "id": "P2024-0080",
+      "title": "习近平会见英国首相斯塔默",
+      "summary_len": 12
+    },
+    {
+      "id": "P2024-0198",
+      "title": "习近平向第十一届北京香山论坛致贺信",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0082",
+      "title": "习近平会见澳大利亚总理阿尔巴尼斯",
+      "summary_len": 16
+    },
+    {
+      "id": "P2024-0085",
+      "title": "习近平同美国总统拜登在利马举行会晤",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0232",
+      "title": "习近平复信非洲学者",
+      "summary_len": 9
+    },
+    {
+      "id": "P2024-0088",
+      "title": "习近平会见智利总统博里奇",
+      "summary_len": 12
+    },
+    {
+      "id": "P2024-0089",
+      "title": "习近平会见新加坡总理黄循财",
+      "summary_len": 13
+    },
+    {
+      "id": "P2024-0090",
+      "title": "习近平会见韩国总统尹锡悦",
+      "summary_len": 12
+    },
+    {
+      "id": "P2024-0091",
+      "title": "习近平会见泰国总理佩通坦",
+      "summary_len": 12
+    },
+    {
+      "id": "P2024-0092",
+      "title": "习近平会见日本首相石破茂",
+      "summary_len": 12
+    },
+    {
+      "id": "P2024-0093",
+      "title": "习近平会见新西兰总理拉克森",
+      "summary_len": 13
+    },
+    {
+      "id": "P2024-0095",
+      "title": "习近平向2024世界中文大会致贺信",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0099",
+      "title": "以人口高质量发展支撑中国式现代化",
+      "summary_len": 16
+    },
+    {
+      "id": "P2024-0316",
+      "title": "习近平同哈萨克斯坦总统托卡耶夫共见记者",
+      "summary_len": 19
+    },
+    {
+      "id": "P2024-0160",
+      "title": "在文艺工作座谈会上的讲话",
+      "summary_len": 12
+    },
+    {
+      "id": "P2024-0162",
+      "title": "习近平同印度尼西亚总统佐科通电话",
+      "summary_len": 16
+    },
+    {
+      "id": "P2024-0163",
+      "title": "习近平向埃塞俄比亚新任总统塔耶致贺电",
+      "summary_len": 18
+    },
+    {
+      "id": "P2024-0119",
+      "title": "习近平向博茨瓦纳当选总统博科致贺电",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0120",
+      "title": "习近平向斐济当选总统拉拉巴拉武致贺电",
+      "summary_len": 18
+    },
+    {
+      "id": "P2024-0126",
+      "title": "习近平会见斯洛伐克总理菲佐",
+      "summary_len": 13
+    },
+    {
+      "id": "P2024-0134",
+      "title": "习近平致电祝贺马茂当选连任基里巴斯总统",
+      "summary_len": 19
+    },
+    {
+      "id": "P2024-0141",
+      "title": "习近平会见埃及总统塞西",
+      "summary_len": 11
+    },
+    {
+      "id": "P2024-0142",
+      "title": "习近平会见印度总理莫迪",
+      "summary_len": 11
+    },
+    {
+      "id": "P2024-0143",
+      "title": "习近平会见伊朗总统佩泽希齐扬",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0146",
+      "title": "习近平同俄罗斯总统普京举行会晤",
+      "summary_len": 15
+    },
+    {
+      "id": "P2024-0147",
+      "title": "习近平向越南新任国家主席梁强致贺电",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0148",
+      "title": "习近平致电祝贺普拉博沃就任印尼总统",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0202",
+      "title": "习近平向上海合作组织妇女论坛致贺信",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0205",
+      "title": "习近平会见挪威首相斯特勒",
+      "summary_len": 12
+    },
+    {
+      "id": "P2024-0167",
+      "title": "习近平致电祝贺赛义德当选连任突尼斯总统",
+      "summary_len": 19
+    },
+    {
+      "id": "P2025-0825",
+      "title": "加快建设教育强国",
+      "summary_len": 8
+    },
+    {
+      "id": "P2025-0842",
+      "title": "习近平向多哥新任领导人致贺电",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0183",
+      "title": "习近平给中国一重产业工人代表的回信",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0322",
+      "title": "习近平寄语美国青少年“青春同行”交流团",
+      "summary_len": 19
+    },
+    {
+      "id": "P2024-0194",
+      "title": "习近平同马来西亚最高元首易卜拉欣会谈",
+      "summary_len": 18
+    },
+    {
+      "id": "P2026-1048",
+      "title": "习近平同韩国总统李在明举行会谈",
+      "summary_len": 15
+    },
+    {
+      "id": "P2024-0260",
+      "title": "习近平会见意大利总理梅洛尼",
+      "summary_len": 13
+    },
+    {
+      "id": "P2024-0209",
+      "title": "习近平同刚果（布）总统萨苏会谈",
+      "summary_len": 15
+    },
+    {
+      "id": "P2024-0213",
+      "title": "习近平会见莫桑比克总统纽西",
+      "summary_len": 13
+    },
+    {
+      "id": "P2024-0215",
+      "title": "习近平会见赤道几内亚总统奥比昂",
+      "summary_len": 15
+    },
+    {
+      "id": "P2024-0216",
+      "title": "习近平会见塞拉利昂总统比奥",
+      "summary_len": 13
+    },
+    {
+      "id": "P2024-0217",
+      "title": "习近平会见赞比亚总统希奇莱马",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0218",
+      "title": "习近平会见坦桑尼亚总统哈桑",
+      "summary_len": 13
+    },
+    {
+      "id": "P2024-0219",
+      "title": "习近平会见加蓬总统恩圭马",
+      "summary_len": 12
+    },
+    {
+      "id": "P2024-0220",
+      "title": "习近平会见利比亚总统委员会主席曼菲",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0221",
+      "title": "习近平会见喀麦隆总统比亚",
+      "summary_len": 12
+    },
+    {
+      "id": "P2024-0222",
+      "title": "习近平会见埃塞俄比亚总理阿比",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0223",
+      "title": "习近平同塞内加尔总统法耶会谈",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0226",
+      "title": "习近平同津巴布韦总统姆南加古瓦会谈",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0227",
+      "title": "习近平同尼日利亚总统提努布会谈",
+      "summary_len": 15
+    },
+    {
+      "id": "P2024-0228",
+      "title": "习近平同南非总统拉马福萨会谈",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0234",
+      "title": "习近平同英国首相斯塔默通电话",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0242",
+      "title": "习近平会见斐济总理兰布卡",
+      "summary_len": 12
+    },
+    {
+      "id": "P2024-0249",
+      "title": "习近平向新任越共中央总书记苏林致贺电",
+      "summary_len": 18
+    },
+    {
+      "id": "P2024-0250",
+      "title": "习近平回信勉励祖籍宁波的香港企业家",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0303",
+      "title": "习近平会见土耳其总统埃尔多安",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0304",
+      "title": "习近平会见白俄罗斯总统卢卡申科",
+      "summary_len": 15
+    },
+    {
+      "id": "P2024-0305",
+      "title": "习近平会见联合国秘书长古特雷斯",
+      "summary_len": 15
+    },
+    {
+      "id": "P2024-0309",
+      "title": "习近平会见俄罗斯总统普京",
+      "summary_len": 12
+    },
+    {
+      "id": "P2024-0310",
+      "title": "习近平会见吉尔吉斯斯坦总统扎帕罗夫",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0271",
+      "title": "必须坚持自信自立",
+      "summary_len": 8
+    },
+    {
+      "id": "P2024-0272",
+      "title": "习近平会见瓦努阿图总理萨尔维",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0273",
+      "title": "习近平会见所罗门群岛总理马内莱",
+      "summary_len": 15
+    },
+    {
+      "id": "P2024-0275",
+      "title": "习近平会见孟加拉国总理哈西娜",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0286",
+      "title": "习近平会见匈牙利总理欧尔班",
+      "summary_len": 13
+    },
+    {
+      "id": "P2024-0288",
+      "title": "习近平向所罗门群岛新任总督卡普致贺电",
+      "summary_len": 18
+    },
+    {
+      "id": "P2024-0290",
+      "title": "习近平向伊朗当选总统佩泽希齐扬致贺电",
+      "summary_len": 18
+    },
+    {
+      "id": "P2024-0447",
+      "title": "中华人民共和国主席令第二十四号",
+      "summary_len": 15
+    },
+    {
+      "id": "P2024-0354",
+      "title": "习近平致电祝贺拉马福萨当选连任南非总统",
+      "summary_len": 19
+    },
+    {
+      "id": "P2024-0359",
+      "title": "习近平会见巴基斯坦总理夏巴兹",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0360",
+      "title": "习近平会见巴西副总统阿尔克明",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0362",
+      "title": "习近平复信美国肯恩大学校长雷波列特",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0363",
+      "title": "习近平向墨西哥当选总统辛鲍姆致贺电",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0364",
+      "title": "习近平向冰岛当选总统托马斯多蒂尔致贺电",
+      "summary_len": 19
+    },
+    {
+      "id": "P2024-0366",
+      "title": "习近平致中国工程院建院30周年的贺信",
+      "summary_len": 18
+    },
+    {
+      "id": "P2024-0367",
+      "title": "习近平致信祝贺中国工程院建院30周年",
+      "summary_len": 18
+    },
+    {
+      "id": "P2024-0324",
+      "title": "习近平向澳大利亚新任总督莫斯廷致贺电",
+      "summary_len": 18
+    },
+    {
+      "id": "P2024-0329",
+      "title": "新时代新征程中国共产党的使命任务",
+      "summary_len": 16
+    },
+    {
+      "id": "P2024-0331",
+      "title": "中华人民共和国主席令第二十九号",
+      "summary_len": 15
+    },
+    {
+      "id": "P2024-0338",
+      "title": "习近平会见越南总理范明政",
+      "summary_len": 12
+    },
+    {
+      "id": "P2024-0344",
+      "title": "习近平同波兰总统杜达会谈",
+      "summary_len": 12
+    },
+    {
+      "id": "P2024-0404",
+      "title": "习近平向巴拿马当选总统穆利诺致贺电",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0406",
+      "title": "习近平同匈牙利总理欧尔班共同会见记者",
+      "summary_len": 18
+    },
+    {
+      "id": "P2024-0410",
+      "title": "习近平出席武契奇总统饯行话别",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0412",
+      "title": "习近平主席对匈牙利国事访问成果文件清单",
+      "summary_len": 19
+    },
+    {
+      "id": "P2024-0413",
+      "title": "习近平同匈牙利总统舒尤克举行会谈",
+      "summary_len": 16
+    },
+    {
+      "id": "P2024-0415",
+      "title": "习近平同匈牙利总理欧尔班举行会谈",
+      "summary_len": 16
+    },
+    {
+      "id": "P2024-0421",
+      "title": "习近平同塞尔维亚总统武契奇举行会谈",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0371",
+      "title": "习近平同突尼斯总统赛义德会谈",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0372",
+      "title": "习近平同巴林国王哈马德会谈",
+      "summary_len": 13
+    },
+    {
+      "id": "P2024-0376",
+      "title": "习近平同阿联酋总统穆罕默德会谈",
+      "summary_len": 15
+    },
+    {
+      "id": "P2024-0378",
+      "title": "习近平同埃及总统塞西会谈",
+      "summary_len": 12
+    },
+    {
+      "id": "P2024-0380",
+      "title": "习近平同赤道几内亚总统奥比昂会谈",
+      "summary_len": 16
+    },
+    {
+      "id": "P2024-0389",
+      "title": "习近平向越南新任国家主席苏林致贺电",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0391",
+      "title": "习近平向乍得当选总统穆罕默德致贺电",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0394",
+      "title": "习近平向第八届中俄博览会致贺信",
+      "summary_len": 15
+    },
+    {
+      "id": "P2024-0395",
+      "title": "习近平同俄罗斯总统普京共同会见记者",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0397",
+      "title": "习近平同俄罗斯总统普京会谈",
+      "summary_len": 13
+    },
+    {
+      "id": "P2024-0423",
+      "title": "习近平同塞尔维亚总统武契奇共同会见记者",
+      "summary_len": 19
+    },
+    {
+      "id": "P2024-0428",
+      "title": "习近平出席马克龙举行的欢迎宴会",
+      "summary_len": 15
+    },
+    {
+      "id": "P2024-0430",
+      "title": "习近平同法国总统马克龙举行会谈",
+      "summary_len": 15
+    },
+    {
+      "id": "P2024-0431",
+      "title": "习近平出席法国总统马克龙举行的欢迎仪式",
+      "summary_len": 19
+    },
+    {
+      "id": "P2024-0433",
+      "title": "习近平同法国总统马克龙共同会见记者",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0439",
+      "title": "习近平复信斯梅戴雷沃钢厂职工",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0448",
+      "title": "习近平会见美国国务卿布林肯",
+      "summary_len": 13
     },
     {
       "id": "P2024-0506",
       "title": "习近平致电祝贺舒尤克当选匈牙利总统",
-      "issues": [
-        "解读缺失"
-      ]
+      "summary_len": 17
     },
     {
-      "id": "P2024-0507",
-      "title": "《习近平关于尊重和保障人权论述摘编》（法汉对照）全球首发式在巴黎举办",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "P2024-0461",
+      "title": "习近平同密克罗尼西亚联邦总统西米纳会谈",
+      "summary_len": 19
     },
     {
-      "id": "P2024-0505",
-      "title": "习近平在2024年春季学期中央党校（国家行政学院）中青年干部培训班开班之际作出重要指示强调 牢记初心使命顽强拼搏进取 奋力跑好历史的接力棒蔡奇出席开班式并讲话",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "P2024-0462",
+      "title": "习近平会见俄罗斯外长拉夫罗夫",
+      "summary_len": 14
     },
     {
-      "id": "P2024-0504",
-      "title": "习近平在中共中央政治局第十二次集体学习时强调 大力推动我国新能源高质量发展 为共建清洁美丽世界作出更大贡献",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "P2024-0465",
+      "title": "习近平会见越南国会主席王庭惠",
+      "summary_len": 14
     },
     {
-      "id": "P2024-0509",
-      "title": "习近平为第六批全国干部学习培训教材作序要求各级干部发扬理论联系实际的马克思主义学风 当好中国式现代化建设的坚定行动派实干家",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "P2024-0468",
+      "title": "习近平向马耳他新任总统德博诺致贺电",
+      "summary_len": 17
     },
     {
-      "id": "P2024-0508",
-      "title": "中共中央政治局召开会议 讨论政府工作报告中共中央总书记习近平主持会议",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "P2024-0470",
+      "title": "习近平同美国总统拜登通电话",
+      "summary_len": 13
     },
     {
-      "id": "P2024-0510",
-      "title": "《求是》杂志发表习近平总书记重要文章 加强和改进人民政协工作  全面发展协商民主",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "P2024-0471",
+      "title": "习近平同印度尼西亚当选总统普拉博沃会谈",
+      "summary_len": 19
     },
     {
-      "id": "P2024-0511",
-      "title": "加强和改进人民政协工作 全面发展协商民主",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "P2024-0473",
+      "title": "必须坚持人民至上",
+      "summary_len": 8
+    },
+    {
+      "id": "P2024-0474",
+      "title": "习近平向塞内加尔当选总统法耶致贺电",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0477",
+      "title": "习近平会见美国工商界和战略学术界代表",
+      "summary_len": 18
+    },
+    {
+      "id": "P2024-0478",
+      "title": "习近平会见荷兰首相吕特",
+      "summary_len": 11
+    },
+    {
+      "id": "P2024-0479",
+      "title": "习近平会见斯里兰卡总理古纳瓦德纳",
+      "summary_len": 16
+    },
+    {
+      "id": "P2024-0481",
+      "title": "习近平同瑙鲁总统阿迪昂会谈",
+      "summary_len": 13
+    },
+    {
+      "id": "P2024-0482",
+      "title": "习近平会见多米尼克总理斯凯里特",
+      "summary_len": 15
+    },
+    {
+      "id": "P2024-0486",
+      "title": "习近平向印尼当选总统普拉博沃致贺电",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0488",
+      "title": "习近平致电祝贺普京当选连任俄罗斯总统",
+      "summary_len": 18
+    },
+    {
+      "id": "P2024-0489",
+      "title": "习近平同安哥拉总统洛伦索会谈",
+      "summary_len": 14
+    },
+    {
+      "id": "P2024-0492",
+      "title": "中华人民共和国主席令第二十一号",
+      "summary_len": 15
+    },
+    {
+      "id": "P2024-0495",
+      "title": "习近平向巴基斯坦新任总统扎尔达里致贺电",
+      "summary_len": 19
     },
     {
       "id": "P2024-0512",
       "title": "习近平同塞拉利昂总统比奥会谈",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0513",
-      "title": "十四届全国人大常委会第八次会议在京闭幕表决通过新修订的保守国家秘密法习近平签署主席令予以公布赵乐际主持会议",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0514",
-      "title": "中央政治局委员 书记处书记  全国人大常委会 国务院 全国政协党组成员  最高人民法院 最高人民检察院党组书记向党中央和习近平总书记述职习近平认真审阅述职报告并提出重要要求，强调要紧紧围绕推进中国式现代化，立足自身职责，强化政治担当，为推进强国建设、民族复兴伟业而团结奋斗",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0515",
-      "title": "习近平复信美国马斯卡廷中学访华代表团学生",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0517",
-      "title": "《习近平谈治国理政》第四卷5种民族文字版出版发行",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0516",
-      "title": "习近平主持召开中央财经委员会第四次会议强调 推动新一轮大规模设备更新和消费品以旧换新 有效降低全社会物流成本李强蔡奇丁薛祥出席",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "2024-23",
-      "title": "在中央财经委员会第四次会议上的讲话",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0518",
-      "title": "习近平同刚果（布）总统萨苏就中刚建交60周年互致贺电",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0519",
-      "title": "习近平主持召开中央全面深化改革委员会第四次会议强调 增强土地要素对优势地区高质量发展保障能力 进一步提升基层应急管理能力李强王沪宁蔡奇出席",
-      "issues": [
-        "解读缺失"
-      ]
+      "summary_len": 14
     },
     {
       "id": "P2024-0520",
       "title": "习近平向第37届非洲联盟峰会致贺电",
-      "issues": [
-        "解读缺失"
-      ]
+      "summary_len": 17
     },
     {
       "id": "P2024-0521",
       "title": "习近平致电祝贺斯图布当选芬兰总统",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0522",
-      "title": "坚持和完善人民代表大会制度 保障人民当家作主",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0523",
-      "title": "《求是》杂志发表习近平总书记重要文章 坚持和完善人民代表大会制度  保障人民当家作主",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0524",
-      "title": "习近平和夫人彭丽媛向美国林肯中学师生回赠新春贺卡",
-      "issues": [
-        "解读缺失"
-      ]
+      "summary_len": 16
     },
     {
       "id": "P2024-0526",
       "title": "习近平同俄罗斯总统普京通电话",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0527",
-      "title": "在二〇二四年春节团拜会上的讲话（二〇二四年二月八日，上午）",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0528",
-      "title": "习近平致电祝贺阿利耶夫当选连任阿塞拜疆总统",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0529",
-      "title": "习近平同葡萄牙总统德索萨就中葡建交45周年互致贺电",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0525",
-      "title": "中共中央国务院举行春节团拜会习近平发表讲话代表党中央和国务院，向全国各族人民，向香港特别行政区同胞、澳门特别行政区同胞、台湾同胞和海外侨胞拜年李强主持  赵乐际王沪宁蔡奇丁薛祥李希韩正出席",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0533",
-      "title": "习近平致电祝贺布克尔当选连任萨尔瓦多总统",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0530",
-      "title": "习近平同党外人士共迎新春代表中共中央，向各民主党派、工商联和无党派人士，向统一战线广大成员，致以诚挚问候和新春祝福王沪宁蔡奇丁薛祥出席",
-      "issues": [
-        "解读缺失"
-      ]
+      "summary_len": 14
     },
     {
       "id": "P2024-0534",
       "title": "习近平向纳米比亚新任总统姆本巴致贺电",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0532",
-      "title": "习近平致信祝贺中国南极秦岭站建成并投入使用强调 更好地认识极地保护极地利用极地 为造福人类推动构建人类命运共同体作出新的更大的贡献",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0535",
-      "title": "习近平就智利前总统皮涅拉逝世向智利总统博里奇致唁电",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0531",
-      "title": "中央领导同志看望老同志向老同志们致以诚挚的节日问候，衷心祝愿他们新春愉快、健康长寿    老同志们对此表示感谢，高度评价以习近平同志为核心的党中央在全面贯彻党的二十大精神开局之年团结带领全党全军全国各族人民，顽强拼搏、勇毅前行，在全面建设社会主义现代化国家新征程上迈出了坚实步伐，对习近平总书记作为党中央的核心、全党的核心表示衷心拥护。老同志们希望全党全军全国各族人民更加紧密地团结在以习近平同志为核心的党中央周围，深刻领悟“两个确立”的决定性意义，增强“四个意识”、坚定“四个自信”、做到“两个维护”，坚持用习近平新时代中国特色社会主义思想凝心铸魂，坚定信心、开拓奋进，为以中国式现代化全面推进强国建设、民族复兴伟业而不懈奋斗",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0536",
-      "title": "习近平就纳米比亚总统根哥布逝世向纳米比亚新任总统姆本巴致唁电",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0537",
-      "title": "学习贯彻习近平新时代中国特色社会主义思想主题教育总结会议在京召开会议传达习近平关于巩固拓展主题教育成果的重要讲话  对学习贯彻讲话精神作出部署蔡奇出席总结会议并讲话",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0538",
-      "title": "习近平春节前夕视察慰问驻天津部队 向全体人民解放军指战员武警部队官兵军队文职人员民兵预备役人员致以新春祝福",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0541",
-      "title": "习近平与越共中央总书记阮富仲互致新春贺信",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0539",
-      "title": "习近平春节前夕赴天津看望慰问基层干部群众",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0540",
-      "title": "习近平春节前夕赴天津看望慰问基层干部群众 向全国各族人民致以美好的新春祝福祝各族人民幸福安康  祝伟大祖国繁荣昌盛蔡奇陪同考察",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0542",
-      "title": "习近平在中共中央政治局第十一次集体学习时强调 加快发展新质生产力  扎实推进高质量发展",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0544",
-      "title": "《求是》杂志发表习近平总书记重要文章 铸牢中华民族共同体意识 推进新时代党的民族工作高质量发展",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0545",
-      "title": "习近平向马来西亚新任最高元首易卜拉欣致贺电",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0543",
-      "title": "中共中央政治局召开会议审议《中央政治局常委会听取和研究全国人大常委会、国务院、全国政协、最高人民法院、最高人民检察院党组工作汇报和中央书记处工作报告的综合情况报告》《关于在全党深入开展学习贯彻习近平新时代中国特色社会主义思想主题教育总结报告》《关于巩固拓展学习贯彻习近平新时代中国特色社会主义思想主题教育成果的意见》《中国共产党巡视工作条例》中共中央总书记习近平主持会议",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "2024-11",
-      "title": "在天津考察时的重要讲话",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0546",
-      "title": "铸牢中华民族共同体意识 推进新时代党的民族工作高质量发展",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0548",
-      "title": "习近平接受外国新任驻华大使递交国书",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0547",
-      "title": "中央军委举行慰问驻京部队老干部迎新春文艺演出习近平向全军老同志祝贺新春",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0549",
-      "title": "习近平致电祝贺阿扎利当选连任科摩罗总统",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0550",
-      "title": "习近平同法国总统马克龙就中法建交60周年互致贺电",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0551",
-      "title": "习近平向中法建交60周年招待会发表视频致辞",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0552",
-      "title": "习近平同乌兹别克斯坦总统米尔济约耶夫会谈",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0553",
-      "title": "习近平对江西新余市渝水区一临街店铺火灾事故作出重要指示 要求坚决遏制各类安全事故多发连发势头 确保人民群众生命财产安全和社会大局稳定李强作出批示",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0554",
-      "title": "习近平会见安提瓜和巴布达总理布朗",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0555",
-      "title": "习近平复信北京交通大学肯尼亚留学生及校友代表",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0556",
-      "title": "中央军委主席习近平签署命令 发布新修订的《军事立法工作条例》",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0557",
-      "title": "习近平对云南昭通市镇雄县山体滑坡作出重要指示 要求全力搜救失联人员  防范发生次生灾害 切实保障人民群众生命财产安全李强作出批示",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0558",
-      "title": "习近平在“国家工程师奖”首次评选表彰之际作出重要指示强调 坚定科技报国为民造福理想 加快实现高水平科技自立自强服务高质量发展蔡奇出席“国家工程师奖”表彰大会并讲话  丁薛祥出席",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0559",
-      "title": "习近平致电祝贺齐塞克迪当选连任刚果（金）总统",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0560",
-      "title": "习近平在省部级主要领导干部推动金融高质量发展专题研讨班开班式上发表重要讲话强调 坚定不移走中国特色金融发展之路 推动我国金融高质量发展赵乐际王沪宁丁薛祥李希韩正出席  蔡奇主持",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0561",
-      "title": "《求是》杂志发表习近平总书记重要文章 完整、准确、全面贯彻落实关于做好新时代党的统一战线工作的重要思想",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0562",
-      "title": "习近平致电祝贺丹麦国王腓特烈十世即位",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0563",
-      "title": "完整、准确、全面贯彻落实关于做好新时代党的统一战线工作的重要思想",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0564",
-      "title": "习近平对政法工作作出重要指示强调 坚持党的绝对领导忠诚履职担当作为 为全面推进强国建设民族复兴伟业提供坚强安全保障",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0565",
-      "title": "习近平会见比利时首相德克罗",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0566",
-      "title": "习近平就中莱复交30周年同莱索托国王莱齐耶三世互致贺电李强同莱索托首相马特凯恩互致贺电",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0567",
-      "title": "习近平致电祝贺哈西娜当选连任孟加拉国总理李强向哈西娜总理致贺电",
-      "issues": [
-        "解读缺失"
-      ]
+      "summary_len": 18
     },
     {
       "id": "P2024-0571",
       "title": "习近平同芬兰总统尼尼斯托举行视频会晤",
-      "issues": [
-        "解读缺失"
-      ]
+      "summary_len": 18
     },
     {
-      "id": "P2024-0570",
-      "title": "习近平同马尔代夫总统穆伊兹会谈",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "P2024-0548",
+      "title": "习近平接受外国新任驻华大使递交国书",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0549",
+      "title": "习近平致电祝贺阿扎利当选连任科摩罗总统",
+      "summary_len": 19
+    },
+    {
+      "id": "P2025-0602",
+      "title": "习近平向第七届中俄能源商务论坛致贺信",
+      "summary_len": 18
+    },
+    {
+      "id": "P2025-0603",
+      "title": "习近平会见汤加国王图普六世",
+      "summary_len": 13
+    },
+    {
+      "id": "P2025-0604",
+      "title": "习近平同美国总统特朗普通电话",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0608",
+      "title": "习近平会见泰国国王哇集拉隆功",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0609",
+      "title": "习近平复信青年汉学家",
+      "summary_len": 10
+    },
+    {
+      "id": "P2025-0611",
+      "title": "习近平会见西班牙国王费利佩六世",
+      "summary_len": 15
+    },
+    {
+      "id": "P2024-0554",
+      "title": "习近平会见安提瓜和巴布达总理布朗",
+      "summary_len": 16
+    },
+    {
+      "id": "P2024-0562",
+      "title": "习近平致电祝贺丹麦国王腓特烈十世即位",
+      "summary_len": 18
+    },
+    {
+      "id": "P2024-0565",
+      "title": "习近平会见比利时首相德克罗",
+      "summary_len": 13
     },
     {
       "id": "P2024-0569",
       "title": "习近平复信美国艾奥瓦州友人萨拉·兰蒂",
-      "issues": [
-        "解读缺失"
-      ]
+      "summary_len": 18
     },
     {
-      "id": "P2024-0568",
-      "title": "习近平同突尼斯总统赛义德就中突建交60周年互致贺电李强同突尼斯总理哈沙尼互致贺电",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0572",
-      "title": "习近平在二十届中央纪委三次全会上发表重要讲话强调 深入推进党的自我革命 坚决打赢反腐败斗争攻坚战持久战李强赵乐际王沪宁蔡奇丁薛祥出席会议  李希主持会议",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "2024-G01",
-      "title": "在二十届中央纪委三次全会上的讲话",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0574",
-      "title": "习近平就伊朗发生严重恐怖袭击事件向伊朗总统莱希致慰问电",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0573",
-      "title": "中共中央政治局常务委员会召开会议 听取全国人大常委会、国务院、全国政协、最高人民法院、最高人民检察院党组工作汇报  听取中央书记处工作报告中共中央总书记习近平主持会议",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0576",
-      "title": "中美两国领导人互致贺信庆祝两国建交45周年",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0575",
-      "title": "中朝两党两国最高领导人互致新年贺电宣布启动“中朝友好年”",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0578",
-      "title": "中俄两国元首互致新年贺电中俄两国总理互致新年贺电",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "2024-E01",
-      "title": "以美丽中国建设全面推进人与自然和谐共生的现代化",
-      "issues": [
-        "解读缺失"
-      ]
-    },
-    {
-      "id": "P2024-0579",
-      "title": "《求是》杂志发表习近平总书记重要文章 以美丽中国建设全面推进人与自然和谐共生的现代化",
-      "issues": [
-        "解读缺失"
-      ]
+      "id": "P2024-0570",
+      "title": "习近平同马尔代夫总统穆伊兹会谈",
+      "summary_len": 15
     },
     {
       "id": "P2024-0577",
       "title": "国家主席习近平发表二〇二四年新年贺词",
-      "issues": [
-        "解读缺失"
-      ]
+      "summary_len": 18
+    },
+    {
+      "id": "P2025-0580",
+      "title": "习近平：在全国政协新年茶话会上的讲话",
+      "summary_len": 18
+    },
+    {
+      "id": "P2025-0582",
+      "title": "中华人民共和国主席令  第六十六号",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0586",
+      "title": "习近平致电祝贺卡斯特当选智利总统",
+      "summary_len": 16
+    },
+    {
+      "id": "P2025-0653",
+      "title": "习近平致电祝贺阿迪昂当选连任瑙鲁总统",
+      "summary_len": 18
+    },
+    {
+      "id": "P2025-0656",
+      "title": "习近平向塞舌尔当选总统赫米尼耶致贺电",
+      "summary_len": 18
+    },
+    {
+      "id": "P2025-0620",
+      "title": "习近平致电祝贺比亚当选连任喀麦隆总统",
+      "summary_len": 18
+    },
+    {
+      "id": "P2025-0623",
+      "title": "习近平致电祝贺哈桑就任坦桑尼亚总统",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0625",
+      "title": "习近平会见俄罗斯总理米舒斯京",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0629",
+      "title": "习近平同韩国总统李在明会谈",
+      "summary_len": 13
+    },
+    {
+      "id": "P2025-0634",
+      "title": "习近平会见加拿大总理卡尼",
+      "summary_len": 12
+    },
+    {
+      "id": "P2025-0704",
+      "title": "习近平会见葡萄牙总理蒙特内格罗",
+      "summary_len": 15
+    },
+    {
+      "id": "P2025-0641",
+      "title": "习近平同美国总统特朗普在釜山举行会晤",
+      "summary_len": 18
+    },
+    {
+      "id": "P2025-0643",
+      "title": "中华人民共和国主席令  第六十二号",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0647",
+      "title": "习近平致电祝贺帕斯当选玻利维亚总统",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0659",
+      "title": "习近平会见加纳总统马哈马",
+      "summary_len": 12
+    },
+    {
+      "id": "P2025-0702",
+      "title": "习近平向圭亚那总统阿里致贺电",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0710",
+      "title": "习近平将出席金砖国家领导人线上峰会",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0716",
+      "title": "习近平会见刚果（布）总统萨苏",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0717",
+      "title": "习近平会见塞尔维亚总统武契奇",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0661",
+      "title": "习近平会见莫桑比克总理莱维",
+      "summary_len": 13
+    },
+    {
+      "id": "P2025-0662",
+      "title": "习近平会见斯里兰卡总理阿马拉苏里亚",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0669",
+      "title": "习近平致电祝贺卢森堡大公纪尧姆即位",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0718",
+      "title": "习近平会见越南国家主席梁强",
+      "summary_len": 13
+    },
+    {
+      "id": "P2025-0682",
+      "title": "习近平向马拉维当选总统穆塔里卡致贺电",
+      "summary_len": 18
+    },
+    {
+      "id": "P2025-0690",
+      "title": "习近平在联合国气候变化峰会发表视频致辞",
+      "summary_len": 19
+    },
+    {
+      "id": "P2025-0698",
+      "title": "纵深推进全国统一大市场建设",
+      "summary_len": 13
+    },
+    {
+      "id": "P2025-0759",
+      "title": "促进民营经济健康发展、高质量发展",
+      "summary_len": 16
+    },
+    {
+      "id": "P2025-0760",
+      "title": "习近平同巴西总统卢拉通电话",
+      "summary_len": 13
+    },
+    {
+      "id": "P2025-0722",
+      "title": "习近平会见印度尼西亚总统普拉博沃",
+      "summary_len": 16
+    },
+    {
+      "id": "P2025-0726",
+      "title": "习近平主持中俄蒙元首第七次会晤",
+      "summary_len": 15
+    },
+    {
+      "id": "P2025-0727",
+      "title": "习近平会见蒙古国总统呼日勒苏赫",
+      "summary_len": 15
+    },
+    {
+      "id": "P2025-0729",
+      "title": "习近平会见塔吉克斯坦总统拉赫蒙",
+      "summary_len": 15
+    },
+    {
+      "id": "P2025-0736",
+      "title": "习近平会见亚美尼亚总理帕什尼扬",
+      "summary_len": 15
+    },
+    {
+      "id": "P2025-0740",
+      "title": "习近平的英雄观",
+      "summary_len": 7
+    },
+    {
+      "id": "P2025-0741",
+      "title": "习近平会见哈萨克斯坦总统托卡耶夫",
+      "summary_len": 16
+    },
+    {
+      "id": "P2025-0742",
+      "title": "习近平会见埃及总理马德布利",
+      "summary_len": 13
+    },
+    {
+      "id": "P2025-0743",
+      "title": "习近平会见柬埔寨首相洪玛奈",
+      "summary_len": 13
+    },
+    {
+      "id": "P2025-0747",
+      "title": "习近平会见俄罗斯国家杜马主席沃洛金",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0767",
+      "title": "在全国生态环境保护大会上的讲话",
+      "summary_len": 15
+    },
+    {
+      "id": "P2025-0771",
+      "title": "习近平向世界青年和平大会致信",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0775",
+      "title": "第二十五次中国—欧盟领导人会晤将举行",
+      "summary_len": 18
+    },
+    {
+      "id": "P2025-0780",
+      "title": "习近平向苏里南当选总统西蒙斯致贺电",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0782",
+      "title": "习近平向全球文明对话部长级会议致贺信",
+      "summary_len": 18
+    },
+    {
+      "id": "P2025-0828",
+      "title": "习近平致信祝贺复旦大学建校120周年",
+      "summary_len": 18
+    },
+    {
+      "id": "P2025-0788",
+      "title": "习近平的青春观",
+      "summary_len": 7
+    },
+    {
+      "id": "P2025-0789",
+      "title": "总书记和青年朋友在一起",
+      "summary_len": 11
+    },
+    {
+      "id": "P2025-0797",
+      "title": "习近平会见厄瓜多尔总统诺沃亚",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0798",
+      "title": "习近平会见塞内加尔总理松科",
+      "summary_len": 13
+    },
+    {
+      "id": "P2025-0852",
+      "title": "习近平会见缅甸领导人敏昂莱",
+      "summary_len": 13
+    },
+    {
+      "id": "P2025-0806",
+      "title": "习近平同哈萨克斯坦总统托卡耶夫会谈",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0817",
+      "title": "习近平同韩国总统李在明通电话",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0853",
+      "title": "习近平会见古巴国家主席迪亚斯—卡内尔",
+      "summary_len": 18
+    },
+    {
+      "id": "P2025-0821",
+      "title": "习近平向波兰当选总统纳夫罗茨基致贺电",
+      "summary_len": 18
+    },
+    {
+      "id": "P2025-0823",
+      "title": "习近平向韩国当选总统李在明致贺电",
+      "summary_len": 16
+    },
+    {
+      "id": "P2025-0831",
+      "title": "习近平同德国总理默茨通电话",
+      "summary_len": 13
+    },
+    {
+      "id": "P2025-0832",
+      "title": "习近平向罗马尼亚当选总统达恩致贺电",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0834",
+      "title": "习近平同法国总统马克龙通电话",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0854",
+      "title": "习近平会见委内瑞拉总统马杜罗",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0843",
+      "title": "习近平复信中国丹麦商会负责人",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0845",
+      "title": "习近平会见哥伦比亚总统佩特罗",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0849",
+      "title": "习近平同巴西总统卢拉会谈",
+      "summary_len": 12
+    },
+    {
+      "id": "P2025-0902",
+      "title": "习近平同越共中央总书记苏林话别",
+      "summary_len": 15
+    },
+    {
+      "id": "P2025-0903",
+      "title": "习近平抵达吉隆坡对马来西亚进行国事访问",
+      "summary_len": 19
+    },
+    {
+      "id": "P2025-0904",
+      "title": "习近平圆满结束对越南的国事访问",
+      "summary_len": 15
+    },
+    {
+      "id": "P2025-0905",
+      "title": "加快建设文化强国",
+      "summary_len": 8
+    },
+    {
+      "id": "P2025-0906",
+      "title": "习近平会见越南国会主席陈青敏",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0907",
+      "title": "习近平同越共中央总书记苏林举行会谈",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0964",
+      "title": "注重家庭，注重家教，注重家风",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0857",
+      "title": "习近平同俄罗斯总统普京茶叙",
+      "summary_len": 13
+    },
+    {
+      "id": "P2025-0865",
+      "title": "中华人民共和国主席令  第四十八号",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0889",
+      "title": "习近平会见柬埔寨国王西哈莫尼",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0871",
+      "title": "习近平访问金砖国家新开发银行",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0878",
+      "title": "习近平同肯尼亚总统鲁托会谈",
+      "summary_len": 13
+    },
+    {
+      "id": "P2025-0881",
+      "title": "习近平同阿塞拜疆总统阿利耶夫会谈",
+      "summary_len": 16
+    },
+    {
+      "id": "P2025-0883",
+      "title": "习近平向加蓬当选总统恩圭马致贺电",
+      "summary_len": 16
+    },
+    {
+      "id": "P2025-0886",
+      "title": "习近平圆满结束对柬埔寨的国事访问",
+      "summary_len": 16
+    },
+    {
+      "id": "P2025-0888",
+      "title": "习近平会见柬埔寨太后莫尼列",
+      "summary_len": 13
+    },
+    {
+      "id": "P2025-0890",
+      "title": "习近平抵达金边对柬埔寨进行国事访问",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0893",
+      "title": "习近平圆满结束对马来西亚的国事访问",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0895",
+      "title": "习近平会见马来西亚最高元首易卜拉欣",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0896",
+      "title": "习近平同马来西亚总理安瓦尔举行会谈",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0899",
+      "title": "习近平瞻仰胡志明陵并敬献花圈",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0954",
+      "title": "习近平会见韩国国会议长禹元植",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0955",
+      "title": "习近平会见国际奥林匹克委员会主席巴赫",
+      "summary_len": 18
+    },
+    {
+      "id": "P2025-0959",
+      "title": "习近平同文莱苏丹哈桑纳尔会谈",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0961",
+      "title": "习近平同吉尔吉斯斯坦总统扎帕罗夫会谈",
+      "summary_len": 18
+    },
+    {
+      "id": "P2025-0962",
+      "title": "习近平同巴基斯坦总统扎尔达里会谈",
+      "summary_len": 16
+    },
+    {
+      "id": "P2025-0908",
+      "title": "越共中央总书记苏林为习近平举行欢迎仪式",
+      "summary_len": 19
+    },
+    {
+      "id": "P2025-0909",
+      "title": "习近平抵达河内对越南进行国事访问",
+      "summary_len": 16
+    },
+    {
+      "id": "P2025-0913",
+      "title": "习近平会见西班牙首相桑切斯",
+      "summary_len": 13
+    },
+    {
+      "id": "P2025-0922",
+      "title": "朝着建成科技强国的宏伟目标奋勇前进",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0925",
+      "title": "习近平会见国际工商界代表",
+      "summary_len": 12
+    },
+    {
+      "id": "P2025-0929",
+      "title": "坚持和落实“两个毫不动摇”",
+      "summary_len": 13
+    },
+    {
+      "id": "P2025-0931",
+      "title": "习近平向希腊新任总统塔苏拉斯致贺电",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0932",
+      "title": "中华人民共和国主席令  第四十五号",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0943",
+      "title": "习近平会见俄罗斯联邦安全会议秘书绍伊古",
+      "summary_len": 19
+    },
+    {
+      "id": "P2025-0949",
+      "title": "习近平向第38届非洲联盟峰会致贺电",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0950",
+      "title": "健全全面从严治党体系",
+      "summary_len": 10
+    },
+    {
+      "id": "P2025-1002",
+      "title": "国家主席习近平发表二〇二五年新年贺词",
+      "summary_len": 18
+    },
+    {
+      "id": "P2026-1008",
+      "title": "习近平复信法国国际学校中文班师生",
+      "summary_len": 16
+    },
+    {
+      "id": "P2025-0968",
+      "title": "习近平向美国艾奥瓦州友人回赠新春贺卡",
+      "summary_len": 18
+    },
+    {
+      "id": "P2025-0973",
+      "title": "习近平同俄罗斯总统普京举行视频会晤",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0978",
+      "title": "习近平同美国当选总统特朗普通电话",
+      "summary_len": 16
+    },
+    {
+      "id": "P2025-0981",
+      "title": "习近平同斯里兰卡总统迪萨纳亚克会谈",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0982",
+      "title": "习近平同越共中央总书记苏林通电话",
+      "summary_len": 16
+    },
+    {
+      "id": "P2025-0985",
+      "title": "习近平同欧洲理事会主席科斯塔通电话",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0986",
+      "title": "习近平向黎巴嫩新任总统奥恩致贺电",
+      "summary_len": 16
+    },
+    {
+      "id": "P2025-0987",
+      "title": "习近平会见格林纳达总理米切尔",
+      "summary_len": 14
+    },
+    {
+      "id": "P2026-1012",
+      "title": "习近平向葡萄牙新任总统塞古罗致贺电",
+      "summary_len": 17
+    },
+    {
+      "id": "P2026-1019",
+      "title": "中华人民共和国主席令  第六十九号",
+      "summary_len": 17
+    },
+    {
+      "id": "P2026-1023",
+      "title": "习近平复信美国艾奥瓦州友人",
+      "summary_len": 13
+    },
+    {
+      "id": "P2024-0047",
+      "title": "习近平向2024世界传统医药大会致贺信",
+      "summary_len": 19
+    },
+    {
+      "id": "P2026-1030",
+      "title": "习近平会见越共中央总书记特使黎怀忠",
+      "summary_len": 17
+    },
+    {
+      "id": "P2026-1031",
+      "title": "习近平同乌拉圭总统奥尔西举行会谈",
+      "summary_len": 16
+    },
+    {
+      "id": "P2026-1036",
+      "title": "习近平复信津巴布韦老战士",
+      "summary_len": 12
+    },
+    {
+      "id": "P2026-1037",
+      "title": "习近平会见芬兰总理奥尔波",
+      "summary_len": 12
+    },
+    {
+      "id": "P2026-1039",
+      "title": "习近平致电祝贺苏林当选越共中央总书记",
+      "summary_len": 18
+    },
+    {
+      "id": "P2026-1045",
+      "title": "习近平复信美国青少年教育交流团访华师生",
+      "summary_len": 19
+    },
+    {
+      "id": "P2026-1047",
+      "title": "习近平致电祝贺敦布亚当选几内亚总统",
+      "summary_len": 17
+    },
+    {
+      "id": "P2026-1049",
+      "title": "习近平会见爱尔兰总理马丁",
+      "summary_len": 12
+    },
+    {
+      "id": "P2024-0001",
+      "title": "国家主席习近平将发表二〇二五年新年贺词",
+      "summary_len": 19
+    },
+    {
+      "id": "P2026-1052",
+      "title": "习近平向瑞士新任联邦主席帕姆兰致贺电",
+      "summary_len": 18
+    },
+    {
+      "id": "P2026-1055",
+      "title": "习近平致信祝贺解放军报创刊70周年",
+      "summary_len": 17
+    },
+    {
+      "id": "P2024-0276",
+      "title": "习近平同几内亚比绍总统恩巴洛会谈",
+      "summary_len": 16
+    },
+    {
+      "id": "P2024-0298",
+      "title": "习近平同塔吉克斯坦总统拉赫蒙举行会谈",
+      "summary_len": 18
+    },
+    {
+      "id": "P2024-0459",
+      "title": "习近平同苏里南总统单多吉会谈",
+      "summary_len": 14
+    },
+    {
+      "id": "P2025-0613",
+      "title": "习近平致电祝贺康诺利就任爱尔兰总统",
+      "summary_len": 17
+    },
+    {
+      "id": "P2025-0633",
+      "title": "习近平会见日本首相高市早苗",
+      "summary_len": 13
+    },
+    {
+      "id": "P2025-0660",
+      "title": "习近平会见冰岛总统托马斯多蒂尔",
+      "summary_len": 15
+    },
+    {
+      "id": "P2025-0892",
+      "title": "习近平同柬埔寨首相洪玛奈举行会谈",
+      "summary_len": 16
     }
-  ]
+  ],
+  "detail_issues": [
+    {
+      "id": "2024-G01",
+      "title": "在二十届中央纪委三次全会上的讲话",
+      "issues": "??????????????"
+    },
+    {
+      "id": "ZJG-C11",
+      "title": "正确政绩观增添世界对中国作用的信心（和音）",
+      "issues": "????"
+    },
+    {
+      "id": "ZJG-C09",
+      "title": "人民锐评：正确地做正确的事",
+      "issues": "????"
+    },
+    {
+      "id": "ZJG-C06",
+      "title": "学习新语丨树立和践行正确政绩观",
+      "issues": "????"
+    },
+    {
+      "id": "2024-02",
+      "title": "在福建考察时的重要讲话",
+      "issues": "????"
+    },
+    {
+      "id": "2025-09",
+      "title": "在河南考察时的重要讲话",
+      "issues": "????"
+    },
+    {
+      "id": "2024-01",
+      "title": "在2024年中央经济工作会议上的讲话",
+      "issues": "????"
+    },
+    {
+      "id": "ZJG-C14",
+      "title": "共产党人的政绩，就是做得人心、暖人心、稳人心的事",
+      "issues": "????"
+    },
+    {
+      "id": "2024-10",
+      "title": "在湖南考察时的重要讲话",
+      "issues": "??????????????"
+    },
+    {
+      "id": "2024-11",
+      "title": "在天津考察时的重要讲话",
+      "issues": "??????????????"
+    },
+    {
+      "id": "2024-23",
+      "title": "在中央财经委员会第四次会议上的讲话",
+      "issues": "??????????????"
+    },
+    {
+      "id": "P2024-0184",
+      "title": "在全国民族团结进步表彰大会上的讲话（2024年9月27日）",
+      "issues": "????"
+    },
+    {
+      "id": "ZJG-C05",
+      "title": "人民日报评论员：以实干实绩书写中国式现代化新篇章",
+      "issues": "????"
+    },
+    {
+      "id": "2025-03",
+      "title": "在全国两会期间的重要讲话",
+      "issues": "????"
+    },
+    {
+      "id": "2024-C01",
+      "title": "加强文化遗产保护传承 弘扬中华优秀传统文化",
+      "issues": "??????????????"
+    },
+    {
+      "id": "2024-13",
+      "title": "在中华全国供销合作总社成立70周年之际作出重要指示",
+      "issues": "????"
+    },
+    {
+      "id": "2024-E01",
+      "title": "以美丽中国建设全面推进人与自然和谐共生的现代化",
+      "issues": "??????????????"
+    },
+    {
+      "id": "2024-06",
+      "title": "在湖北考察时的重要讲话",
+      "issues": "????"
+    },
+    {
+      "id": "2024-22",
+      "title": "在宁夏考察时的重要讲话",
+      "issues": "????"
+    },
+    {
+      "id": "2024-09",
+      "title": "在重庆考察时的重要讲话",
+      "issues": "??????????????"
+    },
+    {
+      "id": "P2024-0273",
+      "title": "习近平会见所罗门群岛总理马内莱",
+      "issues": "????"
+    },
+    {
+      "id": "P2024-0404",
+      "title": "习近平向巴拿马当选总统穆利诺致贺电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0383",
+      "title": "习近平将出席中国—阿拉伯国家合作论坛第十届部长级会议开幕式并发表主旨讲话",
+      "issues": "????"
+    },
+    {
+      "id": "P2024-0451",
+      "title": "习近平在视察陆军军医大学时强调 面向战场面向部队面向未来 努力建设世界一流军医大学",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0452",
+      "title": "习近平在重庆考察时强调 进一步全面深化改革开放 不断谱写中国式现代化重庆篇章蔡奇陪同考察",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0453",
+      "title": "习近平向首届“中国—拉美和加勒比国家航天合作论坛”致贺信",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0454",
+      "title": "习近平主持召开新时代推动西部大开发座谈会强调 进一步形成大保护大开放高质量发展新格局 奋力谱写西部大开发新篇章李强蔡奇丁薛祥出席",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0455",
+      "title": "习近平同加蓬过渡总统恩圭马就中加建交50周年互致贺电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0456",
+      "title": "中国人民解放军信息支援部队成立大会在京举行习近平向信息支援部队授予军旗并致训词",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0457",
+      "title": "中国人民解放军信息支援部队成立大会在京举行 习近平向信息支援部队授予军旗并致训词",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0458",
+      "title": "习近平向斯洛伐克当选总统佩列格里尼致贺电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0440",
+      "title": "中共中央政治局召开会议 决定召开二十届三中全会分析研究当前经济形势和经济工作  审议《关于持续深入推进长三角一体化高质量发展若干政策措施的意见》中共中央总书记习近平主持会议",
+      "issues": "????"
+    },
+    {
+      "id": "P2024-0501",
+      "title": "十四届全国人大二次会议在京开幕习近平王沪宁蔡奇丁薛祥李希韩正等在主席台就座李强作政府工作报告  赵乐际主持大会听取关于国务院组织法修订草案的说明等",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0502",
+      "title": "全国政协十四届二次会议在京开幕习近平李强赵乐际蔡奇丁薛祥李希韩正到会祝贺王沪宁作政协常委会工作报告  石泰峰主持  高云龙作提案工作情况报告",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0503",
+      "title": "习近平致电祝贺夏巴兹当选巴基斯坦总理李强向夏巴兹总理致贺电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0504",
+      "title": "习近平在中共中央政治局第十二次集体学习时强调 大力推动我国新能源高质量发展 为共建清洁美丽世界作出更大贡献",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0505",
+      "title": "习近平在2024年春季学期中央党校（国家行政学院）中青年干部培训班开班之际作出重要指示强调 牢记初心使命顽强拼搏进取 奋力跑好历史的接力棒蔡奇出席开班式并讲话",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0506",
+      "title": "习近平致电祝贺舒尤克当选匈牙利总统",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0507",
+      "title": "《习近平关于尊重和保障人权论述摘编》（法汉对照）全球首发式在巴黎举办",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0508",
+      "title": "中共中央政治局召开会议 讨论政府工作报告中共中央总书记习近平主持会议",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0509",
+      "title": "习近平为第六批全国干部学习培训教材作序要求各级干部发扬理论联系实际的马克思主义学风 当好中国式现代化建设的坚定行动派实干家",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0528",
+      "title": "习近平致电祝贺阿利耶夫当选连任阿塞拜疆总统",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0461",
+      "title": "习近平同密克罗尼西亚联邦总统西米纳会谈",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0462",
+      "title": "习近平会见俄罗斯外长拉夫罗夫",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0463",
+      "title": "习近平回信勉励“猎鹰突击队”全体队员 努力锻造世界一流反恐特战劲旅 时刻准备为党和人民再立新功",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0464",
+      "title": "习近平和巴西总统卢拉向中巴两党第七届理论研讨会致贺信",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0465",
+      "title": "习近平会见越南国会主席王庭惠",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0466",
+      "title": "习近平会见法国梅里埃基金会主席梅里埃夫妇",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0467",
+      "title": "习近平：按照“六个更”既定方向 推动中越命运共同体建设取得更多务实成果",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0468",
+      "title": "习近平向马耳他新任总统德博诺致贺电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0470",
+      "title": "习近平同美国总统拜登通电话",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0471",
+      "title": "习近平同印度尼西亚当选总统普拉博沃会谈",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0472",
+      "title": "《求是》杂志发表习近平总书记重要文章 必须坚持人民至上",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0473",
+      "title": "必须坚持人民至上",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0474",
+      "title": "习近平向塞内加尔当选总统法耶致贺电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0475",
+      "title": "习近平同哈萨克斯坦总统托卡耶夫分别向中国“哈萨克斯坦旅游年”开幕式致贺信",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0476",
+      "title": "中共中央政治局召开会议 审议《关于二十届中央第二轮巡视情况的综合报告》中共中央总书记习近平主持会议",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0477",
+      "title": "习近平会见美国工商界和战略学术界代表",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0478",
+      "title": "习近平会见荷兰首相吕特",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0479",
+      "title": "习近平会见斯里兰卡总理古纳瓦德纳",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0480",
+      "title": "习近平同洪都拉斯总统卡斯特罗就中洪建交一周年互致贺电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0481",
+      "title": "习近平同瑙鲁总统阿迪昂会谈",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0482",
+      "title": "习近平会见多米尼克总理斯凯里特",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0484",
+      "title": "习近平就俄罗斯发生严重恐怖袭击事件向俄罗斯总统普京致慰问电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0485",
+      "title": "习近平在湖南考察时强调 坚持改革创新求真务实 奋力谱写中国式现代化湖南篇章蔡奇陪同考察",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0486",
+      "title": "习近平向印尼当选总统普拉博沃致贺电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0487",
+      "title": "习近平主持召开新时代推动中部地区崛起座谈会强调 在更高起点上扎实推动中部地区崛起李强蔡奇丁薛祥出席",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0488",
+      "title": "习近平致电祝贺普京当选连任俄罗斯总统",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0489",
+      "title": "习近平同安哥拉总统洛伦索会谈",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0491",
+      "title": "时刻保持解决大党独有难题的清醒和坚定，把党的伟大自我革命进行到底",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0492",
+      "title": "中华人民共和国主席令第二十一号",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0493",
+      "title": "十四届全国人大二次会议在京闭幕批准政府工作报告、全国人大常委会工作报告等通过新修订的国务院组织法  习近平签署主席令予以公布习近平李强王沪宁蔡奇丁薛祥李希韩正等在主席台就座  赵乐际主持并讲话",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0494",
+      "title": "全国政协十四届二次会议闭幕习近平李强赵乐际蔡奇丁薛祥李希韩正出席  王沪宁发表讲话",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0495",
+      "title": "习近平向巴基斯坦新任总统扎尔达里致贺电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0496",
+      "title": "十四届全国人大二次会议举行第二次全体会议习近平李强王沪宁蔡奇丁薛祥李希韩正等出席赵乐际作全国人大常委会工作报告听取和审议最高人民法院工作报告和最高人民检察院工作报告",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0497",
+      "title": "习近平在出席解放军和武警部队代表团全体会议时强调 强化使命担当  深化改革创新 全面提升新兴领域战略能力",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0498",
+      "title": "习近平在看望参加政协会议的民革科技界环境资源界委员时强调 积极建言资政广泛凝聚共识  助力中国式现代化建设王沪宁蔡奇参加看望和讨论",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0499",
+      "title": "习近平在看望参加政协会议的民革科技界环境资源界委员时强调 积极建言资政广泛凝聚共识 助力中国式现代化建设",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0500",
+      "title": "习近平总书记向女同胞致以节日祝贺和美好祝福",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0511",
+      "title": "加强和改进人民政协工作 全面发展协商民主",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0512",
+      "title": "习近平同塞拉利昂总统比奥会谈",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0513",
+      "title": "十四届全国人大常委会第八次会议在京闭幕表决通过新修订的保守国家秘密法习近平签署主席令予以公布赵乐际主持会议",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0515",
+      "title": "习近平复信美国马斯卡廷中学访华代表团学生",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0516",
+      "title": "习近平主持召开中央财经委员会第四次会议强调 推动新一轮大规模设备更新和消费品以旧换新 有效降低全社会物流成本李强蔡奇丁薛祥出席",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0517",
+      "title": "《习近平谈治国理政》第四卷5种民族文字版出版发行",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0518",
+      "title": "习近平同刚果（布）总统萨苏就中刚建交60周年互致贺电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0519",
+      "title": "习近平主持召开中央全面深化改革委员会第四次会议强调 增强土地要素对优势地区高质量发展保障能力 进一步提升基层应急管理能力李强王沪宁蔡奇出席",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0520",
+      "title": "习近平向第37届非洲联盟峰会致贺电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0521",
+      "title": "习近平致电祝贺斯图布当选芬兰总统",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0522",
+      "title": "坚持和完善人民代表大会制度 保障人民当家作主",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0523",
+      "title": "《求是》杂志发表习近平总书记重要文章 坚持和完善人民代表大会制度  保障人民当家作主",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0524",
+      "title": "习近平和夫人彭丽媛向美国林肯中学师生回赠新春贺卡",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0525",
+      "title": "中共中央国务院举行春节团拜会习近平发表讲话代表党中央和国务院，向全国各族人民，向香港特别行政区同胞、澳门特别行政区同胞、台湾同胞和海外侨胞拜年李强主持  赵乐际王沪宁蔡奇丁薛祥李希韩正出席",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0526",
+      "title": "习近平同俄罗斯总统普京通电话",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0527",
+      "title": "在二〇二四年春节团拜会上的讲话（二〇二四年二月八日，上午）",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0531",
+      "title": "中央领导同志看望老同志向老同志们致以诚挚的节日问候，衷心祝愿他们新春愉快、健康长寿    老同志们对此表示感谢，高度评价以习近平同志为核心的党中央在全面贯彻党的二十大精神开局之年团结带领全党全军全国各族人民，顽强拼搏、勇毅前行，在全面建设社会主义现代化国家新征程上迈出了坚实步伐，对习近平总书记作为党中央的核心、全党的核心表示衷心拥护。老同志们希望全党全军全国各族人民更加紧密地团结在以习近平同志为核心的党中央周围，深刻领悟“两个确立”的决定性意义，增强“四个意识”、坚定“四个自信”、做到“两个维护”，坚持用习近平新时代中国特色社会主义思想凝心铸魂，坚定信心、开拓奋进，为以中国式现代化全面推进强国建设、民族复兴伟业而不懈奋斗",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0532",
+      "title": "习近平致信祝贺中国南极秦岭站建成并投入使用强调 更好地认识极地保护极地利用极地 为造福人类推动构建人类命运共同体作出新的更大的贡献",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0533",
+      "title": "习近平致电祝贺布克尔当选连任萨尔瓦多总统",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0534",
+      "title": "习近平向纳米比亚新任总统姆本巴致贺电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0535",
+      "title": "习近平就智利前总统皮涅拉逝世向智利总统博里奇致唁电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0536",
+      "title": "习近平就纳米比亚总统根哥布逝世向纳米比亚新任总统姆本巴致唁电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0537",
+      "title": "学习贯彻习近平新时代中国特色社会主义思想主题教育总结会议在京召开会议传达习近平关于巩固拓展主题教育成果的重要讲话  对学习贯彻讲话精神作出部署蔡奇出席总结会议并讲话",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0538",
+      "title": "习近平春节前夕视察慰问驻天津部队 向全体人民解放军指战员武警部队官兵军队文职人员民兵预备役人员致以新春祝福",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0539",
+      "title": "习近平春节前夕赴天津看望慰问基层干部群众",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0540",
+      "title": "习近平春节前夕赴天津看望慰问基层干部群众 向全国各族人民致以美好的新春祝福祝各族人民幸福安康  祝伟大祖国繁荣昌盛蔡奇陪同考察",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0541",
+      "title": "习近平与越共中央总书记阮富仲互致新春贺信",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0542",
+      "title": "习近平在中共中央政治局第十一次集体学习时强调 加快发展新质生产力  扎实推进高质量发展",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0551",
+      "title": "习近平向中法建交60周年招待会发表视频致辞",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0552",
+      "title": "习近平同乌兹别克斯坦总统米尔济约耶夫会谈",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0571",
+      "title": "习近平同芬兰总统尼尼斯托举行视频会晤",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0544",
+      "title": "《求是》杂志发表习近平总书记重要文章 铸牢中华民族共同体意识 推进新时代党的民族工作高质量发展",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0545",
+      "title": "习近平向马来西亚新任最高元首易卜拉欣致贺电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0546",
+      "title": "铸牢中华民族共同体意识 推进新时代党的民族工作高质量发展",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0547",
+      "title": "中央军委举行慰问驻京部队老干部迎新春文艺演出习近平向全军老同志祝贺新春",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0548",
+      "title": "习近平接受外国新任驻华大使递交国书",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0549",
+      "title": "习近平致电祝贺阿扎利当选连任科摩罗总统",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0550",
+      "title": "习近平同法国总统马克龙就中法建交60周年互致贺电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0567",
+      "title": "习近平致电祝贺哈西娜当选连任孟加拉国总理李强向哈西娜总理致贺电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0554",
+      "title": "习近平会见安提瓜和巴布达总理布朗",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0555",
+      "title": "习近平复信北京交通大学肯尼亚留学生及校友代表",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0556",
+      "title": "中央军委主席习近平签署命令 发布新修订的《军事立法工作条例》",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0557",
+      "title": "习近平对云南昭通市镇雄县山体滑坡作出重要指示 要求全力搜救失联人员  防范发生次生灾害 切实保障人民群众生命财产安全李强作出批示",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0558",
+      "title": "习近平在“国家工程师奖”首次评选表彰之际作出重要指示强调 坚定科技报国为民造福理想 加快实现高水平科技自立自强服务高质量发展蔡奇出席“国家工程师奖”表彰大会并讲话  丁薛祥出席",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0559",
+      "title": "习近平致电祝贺齐塞克迪当选连任刚果（金）总统",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0560",
+      "title": "习近平在省部级主要领导干部推动金融高质量发展专题研讨班开班式上发表重要讲话强调 坚定不移走中国特色金融发展之路 推动我国金融高质量发展赵乐际王沪宁丁薛祥李希韩正出席  蔡奇主持",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0561",
+      "title": "《求是》杂志发表习近平总书记重要文章 完整、准确、全面贯彻落实关于做好新时代党的统一战线工作的重要思想",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0562",
+      "title": "习近平致电祝贺丹麦国王腓特烈十世即位",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0563",
+      "title": "完整、准确、全面贯彻落实关于做好新时代党的统一战线工作的重要思想",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0564",
+      "title": "习近平对政法工作作出重要指示强调 坚持党的绝对领导忠诚履职担当作为 为全面推进强国建设民族复兴伟业提供坚强安全保障",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0565",
+      "title": "习近平会见比利时首相德克罗",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0566",
+      "title": "习近平就中莱复交30周年同莱索托国王莱齐耶三世互致贺电李强同莱索托首相马特凯恩互致贺电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0568",
+      "title": "习近平同突尼斯总统赛义德就中突建交60周年互致贺电李强同突尼斯总理哈沙尼互致贺电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0569",
+      "title": "习近平复信美国艾奥瓦州友人萨拉·兰蒂",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0570",
+      "title": "习近平同马尔代夫总统穆伊兹会谈",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0573",
+      "title": "中共中央政治局常务委员会召开会议 听取全国人大常委会、国务院、全国政协、最高人民法院、最高人民检察院党组工作汇报  听取中央书记处工作报告中共中央总书记习近平主持会议",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0574",
+      "title": "习近平就伊朗发生严重恐怖袭击事件向伊朗总统莱希致慰问电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0575",
+      "title": "中朝两党两国最高领导人互致新年贺电宣布启动“中朝友好年”",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0576",
+      "title": "中美两国领导人互致贺信庆祝两国建交45周年",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0577",
+      "title": "国家主席习近平发表二〇二四年新年贺词",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0578",
+      "title": "中俄两国元首互致新年贺电中俄两国总理互致新年贺电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0579",
+      "title": "《求是》杂志发表习近平总书记重要文章 以美丽中国建设全面推进人与自然和谐共生的现代化",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2025-0889",
+      "title": "习近平会见柬埔寨国王西哈莫尼",
+      "issues": "????"
+    },
+    {
+      "id": "P2024-0161",
+      "title": "吴邦国同志遗体在京火化习近平赵乐际王沪宁蔡奇丁薛祥李希韩正等到八宝山革命公墓送别。胡锦涛送花圈表示哀悼吴邦国同志病重期间和逝世后，习近平李强赵乐际王沪宁蔡奇丁薛祥李希韩正胡锦涛等同志，前往医院看望或通过各种形式对吴邦国同志逝世表示沉痛哀悼并向其亲属表示深切慰问",
+      "issues": "????"
+    },
+    {
+      "id": "P2024-0459",
+      "title": "习近平同苏里南总统单多吉会谈",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0469",
+      "title": "习近平在参加首都义务植树活动时强调 全民植树增绿  共建美丽中国李强赵乐际王沪宁蔡奇丁薛祥李希韩正参加",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0483",
+      "title": "习近平同多米尼克总统伯顿就中多建交20周年互致贺电李强同多米尼克总理斯凯里特互致贺电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0460",
+      "title": "习近平会见马英九一行王沪宁蔡奇等参加会见",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0490",
+      "title": "《求是》杂志发表习近平总书记重要文章 时刻保持解决大党独有难题的清醒和坚定，把党的伟大自我革命进行到底",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0510",
+      "title": "《求是》杂志发表习近平总书记重要文章 加强和改进人民政协工作  全面发展协商民主",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0514",
+      "title": "中央政治局委员 书记处书记  全国人大常委会 国务院 全国政协党组成员  最高人民法院 最高人民检察院党组书记向党中央和习近平总书记述职习近平认真审阅述职报告并提出重要要求，强调要紧紧围绕推进中国式现代化，立足自身职责，强化政治担当，为推进强国建设、民族复兴伟业而团结奋斗",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0529",
+      "title": "习近平同葡萄牙总统德索萨就中葡建交45周年互致贺电",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0530",
+      "title": "习近平同党外人士共迎新春代表中共中央，向各民主党派、工商联和无党派人士，向统一战线广大成员，致以诚挚问候和新春祝福王沪宁蔡奇丁薛祥出席",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0543",
+      "title": "中共中央政治局召开会议审议《中央政治局常委会听取和研究全国人大常委会、国务院、全国政协、最高人民法院、最高人民检察院党组工作汇报和中央书记处工作报告的综合情况报告》《关于在全党深入开展学习贯彻习近平新时代中国特色社会主义思想主题教育总结报告》《关于巩固拓展学习贯彻习近平新时代中国特色社会主义思想主题教育成果的意见》《中国共产党巡视工作条例》中共中央总书记习近平主持会议",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0553",
+      "title": "习近平对江西新余市渝水区一临街店铺火灾事故作出重要指示 要求坚决遏制各类安全事故多发连发势头 确保人民群众生命财产安全和社会大局稳定李强作出批示",
+      "issues": "?????????"
+    },
+    {
+      "id": "P2024-0572",
+      "title": "习近平在二十届中央纪委三次全会上发表重要讲话强调 深入推进党的自我革命 坚决打赢反腐败斗争攻坚战持久战李强赵乐际王沪宁蔡奇丁薛祥出席会议  李希主持会议",
+      "issues": "?????????"
+    },
+    {
+      "id": "2026-12",
+      "title": "在参加江苏代表团审议时的重要讲话",
+      "issues": "????"
+    }
+  ],
+  "jiangsu_checks": []
 }

@@ -101,13 +101,9 @@ def normalize_url(url: str) -> str:
         "http://www.news.cn/politics/20240321/c280965c8ddd41ff9659dbeb0d9e51b6/c.html": "https://www.news.cn/politics/20240321/c280965c8ddd41ff9659dbeb0d9e51b6/c.html",
         "http://www.news.cn/20240908/53d07ce1b0ba47e8a45bb75022109cc9/c.html": "https://www.news.cn/20240908/53d07ce1b0ba47e8a45bb75022109cc9/c.html",
         "http://www.cppcc.gov.cn/zxww/2025/12/31/ARTI1767168160430186.shtml": "https://www.cppcc.gov.cn/zxww/2025/12/31/ARTI1767168160430186.shtml",
-        "https://js.people.com.cn/n2/2026/0306/c358232-41516244.html": "http://jhsjk.people.cn/article/40675966",
-        "http://js.people.com.cn/n2/2026/0306/c358232-41516244.html": "http://jhsjk.people.cn/article/40675966",
-        "https://cpc.people.com.cn/n1/2026/0306/c435113-40676004.html": "http://jhsjk.people.cn/article/40675966",
-        "http://cpc.people.com.cn/n1/2026/0306/c435113-40676004.html": "http://jhsjk.people.cn/article/40675966",
-        "https://lianghui.people.com.cn/2026/n1/2026/0306/c461827-40675801.html": "http://jhsjk.people.cn/article/40675966",
-        "http://lianghui.people.com.cn/2026/n1/2026/0306/c461827-40675801.html": "http://jhsjk.people.cn/article/40675966",
-        "http://paper.people.com.cn/rmrb/pc/content/20260306/content_30143971.html": "http://jhsjk.people.cn/article/40675966",
+        "https://js.people.com.cn/n2/2026/0306/c358232-41516244.html": "https://cpc.people.com.cn/n1/2026/0306/c435113-40676004.html",
+        "http://js.people.com.cn/n2/2026/0306/c358232-41516244.html": "https://cpc.people.com.cn/n1/2026/0306/c435113-40676004.html",
+        "http://paper.people.com.cn/rmrb/pc/content/20260306/content_30143971.html": "https://cpc.people.com.cn/n1/2026/0306/c435113-40676004.html",
     }
 
     normalized = replacement_map.get(normalized, normalized)

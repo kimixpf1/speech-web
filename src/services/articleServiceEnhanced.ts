@@ -1,6 +1,13 @@
 import { supabase } from '@/lib/supabase';
 import { speechesData, type Speech } from '@/data/speeches';
 import { zhengjiguanArticles } from '@/data/zhengjiguanArticles';
+import {
+  clearArticleDetailCache,
+  getArticleDetail,
+  saveArticleDetail,
+  type ArticleDetailContent,
+} from '@/services/articleDetailService';
+import { normalizeArticleUrl, normalizeSummaryText } from '@/lib/utils';
 
 // 表名
 const ARTICLES_TABLE = 'articles';
@@ -48,29 +55,32 @@ function toDbFormat(article: Speech): Record<string, unknown> {
     source: article.source,
     location: article.location || '',
     summary: article.summary,
-    url: article.url || '',
+    url: normalizeArticleUrl(article.url || ''),
   };
 }
 
 // 将数据库格式转换为 Speech 对象
 function fromDbFormat(dbArticle: Record<string, unknown>): Speech {
+  const category = (dbArticle.category || 'speech') as 'speech' | 'article' | 'meeting' | 'inspection';
+  const domain = (dbArticle.domain || 'economy') as 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy';
+
   return {
     id: dbArticle.id as string,
-    title: dbArticle.title as string,
-    date: dbArticle.date as string,
+    title: (dbArticle.title || '') as string,
+    date: (dbArticle.date || '') as string,
     year: dbArticle.year as number,
     month: dbArticle.month as number,
     day: dbArticle.day as number,
-    category: dbArticle.category as 'speech' | 'article' | 'meeting' | 'inspection',
+    category,
     categoryName: (dbArticle.categoryname || dbArticle.categoryName || '重要讲话') as string,
-    domain: (dbArticle.domain || 'economy') as 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy',
+    domain,
     domainName: (dbArticle.domain_name || dbArticle.domainName || '经济') as string,
     isZhengjiguan: (dbArticle.is_zhengjiguan || false) as boolean,
     zhengjiguanLevel: dbArticle.zhengjiguan_level as 'central' | 'jiangsu' | 'suzhou' | undefined,
-    source: dbArticle.source as string,
+    source: (dbArticle.source || '') as string,
     location: (dbArticle.location || '') as string,
-    summary: dbArticle.summary as string,
-    url: (dbArticle.url || '') as string,
+    summary: normalizeSummaryText((dbArticle.summary || '') as string),
+    url: normalizeArticleUrl((dbArticle.url || '') as string),
   };
 }
 
@@ -80,6 +90,8 @@ export function ensureDomainField(article: Speech): Speech {
     ...article,
     domain: article.domain || 'economy',
     domainName: article.domainName || '经济',
+    summary: normalizeSummaryText(article.summary || ''),
+    url: normalizeArticleUrl(article.url || ''),
     isZhengjiguan: article.isZhengjiguan || false,
   };
 }
@@ -87,7 +99,16 @@ export function ensureDomainField(article: Speech): Speech {
 // 保存到本地缓存
 function saveLocalCache(articles: Speech[]): void {
   try {
-    localStorage.setItem(ARTICLES_CACHE_KEY, JSON.stringify(articles));
+    localStorage.setItem(
+      ARTICLES_CACHE_KEY,
+      JSON.stringify(
+        articles.map(article => ({
+          ...article,
+          summary: normalizeSummaryText(article.summary || ''),
+          url: normalizeArticleUrl(article.url || ''),
+        }))
+      )
+    );
     localStorage.setItem('last_sync_time', new Date().toISOString());
   } catch (e) {
     console.error('Failed to save local cache:', e);
@@ -98,7 +119,13 @@ function saveLocalCache(articles: Speech[]): void {
 function getLocalCache(): Speech[] {
   try {
     const cached = localStorage.getItem(ARTICLES_CACHE_KEY);
-    return cached ? JSON.parse(cached) : [];
+    return cached
+      ? (JSON.parse(cached) as Speech[]).map(article => ({
+          ...article,
+          summary: normalizeSummaryText(article.summary || ''),
+          url: normalizeArticleUrl(article.url || ''),
+        }))
+      : [];
   } catch {
     return [];
   }
@@ -371,41 +398,81 @@ export async function updateArticle(article: Speech): Promise<{ success: boolean
 export async function deleteArticle(id: string): Promise<boolean> {
   try {
     console.log('删除文章，同步云端:', id);
-    
-    if (navigator.onLine) {
-      // 1. 先删除 article_details 表记录（防止孤儿记录）
-      const { error: detailError } = await supabase
-        .from('article_details')
-        .delete()
-        .eq('id', id);
-      
-      if (detailError) {
-        console.error('删除文章详情失败:', detailError);
-        // 继续尝试删除主表，不因为详情删除失败而中断
-      } else {
-        console.log('文章详情删除成功:', id);
-      }
-      
-      // 2. 再删除 articles 表记录
-      const { error } = await supabase
-        .from(ARTICLES_TABLE)
-        .delete()
-        .eq('id', id);
 
-      if (error) {
-        console.error('云端删除失败:', error);
+    const cached = getLocalCache();
+    const targetArticle = cached.find(a => a.id === id) || null;
+    const detailBackup = await getArticleDetail(id, true);
+
+    if (navigator.onLine) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        console.error('用户未登录，无法删除文章');
         return false;
       }
 
-      console.log('云端删除成功:', id);
+      const { data: deletedArticles, error: articleDeleteError } = await supabase
+        .from(ARTICLES_TABLE)
+        .delete()
+        .eq('id', id)
+        .select('id');
+
+      if (articleDeleteError || !deletedArticles?.length) {
+        console.error('云端删除文章失败:', articleDeleteError || new Error('未删除任何文章记录'));
+        return false;
+      }
+
+      console.log('文章主记录删除成功:', id);
+
+      const { data: deletedDetails, error: detailDeleteError } = await supabase
+        .from('article_details')
+        .delete()
+        .eq('id', id)
+        .select('id');
+
+      const hadDetailBackup = Boolean(detailBackup);
+      let detailDeleteSucceeded = !detailDeleteError;
+
+      if (detailDeleteSucceeded && hadDetailBackup && !deletedDetails?.length) {
+        const { data: remainingDetails, error: remainingDetailError } = await supabase
+          .from('article_details')
+          .select('id')
+          .eq('id', id)
+          .limit(1);
+
+        detailDeleteSucceeded = !remainingDetailError && !remainingDetails?.length;
+
+        if (remainingDetailError) {
+          console.error('校验文章详情删除状态失败:', remainingDetailError);
+        }
+      }
+
+      if (!detailDeleteSucceeded) {
+        console.error('删除文章详情失败，准备回滚主记录:', detailDeleteError || new Error('未删除任何详情记录'));
+
+        if (targetArticle) {
+          const rollbackResult = await addArticle(targetArticle);
+          if (!rollbackResult.success) {
+            console.error('回滚文章主记录失败:', rollbackResult.error);
+          }
+        }
+
+        if (detailBackup) {
+          await saveArticleDetail(detailBackup as ArticleDetailContent);
+        }
+
+        return false;
+      }
+
+      console.log('文章详情删除成功:', id);
 
       const allArticles = await fetchFromCloud();
       saveLocalCache(allArticles);
+      clearArticleDetailCache(id);
       console.log('当前云端文章总数:', allArticles.length);
     } else {
-      const cached = getLocalCache();
       const filtered = cached.filter(a => a.id !== id);
       saveLocalCache(filtered);
+      clearArticleDetailCache(id);
     }
 
     return true;
