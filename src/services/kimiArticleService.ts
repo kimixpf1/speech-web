@@ -1,6 +1,9 @@
 // Kimi API 服务 - 用于精准提取文章内容
 
 const KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions';
+const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+
+type ApiProvider = 'kimi' | 'deepseek';
 
 // 本地存储键
 const KIMI_API_KEY_STORAGE = 'kimi_api_key';
@@ -40,6 +43,38 @@ export function getKimiApiKey(): string | null {
  */
 export function clearKimiApiKey(): void {
   localStorage.removeItem(KIMI_API_KEY_STORAGE);
+}
+
+function getDeepSeekApiKeyLocal(): string | null {
+  return localStorage.getItem('deepseek_api_key');
+}
+
+function getAvailableProviderAndKey(): { provider: ApiProvider; key: string } | null {
+  const deepseekKey = getDeepSeekApiKeyLocal();
+  const kimiKey = getKimiApiKey();
+  const preferred = localStorage.getItem('preferred_api') as ApiProvider || 'kimi';
+  
+  if (preferred === 'deepseek' && deepseekKey) {
+    return { provider: 'deepseek', key: deepseekKey };
+  }
+  if (preferred === 'kimi' && kimiKey) {
+    return { provider: 'kimi', key: kimiKey };
+  }
+  if (kimiKey) {
+    return { provider: 'kimi', key: kimiKey };
+  }
+  if (deepseekKey) {
+    return { provider: 'deepseek', key: deepseekKey };
+  }
+  return null;
+}
+
+function getApiUrl(provider: ApiProvider): string {
+  return provider === 'deepseek' ? DEEPSEEK_API_URL : KIMI_API_URL;
+}
+
+function getModel(provider: ApiProvider): string {
+  return provider === 'deepseek' ? 'deepseek-chat' : 'moonshot-v1-8k';
 }
 
 /**
@@ -216,11 +251,23 @@ function cleanHtmlContent(html: string): string {
 }
 
 /**
- * 使用Kimi API从网页内容提取文章
+ * 使用 AI API 从网页内容提取文章（自动选择可用 API）
  */
 export async function extractArticleWithKimi(url: string, apiKey?: string): Promise<ExtractedArticle> {
-  const key = apiKey || getKimiApiKey();
+  let provider: ApiProvider = 'kimi';
+  let key: string;
   
+  if (apiKey) {
+    key = apiKey;
+    provider = 'kimi';
+  } else {
+    const available = getAvailableProviderAndKey();
+    if (!available) {
+      throw new Error('请先配置 Kimi 或 DeepSeek API Key');
+    }
+    provider = available.provider;
+    key = available.key;
+  }
   if (!key) {
     throw new Error('请先配置Kimi API Key');
   }
@@ -326,16 +373,16 @@ ${truncatedContent}
 
 
   try {
-    console.log('Calling Kimi API...');
+    console.log(`Calling ${provider === 'deepseek' ? 'DeepSeek' : 'Kimi'} API...`);
     
-    const response = await fetch(KIMI_API_URL, {
+    const response = await fetch(getApiUrl(provider), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${key}`,
       },
       body: JSON.stringify({
-        model: 'moonshot-v1-8k',
+        model: getModel(provider),
         messages: [
           {
             role: 'system',
@@ -397,10 +444,23 @@ ${truncatedContent}
  * 使用Kimi API从用户粘贴的内容提取文章（备用方案）
  */
 export async function extractArticleFromText(content: string, url: string, apiKey?: string): Promise<ExtractedArticle> {
-  const key = apiKey || getKimiApiKey();
-  
+  let key: string;
+  let provider: ApiProvider;
+
+  if (apiKey) {
+    key = apiKey;
+    provider = 'kimi';
+  } else {
+    const available = getAvailableProviderAndKey();
+    if (!available) {
+      throw new Error('请先配置 Kimi 或 DeepSeek API Key');
+    }
+    provider = available.provider;
+    key = available.key;
+  }
+
   if (!key) {
-    throw new Error('请先配置Kimi API Key');
+    throw new Error('请先配置 API Key');
   }
 
   if (!content || content.length < 50) {
@@ -487,14 +547,14 @@ ${truncatedContent}
 - 考察内容涉及"文化遗产/文物保护/文化教育" → culture（文化）`;
 
   try {
-    const response = await fetch(KIMI_API_URL, {
+    const response = await fetch(getApiUrl(provider), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${key}`,
       },
       body: JSON.stringify({
-        model: 'moonshot-v1-8k',
+        model: getModel(provider),
         messages: [
           {
             role: 'system',
