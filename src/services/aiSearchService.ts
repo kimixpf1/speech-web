@@ -1062,7 +1062,10 @@ export async function searchArticles(
   
   // 判断是否使用了百度搜索
   const usedBaidu = searchDetails['baidu_search'] && (searchDetails['baidu_search'] as any).status === 'success';
-  const finalApiUsed: 'kimi' | 'deepseek' | 'kimi+baidu' = usedBaidu && apiUsed === 'kimi' ? 'kimi+baidu' : apiUsed;
+  let finalApiUsed: string = apiUsed === 'kimi' ? '手动搜索（Kimi联网）' : '手动搜索（DeepSeek）';
+  if (usedBaidu && apiUsed === 'kimi') {
+    finalApiUsed = '手动搜索（Kimi+百度）';
+  }
   
   // 生成带北京时间时区的 ISO 字符串（与 Python 自动搜索格式一致）
   const getBeijingTimeISO = () => {
