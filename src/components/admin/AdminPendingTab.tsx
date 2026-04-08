@@ -351,7 +351,9 @@ export function AdminPendingTab({
                           </span>
                         )}
                         {log.details?.api_used && (
-                          <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">
+                          <span className={`text-xs px-2 py-0.5 rounded ${
+                            log.details.api_used.includes('自动定时') ? 'bg-orange-50 text-orange-700' : 'bg-cyan-50 text-cyan-700'
+                          }`}>
                             {log.details.api_used}
                           </span>
                         )}
@@ -375,6 +377,21 @@ export function AdminPendingTab({
                         <span className="text-[11px] text-gray-400 hidden group-open:inline">收起</span>
                       </summary>
                       <div className="mt-2 space-y-2">
+                      {log.details?.pipeline && (
+                        <div>
+                          <div className="text-xs text-gray-500 mb-1">搜索管道：</div>
+                          <div className="flex flex-wrap items-center gap-1">
+                            {Object.values(log.details.pipeline).map((step: any, i: number, arr: any[]) => (
+                              <span key={i} className="flex items-center gap-1">
+                                <span className="text-xs px-2 py-0.5 rounded bg-indigo-50 text-indigo-700">
+                                  {step}
+                                </span>
+                                {i < arr.length - 1 && <span className="text-gray-300 text-xs">→</span>}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {log.details?.source_breakdown && (
                         <div>
                           <div className="text-xs text-gray-500 mb-1">来源命中：</div>

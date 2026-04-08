@@ -82,7 +82,7 @@ def get_search_query():
         search_date = 'today'
     
     # 多维度搜索关键词，确保不漏
-    query = f'习近平总书记{date_keyword}最新讲话 文章 调研 会议 会见 {target_date} 人民网 新华社'
+    query = f'习近平总书记{date_keyword}最新讲话 文章 调研 会议 会见 指示 精神 服务 产业 {target_date} 人民网 新华社'
     print(f'[Time] Beijing {beijing_hour}:00, searching {date_keyword} ({target_date})')
     return query, search_date, target_date
 
@@ -202,10 +202,11 @@ def search_with_kimi(query: str) -> List[Dict]:
 - 如果搜索结果没有提供完整URL，就不要返回这条新闻
 - 宁可少返回，也不能返回假URL
 
-请联网搜索习近平总书记最近的重要讲话、文章、会议、考察调研新闻。
+请联网搜索习近平总书记最近的重要讲话、重要文章、重要会议、考察调研、指示批示、回信贺信等全部最新活动新闻。
+特别注意：除了重要讲话和会议，还要关注产业发展、服务业、科技创新、民生保障等各领域的新动向。
 返回JSON数组，每条包含：
 {{"title": "标题", "date": "YYYY-MM-DD", "category": "speech", "categoryName": "重要讲话", "source": "来源", "url": "真实可访问的链接", "summary": "摘要"}}
-要求：只返回最近3天内的新闻，最多10条，只返回JSON数组。如果没找到最新新闻或无法确认URL真实性，返回空数组[]。"""
+要求：只返回最近3天内的新闻，最多15条，只返回JSON数组。如果没找到最新新闻或无法确认URL真实性，返回空数组[]。"""
 
     print(f'[Kimi] Searching: {query}')
     try:
@@ -256,7 +257,7 @@ def search_with_baidu(query: str) -> List[Dict]:
         return []
     
     for site in BAIDU_SITES:
-        search_query = f'site:{site} 习近平 最新'
+        search_query = f'site:{site} {query}'
         url = f'https://www.baidu.com/s?wd={quote(search_query)}&rn=10'
         
         try:
@@ -495,7 +496,15 @@ def get_search_type():
     return 'manual'
 
 
-def save_log(kimi_count, baidu_count, new_count, status, details):
+def get_search_pipeline_label(search_type):
+    beijing_hour = (datetime.utcnow() + timedelta(hours=8)).hour
+    if search_type == 'auto':
+        time_slot = '8:00 搜昨日' if beijing_hour < 12 else '20:00 搜今日'
+        return f'自动定时搜索（{time_slot}）'
+    return '手动触发搜索'
+
+
+def save_log(kimi_count, baidu_count, people_count, new_count, status, details):
     if not SUPABASE_URL:
         print('[Log] SUPABASE_URL not configured')
         return
@@ -503,13 +512,27 @@ def save_log(kimi_count, baidu_count, new_count, status, details):
         from datetime import timezone
         beijing_tz = timezone(timedelta(hours=8))
         beijing_now = datetime.now(beijing_tz)
+        search_type = get_search_type()
+        pipeline_label = get_search_pipeline_label(search_type)
         log_data = {
             'executed_at': beijing_now.isoformat(),
-            'crawl_count': kimi_count + baidu_count,
-            'search_count': kimi_count + baidu_count,
+            'crawl_count': kimi_count + baidu_count + people_count,
+            'search_count': kimi_count + baidu_count + people_count,
             'new_count': new_count,
             'status': status,
-            'details': {**details, 'search_type': get_search_type(), 'api_used': 'kimi+baidu+people'},
+            'details': {
+                **details,
+                'search_type': search_type,
+                'api_used': pipeline_label,
+                'pipeline': {
+                    'step1': '直抓人民网讲话数据库',
+                    'step2': '百度搜索(人民日报+新华社+求是网)',
+                    'step3': 'Kimi联网补漏',
+                    'step4': '统一去重(标题+URL)',
+                    'step5': '与已有文章库比对',
+                    'step6': '最终新增入待审核',
+                },
+            },
             'duration_seconds': 0,
         }
         print(f'[Log] Saving to {LOG_TABLE}: {json.dumps(log_data, ensure_ascii=False)}')
@@ -597,7 +620,7 @@ def main():
         'save_result': save_result,
     }
 
-    save_log(len(kimi_articles), len(baidu_articles), saved, status, log_details)
+    save_log(len(kimi_articles), len(baidu_articles), len(people_articles), saved, status, log_details)
 
     print(f'=== Done: People {len(people_articles)}, Kimi {len(kimi_articles)}, Baidu {len(baidu_articles)}, '
           f'Merged {len(merged)}, ExistingFiltered {len(existing_url_filtered)}, New {saved} ===')
