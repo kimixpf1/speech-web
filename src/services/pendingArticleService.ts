@@ -1,5 +1,16 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { normalizeSummaryText } from '@/lib/utils';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ejeiuqcmkznfbglvbkbe.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqZWl1cWNta3puZmJnbHZia2JlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1ODU4NzIsImV4cCI6MjA4NzE2MTg3Mn0.NfmTSA9DhuP51XKF0qfTuPINtSc7i26u5yIbl69cdAg';
+
+const publicSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false
+  }
+});
 
 export interface PendingArticle {
   id: string;
@@ -33,7 +44,7 @@ export interface SearchLog {
 }
 
 export async function getPendingArticles(): Promise<PendingArticle[]> {
-  const { data, error } = await supabase
+  const { data, error } = await publicSupabase
     .from('pending_articles')
     .select('*')
     .eq('status', 'pending')
@@ -53,7 +64,7 @@ export async function getPendingArticles(): Promise<PendingArticle[]> {
 }
 
 export async function approveArticle(id: string): Promise<boolean> {
-  const { error } = await supabase
+  const { error } = await publicSupabase
     .from('pending_articles')
     .update({ status: 'approved' })
     .eq('id', id);
@@ -61,7 +72,7 @@ export async function approveArticle(id: string): Promise<boolean> {
 }
 
 export async function rejectArticle(id: string): Promise<boolean> {
-  const { error } = await supabase
+  const { error } = await publicSupabase
     .from('pending_articles')
     .update({ status: 'rejected' })
     .eq('id', id);
@@ -69,7 +80,7 @@ export async function rejectArticle(id: string): Promise<boolean> {
 }
 
 export async function deletePendingArticle(id: string): Promise<boolean> {
-  const { error } = await supabase
+  const { error } = await publicSupabase
     .from('pending_articles')
     .delete()
     .eq('id', id);
@@ -81,7 +92,7 @@ export async function deletePendingArticle(id: string): Promise<boolean> {
 }
 
 export async function getSearchLogs(limit = 5): Promise<SearchLog[]> {
-  const { data, error } = await supabase
+  const { data, error } = await publicSupabase
     .from('search_logs')
     .select('*')
     .order('executed_at', { ascending: false })

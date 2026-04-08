@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ejeiuqcmkznfbglvbkbe.supabase.co';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqZWl1cWNta3puZmJnbHZia2JlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1ODU4NzIsImV4cCI6MjA4NzE2MTg3Mn0.NfmTSA9DhuP51XKF0qfTuPINtSc7i26u5yIbl69cdAg';
@@ -24,7 +23,7 @@ export interface Suggestion {
 }
 
 export async function getSuggestions(): Promise<Suggestion[]> {
-  const { data, error } = await supabase
+  const { data, error } = await publicSupabase
     .from('suggestions')
     .select('*')
     .order('timestamp', { ascending: false });
@@ -66,7 +65,7 @@ export async function submitSuggestion(name: string, content: string): Promise<{
  * 获取未读建议数量
  */
 export async function getUnreadCount(): Promise<number> {
-  const { count, error } = await supabase
+  const { count, error } = await publicSupabase
     .from('suggestions')
     .select('*', { count: 'exact', head: true })
     .eq('status', 'unread');
@@ -83,7 +82,7 @@ export async function getUnreadCount(): Promise<number> {
  * 标记建议为已读
  */
 export async function markAsRead(id: string): Promise<boolean> {
-  const { error } = await supabase
+  const { error } = await publicSupabase
     .from('suggestions')
     .update({ status: 'read' })
     .eq('id', id);
@@ -100,7 +99,7 @@ export async function markAsRead(id: string): Promise<boolean> {
  * 批量标记建议为已读
  */
 export async function markMultipleAsRead(ids: string[]): Promise<boolean> {
-  const { error } = await supabase
+  const { error } = await publicSupabase
     .from('suggestions')
     .update({ status: 'read' })
     .in('id', ids);
@@ -117,7 +116,7 @@ export async function markMultipleAsRead(ids: string[]): Promise<boolean> {
  * 删除建议
  */
 export async function deleteSuggestion(id: string): Promise<boolean> {
-  const { error } = await supabase
+  const { error } = await publicSupabase
     .from('suggestions')
     .delete()
     .eq('id', id);
@@ -134,7 +133,7 @@ export async function deleteSuggestion(id: string): Promise<boolean> {
  * 批量删除建议
  */
 export async function deleteMultipleSuggestions(ids: string[]): Promise<boolean> {
-  const { error } = await supabase
+  const { error } = await publicSupabase
     .from('suggestions')
     .delete()
     .in('id', ids);
@@ -151,7 +150,7 @@ export async function deleteMultipleSuggestions(ids: string[]): Promise<boolean>
  * 清空所有建议
  */
 export async function clearAllSuggestions(): Promise<boolean> {
-  const { error } = await supabase
+  const { error } = await publicSupabase
     .from('suggestions')
     .delete()
     .neq('id', '00000000-0000-0000-0000-000000000000'); // 删除所有记录的技巧
@@ -172,7 +171,7 @@ export function setupSuggestionListener(
   callback: (suggestions: Suggestion[]) => void
 ): () => void {
   // 创建实时订阅
-  const channel = supabase
+  const channel = publicSupabase
     .channel('suggestions-changes')
     .on(
       'postgres_changes',
@@ -182,15 +181,13 @@ export function setupSuggestionListener(
         table: 'suggestions'
       },
       async () => {
-        // 当有变化时，重新获取所有建议
         const suggestions = await getSuggestions();
         callback(suggestions);
       }
     )
     .subscribe();
   
-  // 返回清理函数
   return () => {
-    supabase.removeChannel(channel);
+    publicSupabase.removeChannel(channel);
   };
 }

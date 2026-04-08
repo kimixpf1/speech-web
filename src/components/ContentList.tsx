@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, ExternalLink, ChevronDown, ChevronUp, Mic, FileText, Users, MapPin as MapPinIcon, BookOpen } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -163,31 +163,32 @@ export function ContentList({ speeches }: ContentListProps) {
     );
   }
 
-  // Sort speeches by date descending (newest first)
-  const sortedSpeeches = [...speeches].sort((a, b) => {
-    return new Date(b.date).getTime() - new Date(a.date).getTime();
-  });
+  const { grouped, sortedKeys } = useMemo(() => {
+    const sortedSpeeches = [...speeches].sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
 
-  // Group by year and month
-  const grouped = sortedSpeeches.reduce((acc, speech) => {
-    const key = `${speech.year}年${speech.month}月`;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(speech);
-    return acc;
-  }, {} as Record<string, Speech[]>);
+    const grouped = sortedSpeeches.reduce((acc, speech) => {
+      const key = `${speech.year}年${speech.month}月`;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(speech);
+      return acc;
+    }, {} as Record<string, Speech[]>);
 
-  // Sort keys in descending order (newest first)
-  const sortedKeys = Object.keys(grouped).sort((a, b) => {
-    const matchA = a.match(/(\d+)年(\d+)月/);
-    const matchB = b.match(/(\d+)年(\d+)月/);
-    if (!matchA || !matchB) return 0;
-    const yearA = parseInt(matchA[1]);
-    const yearB = parseInt(matchB[1]);
-    const monthA = parseInt(matchA[2]);
-    const monthB = parseInt(matchB[2]);
-    if (yearA !== yearB) return yearB - yearA;
-    return monthB - monthA;
-  });
+    const sortedKeys = Object.keys(grouped).sort((a, b) => {
+      const matchA = a.match(/(\d+)年(\d+)月/);
+      const matchB = b.match(/(\d+)年(\d+)月/);
+      if (!matchA || !matchB) return 0;
+      const yearA = parseInt(matchA[1]);
+      const yearB = parseInt(matchB[1]);
+      const monthA = parseInt(matchA[2]);
+      const monthB = parseInt(matchB[2]);
+      if (yearA !== yearB) return yearB - yearA;
+      return monthB - monthA;
+    });
+
+    return { grouped, sortedKeys };
+  }, [speeches]);
 
   return (
     <div className="space-y-6">

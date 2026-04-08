@@ -115,17 +115,11 @@ function saveLocalCache(articles: Speech[]): void {
   }
 }
 
-// 从本地缓存读取
+// 从本地缓存读取（写入时已normalize，无需重复处理）
 function getLocalCache(): Speech[] {
   try {
     const cached = localStorage.getItem(ARTICLES_CACHE_KEY);
-    return cached
-      ? (JSON.parse(cached) as Speech[]).map(article => ({
-          ...article,
-          summary: normalizeSummaryText(article.summary || ''),
-          url: normalizeArticleUrl(article.url || ''),
-        }))
-      : [];
+    return cached ? (JSON.parse(cached) as Speech[]) : [];
   } catch {
     return [];
   }
