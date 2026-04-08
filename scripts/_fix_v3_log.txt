@@ -1,0 +1,28 @@
+Fix v3 final starting at 2026-04-07 21:24:41
+[21:24:42] Found 8 articles, 8 details for 8 IDs
+[21:24:42] 
+[1/8] P2025-0588 习近平听取岑浩辉述职报告  李强蔡奇丁薛祥参加会见
+[21:24:45]   FAIL: too short
+[21:24:46] 
+[2/8] P2025-0669 习近平致电祝贺卢森堡大公纪尧姆即位
+[21:25:37]   FAIL: 400 Client Error: Bad Request for url: https://api.deepseek.com/v1/chat/completions
+[21:25:37] 
+[3/8] P2025-0724 纪念中国人民抗日战争暨世界反法西斯战争胜利80周年招待会在京隆重举行  习近平发表重要讲话强调，正义的信念不可动摇，和平
+[21:26:28]   FAIL: 400 Client Error: Bad Request for url: https://api.deepseek.com/v1/chat/completions
+[21:26:28] 
+[4/8] P2025-0740 习近平的英雄观
+[21:27:20]   FAIL: 400 Client Error: Bad Request for url: https://api.deepseek.com/v1/chat/completions
+[21:27:20] 
+[5/8] P2025-0889 习近平会见柬埔寨国王西哈莫尼
+[21:28:10]   FAIL: 400 Client Error: Bad Request for url: https://api.deepseek.com/v1/chat/completions
+[21:28:11] 
+[6/8] P2025-0911 习近平在越南媒体发表署名文章  志同道合携手前行  继往开来续写新篇
+[21:29:01]   FAIL: 400 Client Error: Bad Request for url: https://api.deepseek.com/v1/chat/completions
+[21:29:02] 
+[7/8] P2024-0404 习近平向巴拿马当选总统穆利诺致贺电
+[21:29:52]   FAIL: 400 Client Error: Bad Request for url: https://api.deepseek.com/v1/chat/completions
+[21:29:52] 
+[8/8] P2024-0562 习近平致电祝贺丹麦国王腓特烈十世即位
+[21:30:43]   FAIL: 400 Client Error: Bad Request for url: https://api.deepseek.com/v1/chat/completions
+[21:30:43] ======================================================================
+[21:30:43] DONE: success=0, fail=8, total=8
