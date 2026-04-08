@@ -350,3 +350,17 @@
 - [x] 为 8 篇编码损坏文章手动编写摘要（_fix_v4_manual.py）：8/8 全部成功
 - [x] 最终验证：1000 篇文章，0 篇摘要为空，890 篇摘要质量达标（≥40 字）
 - [x] 更新项目框架.md、todolist.md、项目迭代记录.md
+
+## AdminDashboard 子组件拆分接入（进行中）
+- [x] Git 备份：commit `b706792`（拆分前完整快照，44 文件）
+- [x] **小块1：AdminSuggestionsTab（用户建议）** — 已完成，commit `e65cf37`
+  - 改动：1 文件，+15 行 / -103 行
+  - 变更：添加 useCallback import、添加 AdminSuggestionsTab import、用组件标签替换内联 JSX
+  - tsc ✅ build ✅ 已推送
+  - 待用户线上验证
+- [ ] **小块2：AdminAnalyticsTab（访客统计）** — 需修复类型不匹配（VisitStats/VisitRecord vs RealtimeStats/SupabaseVisitRecord）
+- [ ] **小块3：AdminArticlesTab（文章管理）** — 简单，6 个 props
+- [ ] **小块4：AdminPendingTab（待审文章）** — 最复杂，605+ 行
+- [ ] **小块5：AdminAddArticleDialog（新增文章对话框）** — 接口缺口：缺少 hasConfiguredExtractionProvider/preferredExtractionProvider
+- [ ] **小块6：AdminEditArticleDialog（编辑文章对话框）** — 190 行
+- [ ] **小块7：AdminApiConfigDialog（API配置对话框）** — 接口缺口：缺少 preferredSearchApi/preferredExtractionApi

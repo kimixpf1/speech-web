@@ -52,7 +52,6 @@ export async function submitSuggestion(name: string, message: string): Promise<{
       id: crypto.randomUUID(),
       name,
       message,
-      email: '',
       status: 'unread',
     });
   
