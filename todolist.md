@@ -351,16 +351,41 @@
 - [x] 最终验证：1000 篇文章，0 篇摘要为空，890 篇摘要质量达标（≥40 字）
 - [x] 更新项目框架.md、todolist.md、项目迭代记录.md
 
-## AdminDashboard 子组件拆分接入（进行中）
+## AdminDashboard 子组件拆分接入（✅ 已完成）
 - [x] Git 备份：commit `b706792`（拆分前完整快照，44 文件）
 - [x] **小块1：AdminSuggestionsTab（用户建议）** — 已完成，commit `e65cf37`
-  - 改动：1 文件，+15 行 / -103 行
-  - 变更：添加 useCallback import、添加 AdminSuggestionsTab import、用组件标签替换内联 JSX
-  - tsc ✅ build ✅ 已推送
-  - 待用户线上验证
-- [ ] **小块2：AdminAnalyticsTab（访客统计）** — 需修复类型不匹配（VisitStats/VisitRecord vs RealtimeStats/SupabaseVisitRecord）
-- [ ] **小块3：AdminArticlesTab（文章管理）** — 简单，6 个 props
-- [ ] **小块4：AdminPendingTab（待审文章）** — 最复杂，605+ 行
-- [ ] **小块5：AdminAddArticleDialog（新增文章对话框）** — 接口缺口：缺少 hasConfiguredExtractionProvider/preferredExtractionProvider
-- [ ] **小块6：AdminEditArticleDialog（编辑文章对话框）** — 190 行
-- [ ] **小块7：AdminApiConfigDialog（API配置对话框）** — 接口缺口：缺少 preferredSearchApi/preferredExtractionApi
+- [x] **小块2-7 全部集成** — 已完成，commit `32ab0f4`
+  - AdminDashboard.tsx 从 2689 行精简为 1091 行
+  - 7 个子组件全部导入并替换内联 JSX：AdminSuggestionsTab、AdminAnalyticsTab、AdminArticlesTab、AdminPendingTab、AdminAddArticleDialog、AdminEditArticleDialog、AdminApiConfigDialog
+  - useAdminArticleManagement 自定义 hook 已提取并导入
+  - tsc ✅ build ✅ 已推送部署
+  - 线上页面加载正常，1144 篇文章，无 JS 报错
+  - 待用户使用管理员账号登录后台验证各 Tab 功能
+
+## 多提供商文章提取支持（✅ 已完成）
+- [x] **kimiArticleService.ts**：`extractArticleWithKimi` 和 `extractArticleFromText` 均已支持 Kimi/DeepSeek 双提供商
+  - 通过 `getAvailableProviderAndKey()` 自动选择有可用 Key 的提供商
+  - `getApiUrl(provider)` / `getModel(provider)` 动态切换 API 地址和模型
+- [x] **aiSearchService.ts**：新增 `getPreferredExtractionApi()` / `setPreferredExtractionApi()` 函数
+  - 独立于搜索 API 偏好，默认使用 DeepSeek 做文章提取
+  - 存储键：`preferred_extraction_api`
+- [x] commit `32ab0f4`，已推送部署
+- [x] build ✅ 线上部署正常
+
+## 版本回退修复 — 建议信箱/搜索日志/导航/浏览器指纹（✅ 已完成）
+- [x] **suggestionService.ts**：重新应用 publicSupabase 客户端（commit 5c7589b 的修复被后续版本覆盖丢失）
+  - 使用 `persistSession: false` 的独立 Supabase 客户端，避免管理员登录时 RLS 冲突
+  - 字段映射确认：`content` 字段正确读取
+- [x] **DetailPage.tsx**：清理 isReturning 残余状态（commit f179328 的简化被覆盖丢失）
+  - 移除无用的 `isReturning` state，返回导航不再出现额外 loading 遮罩
+- [x] **supabaseAnalytics.ts**：重新应用浏览器指纹生成（commit a8ef7d6 的方法被覆盖丢失）
+  - 使用 djb2 hash 算法生成基于 userAgent/language/screen/timezone 等的 `fp_` 前缀唯一标识
+  - 存储到 localStorage 的 `visitor_id` 和 `ip_hash`
+- [x] **project_rules.md**：写入永久防版本回退规则
+  - 禁止整文件重写、改动前确认现有状态、保持历史修复完整性、小步提交、修复前查 git log
+- [x] **搜索日志功能确认**：AdminPendingTab.tsx 中所有搜索日志功能完整存在
+  - 手动/自动区分（search_type）、可折叠详细日志、去重详情（merge_summary/merge_details）
+  - 线上未显示是因为代码尚未推送部署
+- [x] build ✅ 构建通过
+- [x] 模拟测试：线上匿名用户建议信箱提交成功
+- [x] 推送部署 → 待验证线上效果

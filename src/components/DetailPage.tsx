@@ -159,7 +159,6 @@ export function DetailPage() {
   const navigate = useNavigate();
   const [speech, setSpeech] = useState<SpeechDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isReturning, setIsReturning] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   
@@ -1259,19 +1258,9 @@ export function DetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* 顶部加载进度条 - 加载中或返回首页时显示 */}
-      {(isLoading || isReturning) && (
+      {isLoading && (
         <div className="fixed top-0 left-0 right-0 z-[60] h-1 bg-gray-200">
-          <div className="h-full bg-red-600 transition-all duration-300" style={{ width: isReturning ? '90%' : '60%' }}></div>
-        </div>
-      )}
-      {/* 返回首页时的遮罩提示 */}
-      {isReturning && (
-        <div className="fixed inset-0 bg-white/80 z-[55] flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-12 h-12 border-4 border-red-200 border-t-red-600 rounded-full animate-spin mx-auto mb-3"></div>
-            <p className="text-gray-600">正在返回...</p>
-          </div>
+          <div className="h-full bg-red-600 transition-all duration-300" style={{ width: '60%' }}></div>
         </div>
       )}
       {/* Header */}

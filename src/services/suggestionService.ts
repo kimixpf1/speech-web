@@ -1,4 +1,16 @@
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ejeiuqcmkznfbglvbkbe.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqZWl1cWNta3puZmJnbHZia2JlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1ODU4NzIsImV4cCI6MjA4NzE2MTg3Mn0.NfmTSA9DhuP51XKF0qfTuPINtSc7i26u5yIbl69cdAg';
+
+const publicSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false
+  }
+});
 
 export interface Suggestion {
   id: string;
@@ -30,7 +42,7 @@ export async function getSuggestions(): Promise<Suggestion[]> {
 
 export async function submitSuggestion(name: string, content: string): Promise<{ success: boolean; error?: string }> {
   const now = new Date();
-  const { error } = await supabase
+  const { error } = await publicSupabase
     .from('suggestions')
     .insert({
       id: crypto.randomUUID(),
