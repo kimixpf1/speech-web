@@ -38,7 +38,7 @@ OFFICIAL_DOMAINS = [
     'gov.cn', 'www.gov.cn',  # 中国政府网
 ]
 
-BAIDU_SITES = ['people.com.cn', 'xinhuanet.com', 'qstheory.cn']
+BAIDU_SITES = ['people.com.cn', 'xinhuanet.com', 'news.cn', 'qstheory.cn', 'gov.cn', 'cctv.com']
 
 # 领域关键词 - 按优先级排列（外交优先检测）
 DOMAIN_KEYWORDS = {
@@ -66,25 +66,30 @@ DOMAIN_NAMES = {'economy': '经济', 'politics': '政治', 'culture': '文化', 
 
 
 def get_search_query():
-    """Generate search query based on time: morning searches yesterday, evening searches today"""
+    """Generate multiple search queries based on time: morning searches yesterday, evening searches today"""
     utc_now = datetime.utcnow()
     beijing_hour = (utc_now.hour + 8) % 24
     
     if beijing_hour < 12:
-        # Morning (0-12): search yesterday
         target_date = (utc_now + timedelta(hours=8) - timedelta(days=1)).strftime('%Y年%m月%d日')
         date_keyword = '昨日'
         search_date = 'yesterday'
     else:
-        # Afternoon/Evening (12-24): search today
         target_date = (utc_now + timedelta(hours=8)).strftime('%Y年%m月%d日')
         date_keyword = '今日'
         search_date = 'today'
     
-    # 多维度搜索关键词，确保不漏
-    query = f'习近平总书记{date_keyword}最新讲话 文章 调研 会议 会见 指示 精神 服务 产业 {target_date} 人民网 新华社'
-    print(f'[Time] Beijing {beijing_hour}:00, searching {date_keyword} ({target_date})')
-    return query, search_date, target_date
+    queries = [
+        f'习近平{date_keyword}最新讲话 指示 {target_date}',
+        f'习近平{date_keyword}考察调研会议 {target_date}',
+        f'习近平{date_keyword}重要活动新闻 {target_date}',
+        f'习近平{date_keyword}回信贺信致辞 {target_date}',
+    ]
+    
+    main_query = f'习近平总书记{date_keyword}最新活动新闻 {target_date}'
+    
+    print(f'[Time] Beijing {beijing_hour}:00, searching {date_keyword} ({target_date}), {len(queries)} queries')
+    return main_query, queries, search_date, target_date
 
 
 def detect_domain(title: str) -> str:
@@ -185,7 +190,6 @@ def search_with_kimi(query: str) -> List[Dict]:
         print('[Kimi] API Key not configured')
         return []
     
-    # 获取今天日期
     today = (datetime.utcnow() + timedelta(hours=8)).strftime('%Y年%m月%d日')
     today_date = (datetime.utcnow() + timedelta(hours=8)).strftime('%Y-%m-%d')
     
@@ -204,11 +208,12 @@ def search_with_kimi(query: str) -> List[Dict]:
 
 请联网搜索习近平总书记最近的重要讲话、重要文章、重要会议、考察调研、指示批示、回信贺信等全部最新活动新闻。
 特别注意：除了重要讲话和会议，还要关注产业发展、服务业、科技创新、民生保障等各领域的新动向。
+搜索范围包括但不限于：新华网(xinhuanet.com/news.cn)、人民网(people.com.cn)、中国政府网(gov.cn)、央视网(cctv.com)、求是网(qstheory.cn)。
 返回JSON数组，每条包含：
 {{"title": "标题", "date": "YYYY-MM-DD", "category": "speech", "categoryName": "重要讲话", "source": "来源", "url": "真实可访问的链接", "summary": "摘要"}}
 要求：只返回最近3天内的新闻，最多15条，只返回JSON数组。如果没找到最新新闻或无法确认URL真实性，返回空数组[]。"""
 
-    print(f'[Kimi] Searching: {query}')
+    print(f'[Kimi] Searching with optimized prompt')
     try:
         response = requests.post(
             KIMI_API_URL,
@@ -245,8 +250,8 @@ def search_with_kimi(query: str) -> List[Dict]:
         return []
 
 
-def search_with_baidu(query: str) -> List[Dict]:
-    print('[Baidu] Starting search...')
+def search_with_baidu(queries: List[str]) -> List[Dict]:
+    print('[Baidu] Starting multi-query search...')
     articles = []
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     
@@ -256,37 +261,45 @@ def search_with_baidu(query: str) -> List[Dict]:
         print('[Baidu] BeautifulSoup not installed')
         return []
     
-    for site in BAIDU_SITES:
-        search_query = f'site:{site} {query}'
-        url = f'https://www.baidu.com/s?wd={quote(search_query)}&rn=10'
-        
-        try:
-            resp = requests.get(url, headers=headers, timeout=15)
-            if resp.status_code != 200:
-                continue
-            
-            soup = BeautifulSoup(resp.text, 'html.parser')
-            for result in soup.select('.result.c-container')[:5]:
-                title_elem = result.select_one('h3 a')
-                if not title_elem:
-                    continue
-                
-                title = title_elem.get_text(strip=True)
-                if '习近平' not in title and '总书记' not in title:
-                    continue
-                
-                articles.append({
-                    'title': title,
-                    'url': title_elem.get('href', ''),
-                    'source': site.split('.')[0],
-                    'date': (datetime.utcnow() + timedelta(hours=8)).date().isoformat(),
-                    'summary': title,
-                })
-            time.sleep(2)
-        except Exception as e:
-            print(f'[Baidu] {site} failed: {e}')
+    seen_baidu_titles = set()
     
-    print(f'[Baidu] Found {len(articles)} articles')
+    for query in queries:
+        for site in BAIDU_SITES:
+            search_query = f'site:{site} {query}'
+            url = f'https://www.baidu.com/s?wd={quote(search_query)}&rn=10'
+            
+            try:
+                resp = requests.get(url, headers=headers, timeout=15)
+                if resp.status_code != 200:
+                    continue
+                
+                soup = BeautifulSoup(resp.text, 'html.parser')
+                for result in soup.select('.result.c-container')[:8]:
+                    title_elem = result.select_one('h3 a')
+                    if not title_elem:
+                        continue
+                    
+                    title = title_elem.get_text(strip=True)
+                    if '习近平' not in title and '总书记' not in title:
+                        continue
+                    
+                    simple = re.sub(r'[《》""「」『』【】\s]', '', title)
+                    if simple in seen_baidu_titles:
+                        continue
+                    seen_baidu_titles.add(simple)
+                    
+                    articles.append({
+                        'title': title,
+                        'url': title_elem.get('href', ''),
+                        'source': site.split('.')[0],
+                        'date': (datetime.utcnow() + timedelta(hours=8)).date().isoformat(),
+                        'summary': title,
+                    })
+                time.sleep(1)
+            except Exception as e:
+                print(f'[Baidu] {site} query="{query[:20]}..." failed: {e}')
+    
+    print(f'[Baidu] Found {len(articles)} articles from {len(queries)} queries x {len(BAIDU_SITES)} sites')
     return articles
 
 
@@ -562,11 +575,11 @@ def simplify_title(t):
 def main():
     print(f'=== AI Scheduled Search {datetime.now()} ===')
 
-    search_query, search_date, target_date = get_search_query()
+    main_query, queries, search_date, target_date = get_search_query()
 
     people_articles = search_people_jhsjk()
-    kimi_articles = search_with_kimi(search_query)
-    baidu_articles = search_with_baidu(search_query)
+    kimi_articles = search_with_kimi(main_query)
+    baidu_articles = search_with_baidu(queries)
 
     merged, merge_info = merge_and_dedupe(kimi_articles, baidu_articles, people_articles)
     print(f'[Merge] After dedup: {len(merged)} articles')
