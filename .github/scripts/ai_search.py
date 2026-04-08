@@ -279,7 +279,7 @@ def search_with_baidu(query: str) -> List[Dict]:
                     'title': title,
                     'url': title_elem.get('href', ''),
                     'source': site.split('.')[0],
-                    'date': date.today().isoformat(),
+                    'date': (datetime.utcnow() + timedelta(hours=8)).date().isoformat(),
                     'summary': title,
                 })
             time.sleep(2)
@@ -313,7 +313,7 @@ def search_people_jhsjk() -> List[Dict]:
         soup = BeautifulSoup(resp.text, 'html.parser')
         
         # 查找所有文章链接 - 国内和国际部分
-        today = date.today()
+        today = (datetime.utcnow() + timedelta(hours=8)).date()
         yesterday = today - timedelta(days=1)
         valid_dates = [today.strftime('%Y-%m-%d'), yesterday.strftime('%Y-%m-%d')]
         
@@ -416,7 +416,7 @@ def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], peop
         all_articles.append({
             'id': str(uuid.uuid4()),
             'title': title, 'url': url,
-            'date': article.get('date', date.today().isoformat()),
+            'date': article.get('date', (datetime.utcnow() + timedelta(hours=8)).date().isoformat()),
             'source': article.get('source', '官方媒体'),
             'summary': article.get('summary', title),
             'category': category,
