@@ -54,7 +54,6 @@ export async function submitSuggestion(name: string, message: string): Promise<{
       message,
       email: '',
       status: 'unread',
-      created_at: new Date().toISOString(),
     });
   
   if (error) {
