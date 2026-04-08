@@ -45,7 +45,7 @@ export async function getSuggestions(): Promise<Suggestion[]> {
 /**
  * 提交新建议
  */
-export async function submitSuggestion(name: string, message: string): Promise<boolean> {
+export async function submitSuggestion(name: string, message: string): Promise<{ success: boolean; error?: string }> {
   const { error } = await supabase
     .from('suggestions')
     .insert({
@@ -59,10 +59,10 @@ export async function submitSuggestion(name: string, message: string): Promise<b
   
   if (error) {
     console.error('提交建议失败:', error);
-    return false;
+    return { success: false, error: error.message };
   }
   
-  return true;
+  return { success: true };
 }
 
 /**
