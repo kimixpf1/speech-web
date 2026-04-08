@@ -370,39 +370,48 @@ def search_people_jhsjk() -> List[Dict]:
         return []
 
 
-def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], people_articles: List[Dict] = None) -> List[Dict]:
+def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], people_articles: List[Dict] = None):
     all_articles = []
     seen_titles = set()
     seen_urls = set()
-    rejected = []
-    
+    duplicate_seen_title = []
+    duplicate_seen_url = []
+    validation_rejected = []
+    kept_articles = []
+
     if people_articles is None:
         people_articles = []
-    
+
+    source_counts = {'kimi': len(kimi_articles or []), 'baidu': len(baidu_articles or []), 'people': len(people_articles or [])}
+
     def simplify(t): return re.sub(r'[《》""「」『』【】\s]', '', t)
-    
+
     def add(article, source_tag):
         title, url = article.get('title', ''), article.get('url', '')
-        if not title or not url or url in seen_urls:
+        if not title or not url:
             return
-        
+
+        if url in seen_urls:
+            duplicate_seen_url.append({'title': title, 'url': url, 'source': source_tag})
+            return
+
         simple = simplify(title)
         if simple in seen_titles:
+            duplicate_seen_title.append({'title': title, 'url': url, 'source': source_tag})
             return
-        
-        # 验证文章有效性
+
         validation = validate_article(article)
         if not validation['valid']:
-            rejected.append({'title': title, 'url': url, 'reasons': validation['reasons']})
+            validation_rejected.append({'title': title, 'url': url, 'reasons': validation['reasons'], 'source': source_tag})
             print(f'[Validate] 拒绝: {title[:30]}... - {validation["reasons"]}')
             return
-        
+
         seen_urls.add(url)
         seen_titles.add(simple)
-        
+
         domain = detect_domain(title)
         category = detect_category(title)
-        
+
         all_articles.append({
             'id': str(uuid.uuid4()),
             'title': title, 'url': url,
@@ -415,16 +424,39 @@ def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], peop
             'discovered_by': f'ai_auto_{source_tag}',
             'fetched_at': datetime.now().isoformat(),
         })
-    
+        kept_articles.append({'title': title, 'url': url, 'source': source_tag})
+
     for a in kimi_articles:
         add(a, 'kimi')
     for a in baidu_articles:
         add(a, 'baidu')
-    # 人民网讲话数据库直接抓取 - 最可靠的来源
     for a in people_articles:
         add(a, 'people')
-    
-    return all_articles
+
+    merge_info = {
+        'source_breakdown': source_counts,
+        'merge_summary': {
+            'input_total': sum(source_counts.values()),
+            'kept_count': len(kept_articles),
+            'duplicate_seen_title_count': len(duplicate_seen_title),
+            'duplicate_seen_url_count': len(duplicate_seen_url),
+            'validation_rejected_count': len(validation_rejected),
+            'normalized_rejected_count': 0,
+        },
+        'merge_details': {
+            'kept_articles': kept_articles,
+            'duplicate_seen_title': duplicate_seen_title,
+            'duplicate_seen_url': duplicate_seen_url,
+            'validation_rejected': validation_rejected,
+            'normalized_rejected': [],
+        },
+    }
+
+    print(f'[Merge] 输入: {sum(source_counts.values())}, 去重保留: {len(kept_articles)}, '
+          f'本轮标题重复: {len(duplicate_seen_title)}, 本轮链接重复: {len(duplicate_seen_url)}, '
+          f'校验淘汰: {len(validation_rejected)}')
+
+    return all_articles, merge_info
 
 
 def get_existing_urls() -> set:
@@ -456,22 +488,28 @@ def save_articles(articles: List[Dict]) -> int:
         return 0
 
 
+def get_search_type():
+    event = os.environ.get('GITHUB_EVENT_NAME', '')
+    if event == 'schedule':
+        return 'auto'
+    return 'manual'
+
+
 def save_log(kimi_count, baidu_count, new_count, status, details):
     if not SUPABASE_URL:
         print('[Log] SUPABASE_URL not configured')
         return
     try:
-        # 使用北京时间，明确带时区信息
         from datetime import timezone
         beijing_tz = timezone(timedelta(hours=8))
         beijing_now = datetime.now(beijing_tz)
         log_data = {
-            'executed_at': beijing_now.isoformat(),  # 带时区的北京时间
+            'executed_at': beijing_now.isoformat(),
             'crawl_count': kimi_count + baidu_count,
             'search_count': kimi_count + baidu_count,
             'new_count': new_count,
             'status': status,
-            'details': {**details, 'search_type': 'auto', 'api_used': 'kimi+baidu+people'},
+            'details': {**details, 'search_type': get_search_type(), 'api_used': 'kimi+baidu+people'},
             'duration_seconds': 0,
         }
         print(f'[Log] Saving to {LOG_TABLE}: {json.dumps(log_data, ensure_ascii=False)}')
@@ -494,42 +532,75 @@ def save_log(kimi_count, baidu_count, new_count, status, details):
         print(f'[Log] Exception: {e}')
 
 
+def simplify_title(t):
+    return re.sub(r'[《》""「」『』【】\s]', '', t)
+
+
 def main():
     print(f'=== AI Scheduled Search {datetime.now()} ===')
-    
-    # Get search query based on time
+
     search_query, search_date, target_date = get_search_query()
-    
-    # 1. 直接抓取人民网讲话数据库（最可靠）
+
     people_articles = search_people_jhsjk()
-    
-    # 2. Kimi AI 联网搜索
     kimi_articles = search_with_kimi(search_query)
-    
-    # 3. 百度搜索（备用）
     baidu_articles = search_with_baidu(search_query)
-    
-    merged = merge_and_dedupe(kimi_articles, baidu_articles, people_articles)
+
+    merged, merge_info = merge_and_dedupe(kimi_articles, baidu_articles, people_articles)
     print(f'[Merge] After dedup: {len(merged)} articles')
-    
-    existing = get_existing_urls()
-    new_articles = [a for a in merged if a['url'] not in existing]
-    print(f'[Filter] New: {len(new_articles)} articles')
-    
+
+    existing_urls = get_existing_urls()
+    existing_url_filtered = []
+    duplicate_existing_title = []
+
+    existing_titles_simple = {}
+    for a in merged:
+        s = simplify_title(a.get('title', ''))
+        if s:
+            existing_titles_simple[s] = a.get('title', '')
+
+    new_articles = []
+    for a in merged:
+        if a['url'] in existing_urls:
+            existing_url_filtered.append({'title': a['title'], 'url': a['url']})
+            continue
+
+        simple = simplify_title(a.get('title', ''))
+        matched = existing_titles_simple.get(simple)
+        if matched and matched != a.get('title', ''):
+            duplicate_existing_title.append({'title': a['title'], 'url': a['url'], 'matched_title': matched})
+            continue
+
+        new_articles.append(a)
+
+    print(f'[Filter] Existing URL filtered: {len(existing_url_filtered)}, New: {len(new_articles)} articles')
+
     saved = save_articles(new_articles)
-    
-    # 状态判定：工作流正常运行即为成功，没找到文章不是失败
-    # failed 仅用于 API 调用异常等真正的失败情况
+
     status = 'success'
-    # 记录搜索源状态到 details 中，但不改变 success 状态
-    # 因为"没找到文章"也是正常的业务结果
-    
-    save_log(len(kimi_articles), len(baidu_articles), saved, status,
-             {'kimi': len(kimi_articles), 'baidu': len(baidu_articles), 
-              'people': len(people_articles),
-              'search_date': search_date, 'target_date': target_date})
-    
-    print(f'=== Done: People {len(people_articles)}, Kimi {len(kimi_articles)}, Baidu {len(baidu_articles)}, New {saved} ===')
+
+    final_new_titles = [{'title': a['title'], 'url': a['url']} for a in new_articles]
+
+    save_result = {'attempted_count': len(new_articles), 'saved_count': saved}
+    if saved == 0 and len(new_articles) > 0:
+        save_result['error'] = 'save returned 0'
+
+    merge_info['merge_summary']['duplicate_existing_title_count'] = len(duplicate_existing_title)
+    merge_info['merge_details']['duplicate_existing_title'] = duplicate_existing_title
+
+    log_details = {
+        **merge_info,
+        'search_date': search_date,
+        'target_date': target_date,
+        'existing_url_filtered': existing_url_filtered,
+        'existing_url_filtered_count': len(existing_url_filtered),
+        'final_new_articles': final_new_titles,
+        'save_result': save_result,
+    }
+
+    save_log(len(kimi_articles), len(baidu_articles), saved, status, log_details)
+
+    print(f'=== Done: People {len(people_articles)}, Kimi {len(kimi_articles)}, Baidu {len(baidu_articles)}, '
+          f'Merged {len(merged)}, ExistingFiltered {len(existing_url_filtered)}, New {saved} ===')
 
 
 if __name__ == '__main__':
