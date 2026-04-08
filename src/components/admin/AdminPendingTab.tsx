@@ -331,9 +331,8 @@ export function AdminPendingTab({
                       </div>
                     </div>
                   )}
-                  {(log.details?.kimi !== undefined || log.details?.baidu !== undefined) && (
+                  {(log.details?.kimi !== undefined || log.details?.baidu !== undefined || log.details?.search_type || log.details?.search_date || log.details?.api_used) && (
                     <div className="mt-2 pt-2 border-t border-gray-200">
-                      <div className="text-xs text-gray-500 mb-1">搜索来源：</div>
                       <div className="flex flex-wrap gap-1">
                         {log.details?.kimi !== undefined && (
                           <span className={`text-xs px-2 py-0.5 rounded ${log.details.kimi > 0 ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
