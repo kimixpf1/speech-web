@@ -74,7 +74,7 @@ function getApiUrl(provider: ApiProvider): string {
 }
 
 function getModel(provider: ApiProvider): string {
-  return provider === 'deepseek' ? 'deepseek-chat' : 'moonshot-v1-8k';
+  return provider === 'deepseek' ? 'deepseek-chat' : 'moonshot-v1-32k';
 }
 
 /**
@@ -394,7 +394,7 @@ ${truncatedContent}
           }
         ],
         temperature: 0.3,
-        max_tokens: 8000,
+        max_tokens: 16000,
       }),
     });
 
@@ -410,19 +410,23 @@ ${truncatedContent}
       throw new Error('API返回内容为空');
     }
 
-    console.log('API response received, parsing...');
+    console.log('API response received, content length:', content.length, 'parsing...');
 
-    // 解析JSON
     let article: ExtractedArticle;
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      let jsonStr = content;
+      const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (codeBlockMatch) {
+        jsonStr = codeBlockMatch[1].trim();
+      }
+      const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         article = JSON.parse(jsonMatch[0]);
       } else {
         throw new Error('无法解析返回的JSON');
       }
     } catch (parseError) {
-      console.error('JSON解析错误:', content.substring(0, 500));
+      console.error('JSON解析错误, raw content (first 800 chars):', content.substring(0, 800));
       throw new Error('解析文章内容失败，请重试');
     }
 

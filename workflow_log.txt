@@ -1,0 +1,311 @@
+ï»¿2026-04-08T13:48:41.4031240Z Current runner version: '2.333.1'
+2026-04-08T13:48:41.4054684Z ##[group]Runner Image Provisioner
+2026-04-08T13:48:41.4055676Z Hosted Compute Agent
+2026-04-08T13:48:41.4056331Z Version: 20260213.493
+2026-04-08T13:48:41.4056919Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+2026-04-08T13:48:41.4057612Z Build Date: 2026-02-13T00:28:41Z
+2026-04-08T13:48:41.4058300Z Worker ID: {220cbdfe-11df-423e-b745-b1c5050f55f5}
+2026-04-08T13:48:41.4059018Z Azure Region: westus
+2026-04-08T13:48:41.4059546Z ##[endgroup]
+2026-04-08T13:48:41.4061452Z ##[group]Operating System
+2026-04-08T13:48:41.4062063Z Ubuntu
+2026-04-08T13:48:41.4062551Z 24.04.4
+2026-04-08T13:48:41.4063088Z LTS
+2026-04-08T13:48:41.4063628Z ##[endgroup]
+2026-04-08T13:48:41.4064131Z ##[group]Runner Image
+2026-04-08T13:48:41.4064755Z Image: ubuntu-24.04
+2026-04-08T13:48:41.4065253Z Version: 20260329.72.1
+2026-04-08T13:48:41.4066536Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260329.72/images/ubuntu/Ubuntu2404-Readme.md
+2026-04-08T13:48:41.4067988Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260329.72
+2026-04-08T13:48:41.4068930Z ##[endgroup]
+2026-04-08T13:48:41.4071907Z ##[group]GITHUB_TOKEN Permissions
+2026-04-08T13:48:41.4073960Z Actions: write
+2026-04-08T13:48:41.4074602Z ArtifactMetadata: write
+2026-04-08T13:48:41.4075188Z Attestations: write
+2026-04-08T13:48:41.4075773Z Checks: write
+2026-04-08T13:48:41.4076250Z Contents: write
+2026-04-08T13:48:41.4076774Z Deployments: write
+2026-04-08T13:48:41.4077400Z Discussions: write
+2026-04-08T13:48:41.4077921Z Issues: write
+2026-04-08T13:48:41.4078415Z Metadata: read
+2026-04-08T13:48:41.4078948Z Models: read
+2026-04-08T13:48:41.4079453Z Packages: write
+2026-04-08T13:48:41.4079950Z Pages: write
+2026-04-08T13:48:41.4080836Z PullRequests: write
+2026-04-08T13:48:41.4081439Z RepositoryProjects: write
+2026-04-08T13:48:41.4082083Z SecurityEvents: write
+2026-04-08T13:48:41.4082654Z Statuses: write
+2026-04-08T13:48:41.4083456Z ##[endgroup]
+2026-04-08T13:48:41.4085578Z Secret source: Actions
+2026-04-08T13:48:41.4086301Z Prepare workflow directory
+2026-04-08T13:48:41.4651818Z Prepare all required actions
+2026-04-08T13:48:41.4688906Z Getting action download info
+2026-04-08T13:48:41.9456314Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2026-04-08T13:48:42.6040100Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-04-08T13:48:43.1073910Z Complete job name: ai-search
+2026-04-08T13:48:43.2014668Z ##[group]Run actions/checkout@v4
+2026-04-08T13:48:43.2016035Z with:
+2026-04-08T13:48:43.2016786Z   ref: main
+2026-04-08T13:48:43.2017597Z   repository: kimixpf1/speech-web
+2026-04-08T13:48:43.2018897Z   token: ***
+2026-04-08T13:48:43.2019684Z   ssh-strict: true
+2026-04-08T13:48:43.2020506Z   ssh-user: git
+2026-04-08T13:48:43.2021552Z   persist-credentials: true
+2026-04-08T13:48:43.2022494Z   clean: true
+2026-04-08T13:48:43.2023337Z   sparse-checkout-cone-mode: true
+2026-04-08T13:48:43.2024383Z   fetch-depth: 1
+2026-04-08T13:48:43.2025218Z   fetch-tags: false
+2026-04-08T13:48:43.2026074Z   show-progress: true
+2026-04-08T13:48:43.2026960Z   lfs: false
+2026-04-08T13:48:43.2027751Z   submodules: false
+2026-04-08T13:48:43.2028646Z   set-safe-directory: true
+2026-04-08T13:48:43.2029859Z env:
+2026-04-08T13:48:43.2031402Z   SUPABASE_URL: ***
+2026-04-08T13:48:43.2036530Z   SUPABASE_SERVICE_ROLE_KEY: ***
+2026-04-08T13:48:43.2041705Z   SUPABASE_ANON_KEY: ***
+2026-04-08T13:48:43.2043081Z   KIMI_API_KEY: ***
+2026-04-08T13:48:43.2043937Z ##[endgroup]
+2026-04-08T13:48:43.3195727Z Syncing repository: kimixpf1/speech-web
+2026-04-08T13:48:43.3198422Z ##[group]Getting Git version info
+2026-04-08T13:48:43.3199883Z Working directory is '/home/runner/work/speech-web/speech-web'
+2026-04-08T13:48:43.3202270Z [command]/usr/bin/git version
+2026-04-08T13:48:43.5334226Z git version 2.53.0
+2026-04-08T13:48:43.5359929Z ##[endgroup]
+2026-04-08T13:48:43.5384727Z Temporarily overriding HOME='/home/runner/work/_temp/c1d3d4be-9f81-4f46-aadb-4d15b6e0b4bb' before making global git config changes
+2026-04-08T13:48:43.5388062Z Adding repository directory to the temporary git global config as a safe directory
+2026-04-08T13:48:43.5391282Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/speech-web/speech-web
+2026-04-08T13:48:43.5798676Z Deleting the contents of '/home/runner/work/speech-web/speech-web'
+2026-04-08T13:48:43.5802949Z ##[group]Initializing the repository
+2026-04-08T13:48:43.5808141Z [command]/usr/bin/git init /home/runner/work/speech-web/speech-web
+2026-04-08T13:48:44.1810461Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-04-08T13:48:44.1813695Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-04-08T13:48:44.1814787Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-04-08T13:48:44.1815698Z hint: call:
+2026-04-08T13:48:44.1816179Z hint:
+2026-04-08T13:48:44.1816786Z hint: 	git config --global init.defaultBranch <name>
+2026-04-08T13:48:44.1817457Z hint:
+2026-04-08T13:48:44.1818084Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-04-08T13:48:44.1819080Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-04-08T13:48:44.1819825Z hint:
+2026-04-08T13:48:44.1820279Z hint: 	git branch -m <name>
+2026-04-08T13:48:44.1821126Z hint:
+2026-04-08T13:48:44.1821899Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-04-08T13:48:44.1823144Z Initialized empty Git repository in /home/runner/work/speech-web/speech-web/.git/
+2026-04-08T13:48:44.1827226Z [command]/usr/bin/git remote add origin https://github.com/kimixpf1/speech-web
+2026-04-08T13:48:44.1863108Z ##[endgroup]
+2026-04-08T13:48:44.1863674Z ##[group]Disabling automatic garbage collection
+2026-04-08T13:48:44.1867709Z [command]/usr/bin/git config --local gc.auto 0
+2026-04-08T13:48:44.1895257Z ##[endgroup]
+2026-04-08T13:48:44.1895930Z ##[group]Setting up auth
+2026-04-08T13:48:44.1902440Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-04-08T13:48:44.1931017Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-04-08T13:48:44.2200177Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-04-08T13:48:44.2228624Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-04-08T13:48:44.2441284Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-04-08T13:48:44.2479353Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-04-08T13:48:44.2697806Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-04-08T13:48:44.2731038Z ##[endgroup]
+2026-04-08T13:48:44.2731798Z ##[group]Fetching the repository
+2026-04-08T13:48:44.2739009Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +refs/heads/main*:refs/remotes/origin/main* +refs/tags/main*:refs/tags/main*
+2026-04-08T13:48:45.5643274Z From https://github.com/kimixpf1/speech-web
+2026-04-08T13:48:45.5644277Z  * [new branch]      main       -> origin/main
+2026-04-08T13:48:45.5671143Z ##[endgroup]
+2026-04-08T13:48:45.5671774Z ##[group]Determining the checkout info
+2026-04-08T13:48:45.5681608Z [command]/usr/bin/git branch --list --remote origin/main
+2026-04-08T13:48:45.5706219Z   origin/main
+2026-04-08T13:48:45.5712046Z ##[endgroup]
+2026-04-08T13:48:45.5717847Z [command]/usr/bin/git sparse-checkout disable
+2026-04-08T13:48:45.5756818Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-04-08T13:48:45.5785378Z ##[group]Checking out the ref
+2026-04-08T13:48:45.5789147Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-04-08T13:48:45.7147256Z Switched to a new branch 'main'
+2026-04-08T13:48:45.7148360Z branch 'main' set up to track 'origin/main'.
+2026-04-08T13:48:45.7159760Z ##[endgroup]
+2026-04-08T13:48:45.7198540Z [command]/usr/bin/git log -1 --format=%H
+2026-04-08T13:48:45.7220344Z f55b13636297627a587ddc43e8c64a655ee2b733
+2026-04-08T13:48:45.7425943Z ##[group]Run echo "UTC Time: $(date -u)"
+2026-04-08T13:48:45.7426302Z [36;1mecho "UTC Time: $(date -u)"[0m
+2026-04-08T13:48:45.7426632Z [36;1mecho "Beijing Time: $(TZ='Asia/Shanghai' date)"[0m
+2026-04-08T13:48:45.7426995Z [36;1mecho "Checking environment variables..."[0m
+2026-04-08T13:48:45.7427308Z [36;1mecho "SUPABASE_URL set: true"[0m
+2026-04-08T13:48:45.7427606Z [36;1mecho "SUPABASE_SERVICE_ROLE_KEY set: true"[0m
+2026-04-08T13:48:45.7427896Z [36;1mecho "KIMI_API_KEY set: true"[0m
+2026-04-08T13:48:45.7457252Z shell: /usr/bin/bash -e {0}
+2026-04-08T13:48:45.7457515Z env:
+2026-04-08T13:48:45.7457923Z   SUPABASE_URL: ***
+2026-04-08T13:48:45.7459258Z   SUPABASE_SERVICE_ROLE_KEY: ***
+2026-04-08T13:48:45.7460546Z   SUPABASE_ANON_KEY: ***
+2026-04-08T13:48:45.7461172Z   KIMI_API_KEY: ***
+2026-04-08T13:48:45.7461397Z ##[endgroup]
+2026-04-08T13:48:45.7537201Z UTC Time: Wed Apr  8 13:48:45 UTC 2026
+2026-04-08T13:48:45.7620216Z Beijing Time: Wed Apr  8 21:48:45 CST 2026
+2026-04-08T13:48:45.7620856Z Checking environment variables...
+2026-04-08T13:48:45.7621158Z SUPABASE_URL set: true
+2026-04-08T13:48:45.7621408Z SUPABASE_SERVICE_ROLE_KEY set: true
+2026-04-08T13:48:45.7621691Z KIMI_API_KEY set: true
+2026-04-08T13:48:45.7704150Z ##[group]Run actions/setup-python@v5
+2026-04-08T13:48:45.7704435Z with:
+2026-04-08T13:48:45.7704628Z   python-version: 3.11
+2026-04-08T13:48:45.7704849Z   check-latest: false
+2026-04-08T13:48:45.7705190Z   token: ***
+2026-04-08T13:48:45.7705392Z   update-environment: true
+2026-04-08T13:48:45.7705656Z   allow-prereleases: false
+2026-04-08T13:48:45.7705871Z   freethreaded: false
+2026-04-08T13:48:45.7706071Z env:
+2026-04-08T13:48:45.7706350Z   SUPABASE_URL: ***
+2026-04-08T13:48:45.7707630Z   SUPABASE_SERVICE_ROLE_KEY: ***
+2026-04-08T13:48:45.7708907Z   SUPABASE_ANON_KEY: ***
+2026-04-08T13:48:45.7709238Z   KIMI_API_KEY: ***
+2026-04-08T13:48:45.7709430Z ##[endgroup]
+2026-04-08T13:48:45.9342861Z ##[group]Installed versions
+2026-04-08T13:48:46.0302594Z Successfully set up CPython (3.11.15)
+2026-04-08T13:48:46.0303423Z ##[endgroup]
+2026-04-08T13:48:46.0467920Z ##[group]Run pip install requests beautifulsoup4 lxml
+2026-04-08T13:48:46.0468321Z [36;1mpip install requests beautifulsoup4 lxml[0m
+2026-04-08T13:48:46.0552606Z shell: /usr/bin/bash -e {0}
+2026-04-08T13:48:46.0552858Z env:
+2026-04-08T13:48:46.0553350Z   SUPABASE_URL: ***
+2026-04-08T13:48:46.0554699Z   SUPABASE_SERVICE_ROLE_KEY: ***
+2026-04-08T13:48:46.0555978Z   SUPABASE_ANON_KEY: ***
+2026-04-08T13:48:46.0556312Z   KIMI_API_KEY: ***
+2026-04-08T13:48:46.0556594Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-04-08T13:48:46.0557042Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.15/x64/lib/pkgconfig
+2026-04-08T13:48:46.0557451Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-04-08T13:48:46.0557815Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-04-08T13:48:46.0558175Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-04-08T13:48:46.0558529Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.15/x64/lib
+2026-04-08T13:48:46.0558870Z ##[endgroup]
+2026-04-08T13:48:48.9999800Z Collecting requests
+2026-04-08T13:48:49.0530745Z   Downloading requests-2.33.1-py3-none-any.whl.metadata (4.8 kB)
+2026-04-08T13:48:49.0693467Z Collecting beautifulsoup4
+2026-04-08T13:48:49.0719768Z   Downloading beautifulsoup4-4.14.3-py3-none-any.whl.metadata (3.8 kB)
+2026-04-08T13:48:49.2496779Z Collecting lxml
+2026-04-08T13:48:49.2527875Z   Downloading lxml-6.0.2-cp311-cp311-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl.metadata (3.6 kB)
+2026-04-08T13:48:49.3399297Z Collecting charset_normalizer<4,>=2 (from requests)
+2026-04-08T13:48:49.3437175Z   Downloading charset_normalizer-3.4.7-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (40 kB)
+2026-04-08T13:48:49.3687695Z Collecting idna<4,>=2.5 (from requests)
+2026-04-08T13:48:49.3714210Z   Downloading idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+2026-04-08T13:48:49.3916725Z Collecting urllib3<3,>=1.26 (from requests)
+2026-04-08T13:48:49.3946655Z   Downloading urllib3-2.6.3-py3-none-any.whl.metadata (6.9 kB)
+2026-04-08T13:48:49.4106794Z Collecting certifi>=2023.5.7 (from requests)
+2026-04-08T13:48:49.4133056Z   Downloading certifi-2026.2.25-py3-none-any.whl.metadata (2.5 kB)
+2026-04-08T13:48:49.4286330Z Collecting soupsieve>=1.6.1 (from beautifulsoup4)
+2026-04-08T13:48:49.4317404Z   Downloading soupsieve-2.8.3-py3-none-any.whl.metadata (4.6 kB)
+2026-04-08T13:48:49.4466799Z Collecting typing-extensions>=4.0.0 (from beautifulsoup4)
+2026-04-08T13:48:49.4494719Z   Downloading typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+2026-04-08T13:48:49.4564151Z Downloading requests-2.33.1-py3-none-any.whl (64 kB)
+2026-04-08T13:48:49.4627463Z Downloading charset_normalizer-3.4.7-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (214 kB)
+2026-04-08T13:48:49.4710322Z Downloading idna-3.11-py3-none-any.whl (71 kB)
+2026-04-08T13:48:49.4758453Z Downloading urllib3-2.6.3-py3-none-any.whl (131 kB)
+2026-04-08T13:48:49.4809919Z Downloading beautifulsoup4-4.14.3-py3-none-any.whl (107 kB)
+2026-04-08T13:48:49.4913164Z Downloading lxml-6.0.2-cp311-cp311-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (5.2 MB)
+2026-04-08T13:48:49.5166074Z    ââââââââââââââââââââââââââââââââââââââââ 5.2/5.2 MB 226.5 MB/s  0:00:00
+2026-04-08T13:48:49.5197172Z Downloading certifi-2026.2.25-py3-none-any.whl (153 kB)
+2026-04-08T13:48:49.5247784Z Downloading soupsieve-2.8.3-py3-none-any.whl (37 kB)
+2026-04-08T13:48:49.5293273Z Downloading typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+2026-04-08T13:48:49.5956765Z Installing collected packages: urllib3, typing-extensions, soupsieve, lxml, idna, charset_normalizer, certifi, requests, beautifulsoup4
+2026-04-08T13:48:50.0455422Z 
+2026-04-08T13:48:50.0467257Z Successfully installed beautifulsoup4-4.14.3 certifi-2026.2.25 charset_normalizer-3.4.7 idna-3.11 lxml-6.0.2 requests-2.33.1 soupsieve-2.8.3 typing-extensions-4.15.0 urllib3-2.6.3
+2026-04-08T13:48:50.2053085Z ##[group]Run python .github/scripts/ai_search.py
+2026-04-08T13:48:50.2053472Z [36;1mpython .github/scripts/ai_search.py[0m
+2026-04-08T13:48:50.2079481Z shell: /usr/bin/bash -e {0}
+2026-04-08T13:48:50.2079723Z env:
+2026-04-08T13:48:50.2080202Z   SUPABASE_URL: ***
+2026-04-08T13:48:50.2081728Z   SUPABASE_SERVICE_ROLE_KEY: ***
+2026-04-08T13:48:50.2083049Z   SUPABASE_ANON_KEY: ***
+2026-04-08T13:48:50.2083397Z   KIMI_API_KEY: ***
+2026-04-08T13:48:50.2083665Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-04-08T13:48:50.2084106Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.15/x64/lib/pkgconfig
+2026-04-08T13:48:50.2084524Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-04-08T13:48:50.2084885Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-04-08T13:48:50.2085251Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-04-08T13:48:50.2085622Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.15/x64/lib
+2026-04-08T13:48:50.2085960Z ##[endgroup]
+2026-04-08T13:49:58.7885487Z [Config] SUPABASE_URL: å·²éç½®
+2026-04-08T13:49:58.7886077Z [Config] SUPABASE_KEY: å·²éç½® (service_role=æ¯)
+2026-04-08T13:49:58.7886546Z [Config] KIMI_API_KEY: å·²éç½®
+2026-04-08T13:49:58.7886950Z === AI Scheduled Search 2026-04-08 13:48:50.932824 ===
+2026-04-08T13:49:58.7887568Z [Time] Beijing 21:00, searching ä»æ¥ (2026å¹´04æ08æ¥), 4 queries
+2026-04-08T13:49:58.7888054Z [People JHSJK] Starting direct crawl...
+2026-04-08T13:49:58.7888941Z [People JHSJK] åç°: ä¹ è¿å¹³ç»åæäº¤éå¤§å­¦å¨ä½å¸çåä¿¡å¼ºè°ä¼ æ¿å¼æ¬è¥¿è¿ç²¾ç¥èç¦å½å®¶éå¤§æç¥éæ± ä¸ºå»ºè®¾... (2026-04-08)
+2026-04-08T13:49:58.7890169Z [People JHSJK] è·³è¿æ§æç« : ãæ±æ¯ãæå¿åè¡¨ä¹ è¿å¹³æ»ä¹¦è®°éè¦æç« æ ç«åè·µè¡æ­£ç¡®æ¿ç»©è§... (2026-04-01)
+2026-04-08T13:49:58.7891166Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³å¨åå é¦é½ä¹å¡æ¤æ æ´»å¨æ¶å¼ºè°ä¸ºå±±å·å¤§å°å¢æ·»é¦ç»£ è®©ä¸­å½... (2026-03-31)
+2026-04-08T13:49:58.7891874Z [People JHSJK] è·³è¿æ§æç« : ä¸­å±ä¸­å¤®åä¹ è¿å¹³æ»ä¹¦è®°æ¬¢è¿å¹¶éè¯·ä¸­å½å½æ°åä¸»å¸­éä¸½æçå¢æ¥è®¿... (2026-03-31)
+2026-04-08T13:49:58.7892572Z [People JHSJK] è·³è¿æ§æç« : ä¸­å±ä¸­å¤®æ¿æ²»å±å¬å¼ä¼è®® å®¡è®®ãä¸­å½å±äº§åå°æ¹å§åä¼å·¥ä½æ¡ä¾ã... (2026-03-28)
+2026-04-08T13:49:58.7893260Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³å¨æ²³åéå®æ°åºèå¯å¹¶ä¸»æå¬å¼æ·±å¥æ¨è¿éå®æ°åºé«è´¨éå»ºè®¾... (2026-03-24)
+2026-04-08T13:49:58.7893981Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³è´çµç¥è´ºéä¼¦å½éè¿ä»»èæå½å®¶ä¸»å¸­... (2026-03-24)
+2026-04-08T13:49:58.7894651Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³ä¼è§ååºæ¼æ¯å¦æ°æé¢è¢ãäººæ°å§åä¼ä¸»å¸­å«å°å¾·ç©åæ¢å¤å¤«... (2026-03-19)
+2026-04-08T13:49:58.7895243Z [People JHSJK] è·³è¿æ§æç« : å½å®¶ä¸»å¸­ä¹ è¿å¹³ä»»åé©»å¤å¤§ä½¿... (2026-03-18)
+2026-04-08T13:49:58.7895865Z [People JHSJK] è·³è¿æ§æç« : ãæ±æ¯ãæå¿åè¡¨ä¹ è¿å¹³æ»ä¹¦è®°éè¦æç« ãæ¨å¨æµ·æ´ç»æµé«è´¨éåå±... (2026-03-16)
+2026-04-08T13:49:58.7896441Z [People JHSJK] è·³è¿æ§æç« : ä¸­åäººæ°å±åå½ä¸»å¸­ä»¤... (2026-03-13)
+2026-04-08T13:49:58.7896969Z [People JHSJK] åç°: ä¹ è¿å¹³è´çµç¥è´ºèæå½éè¶åå½å®¶ä¸»å¸­... (2026-04-08)
+2026-04-08T13:49:58.7897553Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³åä¸çæ°æ®ç»ç»æç«è´è´ºä¿¡... (2026-03-31)
+2026-04-08T13:49:58.7898132Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³è´çµç¥è´ºè¨èå½éè¿ä»»åæï¼å¸ï¼æ»ç»... (2026-03-31)
+2026-04-08T13:49:58.7898775Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³åæç¾åå åæ¯å½å®¶å±åä½ç¬¬åå±å³°ä¼è´è´ºçµ... (2026-03-23)
+2026-04-08T13:49:58.7899364Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³å¤ä¿¡æ³å½å½éå­¦æ ¡ä¸­æç­å¸ç... (2026-03-13)
+2026-04-08T13:49:58.7899958Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³åè¡èçæ°ä»»æ»ç»å¡å¤ç½è´è´ºçµ... (2026-03-10)
+2026-04-08T13:49:58.7900553Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³è´çµç¥è´ºéæ­£æ©è¢«æ¨ä¸¾ä¸ºæé²å³å¨åæ»ä¹¦è®°... (2026-02-24)
+2026-04-08T13:49:58.7901394Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³å¤ä¿¡ç¾å½è¾å¥¥ç¦å·åäºº... (2026-02-19)
+2026-04-08T13:49:58.7901998Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³åç¬¬39å±éæ´²èçå³°ä¼è´è´ºçµ... (2026-02-15)
+2026-04-08T13:49:58.7902613Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³è´çµç¥è´ºè´¹å°åå¾·æ¯å½éå¥æ¯è¾¾é»å æ»ç»... (2026-02-08)
+2026-04-08T13:49:58.7903207Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³åä¿ç½æ¯æ»ç»æ®äº¬ä¸¾è¡è§é¢ä¼æ¤... (2026-02-05)
+2026-04-08T13:49:58.7903771Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³åç¾å½æ»ç»ç¹ææ®éçµè¯... (2026-02-05)
+2026-04-08T13:49:58.7904321Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³ä¼è§è¶å±ä¸­å¤®æ»ä¹¦è®°ç¹ä½¿é»æå¿ ... (2026-02-05)
+2026-04-08T13:49:58.7904910Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³åä¹æå­æ»ç»å¥¥å°è¥¿ä¸¾è¡ä¼è°... (2026-02-04)
+2026-04-08T13:49:58.7905547Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³åé¿å°åå©äºæ»ç»ç¹æ¬å°±é¿å°åå©äºé¥æä¸å·å«æåå°æåäº... (2026-02-01)
+2026-04-08T13:49:58.7906232Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³å¨åºç¥æ¾³é¨åå½ç¥å½25å¨å¹´å¤§ä¼æ¨æ¾³é¨ç¹å«è¡æ¿åºç¬¬å­å±æ¿... (2024-12-20)
+2026-04-08T13:49:58.7906880Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³æµè¾¾æ¾³é¨ å°åºå¸­åºç¥æ¾³é¨åå½ç¥å½25å¨å¹´å¤§ä¼... (2024-12-18)
+2026-04-08T13:49:58.7907546Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³å¨æ¥è§æ¢æå·¥ç¨å«¦å¨¥å­å·ä»»å¡åç åè¯äººåä»£è¡¨æ¶åè¡¨éè¦è®²... (2024-09-23)
+2026-04-08T13:49:58.7908456Z [People JHSJK] è·³è¿æ§æç« : å½å®¶ä¸»å¸­ä¹ è¿å¹³åè¡¨äºãäºåå¹´æ°å¹´è´ºè¯... (2023-12-31)
+2026-04-08T13:49:58.7909112Z [People JHSJK] è·³è¿æ§æç« : åºç¥ä¸­å½å±äº§ä¸»ä¹éå¹´å¢æç«100å¨å¹´å¤§ä¼ééä¸¾è¡ ä¹ è¿å¹³åºå¸­... (2022-05-11)
+2026-04-08T13:49:58.7909788Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³å¨ä¸çç»æµè®ºåâè¾¾æ²æ¯è®®ç¨âå¯¹è¯ä¼ä¸çç¹å«è´è¾... (2021-01-25)
+2026-04-08T13:49:58.7910485Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³ï¼å¨çºªå¿µä¸­å½äººæ°å¿æ¿åæç¾æ´æåºå½ä½æ70å¨å¹´å¤§ä¼ä¸ç... (2020-10-24)
+2026-04-08T13:49:58.7911406Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³å¨æ·±å³ç»æµç¹åºå»ºç«40å¨å¹´åºç¥å¤§ä¼ä¸çè®²è¯... (2020-10-15)
+2026-04-08T13:49:58.7912090Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³å¨èåå½å¤§ä¼çºªå¿µåäº¬ä¸çå¦å¥³å¤§ä¼25å¨å¹´é«çº§å«ä¼è®®ä¸ç... (2020-10-02)
+2026-04-08T13:49:58.7912935Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³å¨èåå½çç©å¤æ ·æ§å³°ä¼ä¸çè®²è¯... (2020-10-01)
+2026-04-08T13:49:58.7913581Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³å¨ç¬¬ä¸åäºå±èåå½å¤§ä¼ä¸è¬æ§è¾©è®ºä¸çè®²è¯... (2020-09-23)
+2026-04-08T13:49:58.7914235Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³å¨èåå½æç«75å¨å¹´çºªå¿µå³°ä¼ä¸çè®²è¯... (2020-09-22)
+2026-04-08T13:49:58.7914871Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³å¨å¨å½æå»æ°å èºçç«æè¡¨å½°å¤§ä¼ä¸çè®²è¯... (2020-09-09)
+2026-04-08T13:49:58.7915540Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³å¨2020å¹´ä¸­å½å½éæå¡è´¸æäº¤æä¼å¨çæå¡è´¸æå³°ä¼ä¸ç... (2020-09-05)
+2026-04-08T13:49:58.7916218Z [People JHSJK] è·³è¿æ§æç« : å½å®¶ä¸»å¸­ä¹ è¿å¹³åè¡¨äºãäºãå¹´æ°å¹´è´ºè¯... (2020-01-01)
+2026-04-08T13:49:58.7916844Z [People JHSJK] è·³è¿æ§æç« : ä¹ è¿å¹³å¨åºç¥æ¾³é¨åå½ç¥å½äºåå¨å¹´å¤§ä¼æ¨æ¾³é¨ç¹å«è¡æ¿åºç¬¬äºå±æ¿... (2019-12-21)
+2026-04-08T13:49:58.7917324Z [People JHSJK] Found 2 recent articles
+2026-04-08T13:49:58.7917741Z [Kimi] Searching with optimized prompt
+2026-04-08T13:49:58.7918119Z [Kimi] Response: ...
+2026-04-08T13:49:58.7918452Z [Baidu] Starting multi-query search...
+2026-04-08T13:49:58.7918877Z [Baidu] Found 0 articles from 4 queries x 6 sites
+2026-04-08T13:49:58.7919441Z [Merge] è¾å¥: 2, å»éä¿ç: 2, æ¬è½®æ é¢éå¤: 0, æ¬è½®é¾æ¥éå¤: 0, æ ¡éªæ·æ±°: 0
+2026-04-08T13:49:58.7919913Z [Merge] After dedup: 2 articles
+2026-04-08T13:49:58.7920312Z [Filter] Existing URL filtered: 2, New: 0 articles
+2026-04-08T13:49:58.7929095Z [Log] Saving to search_logs: {"executed_at": "2026-04-08T21:49:58.520370+08:00", "crawl_count": 2, "search_count": 2, "new_count": 0, "status": "success", "details": {"source_breakdown": {"kimi": 0, "baidu": 0, "people": 2}, "merge_summary": {"input_total": 2, "kept_count": 2, "duplicate_seen_title_count": 0, "duplicate_seen_url_count": 0, "validation_rejected_count": 0, "normalized_rejected_count": 0, "duplicate_existing_title_count": 0}, "merge_details": {"kept_articles": [{"title": "ä¹ è¿å¹³ç»åæäº¤éå¤§å­¦å¨ä½å¸çåä¿¡å¼ºè°ä¼ æ¿å¼æ¬è¥¿è¿ç²¾ç¥èç¦å½å®¶éå¤§æç¥éæ± ä¸ºå»ºè®¾æè²å¼ºå½ç§æå¼ºå½äººæå¼ºå½ä½åºæ°è´¡ç®", "url": "http://jhsjk.people.cn/article/40696980?isindex=1", "source": "people"}, {"title": "ä¹ è¿å¹³è´çµç¥è´ºèæå½éè¶åå½å®¶ä¸»å¸­", "url": "http://jhsjk.people.cn/article/40696981?isindex=1", "source": "people"}], "duplicate_seen_title": [], "duplicate_seen_url": [], "validation_rejected": [], "normalized_rejected": [], "duplicate_existing_title": []}, "search_date": "today", "target_date": "2026å¹´04æ08æ¥", "existing_url_filtered": [{"title": "ä¹ è¿å¹³ç»åæäº¤éå¤§å­¦å¨ä½å¸çåä¿¡å¼ºè°ä¼ æ¿å¼æ¬è¥¿è¿ç²¾ç¥èç¦å½å®¶éå¤§æç¥éæ± ä¸ºå»ºè®¾æè²å¼ºå½ç§æå¼ºå½äººæå¼ºå½ä½åºæ°è´¡ç®", "url": "http://jhsjk.people.cn/article/40696980?isindex=1"}, {"title": "ä¹ è¿å¹³è´çµç¥è´ºèæå½éè¶åå½å®¶ä¸»å¸­", "url": "http://jhsjk.people.cn/article/40696981?isindex=1"}], "existing_url_filtered_count": 2, "final_new_articles": [], "save_result": {"attempted_count": 0, "saved_count": 0}, "search_type": "manual", "api_used": "æå¨è§¦åæç´¢", "pipeline": {"step1": "ç´æäººæ°ç½è®²è¯æ°æ®åº", "step2": "ç¾åº¦æç´¢(äººæ°æ¥æ¥+æ°åç¤¾+æ±æ¯ç½)", "step3": "Kimièç½è¡¥æ¼", "step4": "ç»ä¸å»é(æ é¢+URL)", "step5": "ä¸å·²ææç« åºæ¯å¯¹", "step6": "æç»æ°å¢å¥å¾å®¡æ ¸"}}, "duration_seconds": 0}
+2026-04-08T13:49:58.7937780Z [Log] Response: 201 - [{"id":"ffd5b104-17ce-4ae5-b46d-6d74a2cf7314","executed_at":"2026-04-08T13:49:58.52037+00:00","crawl_count":2,"search_count":2,"new_count":0,"status":"success","details":{"api_used": "æå¨è§¦åæç´¢", "pipeli
+2026-04-08T13:49:58.7939225Z === Done: People 2, Kimi 0, Baidu 0, Merged 2, ExistingFiltered 2, New 0 ===
+2026-04-08T13:49:58.8166167Z ##[group]Run echo "AI Search completed at $(TZ='Asia/Shanghai' date)"
+2026-04-08T13:49:58.8166639Z [36;1mecho "AI Search completed at $(TZ='Asia/Shanghai' date)"[0m
+2026-04-08T13:49:58.8193163Z shell: /usr/bin/bash -e {0}
+2026-04-08T13:49:58.8193390Z env:
+2026-04-08T13:49:58.8193710Z   SUPABASE_URL: ***
+2026-04-08T13:49:58.8195045Z   SUPABASE_SERVICE_ROLE_KEY: ***
+2026-04-08T13:49:58.8196407Z   SUPABASE_ANON_KEY: ***
+2026-04-08T13:49:58.8196766Z   KIMI_API_KEY: ***
+2026-04-08T13:49:58.8197033Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-04-08T13:49:58.8197453Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.15/x64/lib/pkgconfig
+2026-04-08T13:49:58.8197852Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-04-08T13:49:58.8198249Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-04-08T13:49:58.8198600Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.15/x64
+2026-04-08T13:49:58.8198979Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.15/x64/lib
+2026-04-08T13:49:58.8199289Z ##[endgroup]
+2026-04-08T13:49:58.8256766Z AI Search completed at Wed Apr  8 21:49:58 CST 2026
+2026-04-08T13:49:58.8316355Z Post job cleanup.
+2026-04-08T13:49:58.9917752Z Post job cleanup.
+2026-04-08T13:49:59.0859836Z [command]/usr/bin/git version
+2026-04-08T13:49:59.0895056Z git version 2.53.0
+2026-04-08T13:49:59.0937515Z Temporarily overriding HOME='/home/runner/work/_temp/f736218d-60da-43bb-a76c-93d11f1e5e5d' before making global git config changes
+2026-04-08T13:49:59.0938827Z Adding repository directory to the temporary git global config as a safe directory
+2026-04-08T13:49:59.0950115Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/speech-web/speech-web
+2026-04-08T13:49:59.0983259Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-04-08T13:49:59.1014966Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-04-08T13:49:59.1222488Z fatal: No url found for submodule path '_deploy_tmp' in .gitmodules
+2026-04-08T13:49:59.1269165Z ##[warning]The process '/usr/bin/git' failed with exit code 128
+2026-04-08T13:49:59.1359111Z Cleaning up orphan processes
+2026-04-08T13:49:59.1631472Z ##[warning]Node.js 20 actions are deprecated. The following actions are running on Node.js 20 and may not work as expected: actions/checkout@v4, actions/setup-python@v5. Actions will be forced to run with Node.js 24 by default starting June 2nd, 2026. Node.js 20 will be removed from the runner on September 16th, 2026. Please check if updated versions of these actions are available that support Node.js 24. To opt into Node.js 24 now, set the FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true environment variable on the runner or in your workflow file. Once Node.js 24 becomes the default, you can temporarily opt out by setting ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

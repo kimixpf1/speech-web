@@ -199,11 +199,9 @@ export async function waitForWorkflowCompletion(
   const startTime = Date.now();
   const pollInterval = 10000; // 10 秒轮询一次
   
-  // 先获取当前待审核文章数量作为基准
-  const { data: beforeData } = await supabase
+  const { count: beforeCount } = await supabase
     .from('pending_articles')
     .select('id', { count: 'exact', head: true });
-  const beforeCount = beforeData?.length || 0;
   
   onProgress?.('等待后台搜索完成...');
   
@@ -217,10 +215,9 @@ export async function waitForWorkflowCompletion(
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // 获取新的待审核文章数量
-      const { data: afterData } = await supabase
+      const { count: afterCount } = await supabase
         .from('pending_articles')
         .select('id', { count: 'exact', head: true });
-      const afterCount = afterData?.length || 0;
       
       return {
         success: status.conclusion === 'success',

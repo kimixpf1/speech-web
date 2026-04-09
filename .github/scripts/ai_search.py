@@ -19,13 +19,16 @@ SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
 # 优先使用service_role_key，回退到anon_key
 SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY') or os.environ.get('SUPABASE_ANON_KEY', '')
 KIMI_API_KEY = os.environ.get('KIMI_API_KEY', '')
+DASHSCOPE_API_KEY = os.environ.get('DASHSCOPE_API_KEY', '')
 
 # 调试输出环境变量状态
 print(f'[Config] SUPABASE_URL: {"已配置" if SUPABASE_URL else "未配置"}')
 print(f'[Config] SUPABASE_KEY: {"已配置" if SUPABASE_KEY else "未配置"} (service_role={"是" if os.environ.get("SUPABASE_SERVICE_ROLE_KEY") else "否"})')
 print(f'[Config] KIMI_API_KEY: {"已配置" if KIMI_API_KEY else "未配置"}')
+print(f'[Config] DASHSCOPE_API_KEY: {"已配置" if DASHSCOPE_API_KEY else "未配置"}')
 
 KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions'
+DASHSCOPE_API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
 TABLE = 'pending_articles'
 LOG_TABLE = 'search_logs'
 
@@ -185,18 +188,38 @@ def validate_article(article: Dict) -> Dict:
     return result
 
 
-def search_with_kimi(query: str) -> List[Dict]:
-    if not KIMI_API_KEY:
-        print('[Kimi] API Key not configured')
+def _parse_ai_articles(content: str, source_name: str) -> List[Dict]:
+    """通用解析AI返回的JSON文章列表"""
+    if not content or content.strip() in ('', '...', '[]', '无', '没有'):
+        print(f'[{source_name}] Empty or invalid response content')
         return []
     
-    today = (datetime.utcnow() + timedelta(hours=8)).strftime('%Y年%m月%d日')
-    today_date = (datetime.utcnow() + timedelta(hours=8)).strftime('%Y-%m-%d')
+    match = re.search(r'\[[\s\S]*?\]', content)
+    if not match:
+        print(f'[{source_name}] No JSON array found in response')
+        return []
+    
+    try:
+        articles = json.loads(match.group())
+    except json.JSONDecodeError as e:
+        print(f'[{source_name}] JSON parse error: {e}')
+        return []
+    
+    valid = [a for a in articles if a.get('title') and a.get('url', '').startswith('http')]
+    print(f'[{source_name}] Parsed {len(articles)} raw, {len(valid)} valid articles')
+    return valid
+
+
+def _build_news_search_prompt() -> tuple:
+    """构建通用新闻搜索 system prompt，返回 (prompt, today, today_date)"""
+    now_bj = datetime.utcnow() + timedelta(hours=8)
+    today = f'{now_bj.year}\u5e74{now_bj.month:02d}\u6708{now_bj.day:02d}\u65e5'
+    today_date = now_bj.strftime('%Y-%m-%d')
     
     system_prompt = f"""你是新闻搜索助手。今天是{today}。
 
 重要提示：
-1. 必须使用联网搜索($web_search)获取最新新闻
+1. 必须联网搜索获取最新新闻
 2. 绝对不要使用训练数据中的旧新闻
 3. 只返回{today_date}之后发布的新闻，更早的新闻直接丢弃
 
@@ -212,46 +235,157 @@ def search_with_kimi(query: str) -> List[Dict]:
 返回JSON数组，每条包含：
 {{"title": "标题", "date": "YYYY-MM-DD", "category": "speech", "categoryName": "重要讲话", "source": "来源", "url": "真实可访问的链接", "summary": "摘要"}}
 要求：只返回最近3天内的新闻，最多15条，只返回JSON数组。如果没找到最新新闻或无法确认URL真实性，返回空数组[]。"""
+    
+    return system_prompt, today, today_date
 
-    print(f'[Kimi] Searching with optimized prompt')
+
+def search_with_qwen(query: str) -> List[Dict]:
+    """通义千问联网搜索 - 使用DashScope OpenAI兼容接口 + enable_search"""
+    if not DASHSCOPE_API_KEY:
+        print('[Qwen] API Key not configured, skipping')
+        return []
+    
+    system_prompt, _, _ = _build_news_search_prompt()
+    
+    print(f'[Qwen] Searching with DashScope API (enable_search=True)')
     try:
+        payload = {
+            'model': 'qwen3.5-flash',
+            'messages': [
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': query},
+            ],
+            'temperature': 0.1,
+            'enable_search': True,
+        }
+        
         response = requests.post(
-            KIMI_API_URL,
-            headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {KIMI_API_KEY}'},
-            json={
-                'model': 'moonshot-v1-auto',
-                'messages': [
-                    {'role': 'system', 'content': system_prompt},
-                    {'role': 'user', 'content': query},
-                ],
-                'tools': [{'type': 'builtin_function', 'function': {'name': '$web_search'}}],
-                'temperature': 0.1,
+            DASHSCOPE_API_URL,
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {DASHSCOPE_API_KEY}',
             },
+            json=payload,
             timeout=120
         )
         
+        print(f'[Qwen] HTTP status: {response.status_code}')
+        
         if response.status_code != 200:
-            print(f'[Kimi] API error: {response.status_code}')
+            print(f'[Qwen] API error: {response.status_code} - {response.text[:300]}')
             return []
         
-        content = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
-        print(f'[Kimi] Response: {content[:200]}...')
+        resp_json = response.json()
         
-        match = re.search(r'\[[\s\S]*?\]', content)
-        if not match:
+        # Debug: print full response structure
+        choices = resp_json.get('choices', [])
+        if not choices:
+            print(f'[Qwen] No choices in response: {json.dumps(resp_json, ensure_ascii=False)[:300]}')
             return []
         
-        articles = json.loads(match.group())
-        print(f'[Kimi] Found {len(articles)} articles')
-        return [a for a in articles if a.get('title') and a.get('url', '').startswith('http')]
+        message = choices[0].get('message', {})
+        content = message.get('content', '')
+        
+        # Check for tool calls / search results metadata
+        tool_calls = message.get('tool_calls', [])
+        if tool_calls:
+            print(f'[Qwen] Has {len(tool_calls)} tool_calls')
+        
+        print(f'[Qwen] Response content: {content[:300]}...')
+        
+        return _parse_ai_articles(content, 'Qwen')
     
+    except requests.exceptions.Timeout:
+        print(f'[Qwen] Request timeout (120s)')
+        return []
+    except Exception as e:
+        print(f'[Qwen] Search failed: {e}')
+        return []
+
+
+def search_with_kimi(query: str) -> List[Dict]:
+    if not KIMI_API_KEY:
+        print('[Kimi] API Key not configured, skipping')
+        return []
+    
+    system_prompt, _, _ = _build_news_search_prompt()
+    
+    print(f'[Kimi] Searching with moonshot-v1-auto + web_search')
+    try:
+        messages = [
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': query},
+        ]
+        tools = [{'type': 'builtin_function', 'function': {'name': '$web_search'}}]
+        
+        for round_num in range(3):
+            response = requests.post(
+                KIMI_API_URL,
+                headers={'Content-Type': 'application/json', 'Authorization': f'Bearer {KIMI_API_KEY}'},
+                json={
+                    'model': 'moonshot-v1-auto',
+                    'messages': messages,
+                    'tools': tools if round_num == 0 else None,
+                    'temperature': 0.1,
+                },
+                timeout=120
+            )
+            
+            print(f'[Kimi] Round {round_num + 1} HTTP status: {response.status_code}')
+            
+            if response.status_code != 200:
+                print(f'[Kimi] API error: {response.status_code} - {response.text[:300]}')
+                return []
+            
+            resp_json = response.json()
+            choices = resp_json.get('choices', [])
+            if not choices:
+                print(f'[Kimi] No choices in response')
+                return []
+            
+            message = choices[0].get('message', {})
+            content = message.get('content', '')
+            tool_calls = message.get('tool_calls', [])
+            finish_reason = choices[0].get('finish_reason', '')
+            
+            print(f'[Kimi] Round {round_num + 1}: finish_reason={finish_reason}, content_len={len(content)}, tool_calls={len(tool_calls)}')
+            
+            if tool_calls and finish_reason == 'tool_calls':
+                print(f'[Kimi] Web search invoked, sending follow-up request...')
+                messages.append(message)
+                for tc in tool_calls:
+                    tc_id = tc.get('id', '')
+                    tc_name = tc.get('function', {}).get('name', '')
+                    tc_args = tc.get('function', {}).get('arguments', '{}')
+                    print(f'[Kimi] Tool call: {tc_name}({tc_args[:100]})')
+                    messages.append({
+                        'role': 'tool',
+                        'content': json.dumps({'result': 'web_search_completed'}),
+                        'tool_call_id': tc_id,
+                    })
+                tools = None
+                continue
+            
+            if content:
+                print(f'[Kimi] Final content (first 500 chars): {content[:500]}...')
+                return _parse_ai_articles(content, 'Kimi')
+            
+            print(f'[Kimi] Empty content in round {round_num + 1}, retrying...')
+        
+        print(f'[Kimi] Max rounds reached with no content')
+        return []
+    
+    except requests.exceptions.Timeout:
+        print(f'[Kimi] Request timeout (120s)')
+        return []
     except Exception as e:
         print(f'[Kimi] Search failed: {e}')
         return []
 
 
 def search_with_baidu(queries: List[str]) -> List[Dict]:
-    print('[Baidu] Starting multi-query search...')
+    """百度搜索 - 降级为最后兜底手段，带反爬虫检测"""
+    print('[Baidu] Starting (fallback mode, limited queries)...')
     articles = []
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     
@@ -262,44 +396,59 @@ def search_with_baidu(queries: List[str]) -> List[Dict]:
         return []
     
     seen_baidu_titles = set()
+    blocked = False
     
-    for query in queries:
-        for site in BAIDU_SITES:
-            search_query = f'site:{site} {query}'
-            url = f'https://www.baidu.com/s?wd={quote(search_query)}&rn=10'
+    # 只用第一个 query + 3个核心站点，减少被封概率
+    fallback_sites = ['xinhuanet.com', 'news.cn', 'people.com.cn']
+    fallback_query = queries[0] if queries else ''
+    
+    for site in fallback_sites:
+        if blocked:
+            break
+        search_query = f'site:{site} {fallback_query}'
+        url = f'https://www.baidu.com/s?wd={quote(search_query)}&rn=10'
+        
+        try:
+            resp = requests.get(url, headers=headers, timeout=15)
+            if resp.status_code != 200:
+                continue
             
-            try:
-                resp = requests.get(url, headers=headers, timeout=15)
-                if resp.status_code != 200:
+            # 反爬虫检测：百度安全验证页
+            if '百度安全验证' in resp.text or '安全验证' in resp.text[:500]:
+                print(f'[Baidu] Anti-bot detected for {site}, stopping all Baidu searches')
+                blocked = True
+                break
+            
+            soup = BeautifulSoup(resp.text, 'html.parser')
+            for result in soup.select('.result.c-container')[:8]:
+                title_elem = result.select_one('h3 a')
+                if not title_elem:
                     continue
                 
-                soup = BeautifulSoup(resp.text, 'html.parser')
-                for result in soup.select('.result.c-container')[:8]:
-                    title_elem = result.select_one('h3 a')
-                    if not title_elem:
-                        continue
-                    
-                    title = title_elem.get_text(strip=True)
-                    if '习近平' not in title and '总书记' not in title:
-                        continue
-                    
-                    simple = re.sub(r'[《》""「」『』【】\s]', '', title)
-                    if simple in seen_baidu_titles:
-                        continue
-                    seen_baidu_titles.add(simple)
-                    
-                    articles.append({
-                        'title': title,
-                        'url': title_elem.get('href', ''),
-                        'source': site.split('.')[0],
-                        'date': (datetime.utcnow() + timedelta(hours=8)).date().isoformat(),
-                        'summary': title,
-                    })
-                time.sleep(1)
-            except Exception as e:
-                print(f'[Baidu] {site} query="{query[:20]}..." failed: {e}')
+                title = title_elem.get_text(strip=True)
+                if '习近平' not in title and '总书记' not in title:
+                    continue
+                
+                simple = re.sub(r'[《》""「」『』【】\s]', '', title)
+                if simple in seen_baidu_titles:
+                    continue
+                seen_baidu_titles.add(simple)
+                
+                articles.append({
+                    'title': title,
+                    'url': title_elem.get('href', ''),
+                    'source': site.split('.')[0],
+                    'date': (datetime.utcnow() + timedelta(hours=8)).date().isoformat(),
+                    'summary': title,
+                })
+            time.sleep(2)
+        except Exception as e:
+            print(f'[Baidu] {site} failed: {e}')
     
-    print(f'[Baidu] Found {len(articles)} articles from {len(queries)} queries x {len(BAIDU_SITES)} sites')
+    if blocked:
+        print(f'[Baidu] BLOCKED by anti-bot, got {len(articles)} articles before block')
+    else:
+        print(f'[Baidu] Found {len(articles)} articles (fallback mode)')
     return articles
 
 
@@ -384,7 +533,7 @@ def search_people_jhsjk() -> List[Dict]:
         return []
 
 
-def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], people_articles: List[Dict] = None):
+def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], people_articles: List[Dict] = None, qwen_articles: List[Dict] = None):
     all_articles = []
     seen_titles = set()
     seen_urls = set()
@@ -395,8 +544,10 @@ def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], peop
 
     if people_articles is None:
         people_articles = []
+    if qwen_articles is None:
+        qwen_articles = []
 
-    source_counts = {'kimi': len(kimi_articles or []), 'baidu': len(baidu_articles or []), 'people': len(people_articles or [])}
+    source_counts = {'kimi': len(kimi_articles or []), 'qwen': len(qwen_articles or []), 'baidu': len(baidu_articles or []), 'people': len(people_articles or [])}
 
     def simplify(t): return re.sub(r'[《》""「」『』【】\s]', '', t)
 
@@ -440,12 +591,14 @@ def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], peop
         })
         kept_articles.append({'title': title, 'url': url, 'source': source_tag})
 
+    for a in people_articles:
+        add(a, 'people')
+    for a in qwen_articles:
+        add(a, 'qwen')
     for a in kimi_articles:
         add(a, 'kimi')
     for a in baidu_articles:
         add(a, 'baidu')
-    for a in people_articles:
-        add(a, 'people')
 
     merge_info = {
         'source_breakdown': source_counts,
@@ -517,7 +670,7 @@ def get_search_pipeline_label(search_type):
     return '手动触发搜索'
 
 
-def save_log(kimi_count, baidu_count, people_count, new_count, status, details):
+def save_log(qwen_count, kimi_count, baidu_count, people_count, new_count, status, details):
     if not SUPABASE_URL:
         print('[Log] SUPABASE_URL not configured')
         return
@@ -527,10 +680,11 @@ def save_log(kimi_count, baidu_count, people_count, new_count, status, details):
         beijing_now = datetime.now(beijing_tz)
         search_type = get_search_type()
         pipeline_label = get_search_pipeline_label(search_type)
+        total = qwen_count + kimi_count + baidu_count + people_count
         log_data = {
             'executed_at': beijing_now.isoformat(),
-            'crawl_count': kimi_count + baidu_count + people_count,
-            'search_count': kimi_count + baidu_count + people_count,
+            'crawl_count': total,
+            'search_count': total,
             'new_count': new_count,
             'status': status,
             'details': {
@@ -539,11 +693,12 @@ def save_log(kimi_count, baidu_count, people_count, new_count, status, details):
                 'api_used': pipeline_label,
                 'pipeline': {
                     'step1': '直抓人民网讲话数据库',
-                    'step2': '百度搜索(人民日报+新华社+求是网)',
-                    'step3': 'Kimi联网补漏',
-                    'step4': '统一去重(标题+URL)',
-                    'step5': '与已有文章库比对',
-                    'step6': '最终新增入待审核',
+                    'step2': 'Qwen联网搜索(通义千问+enable_search)',
+                    'step3': 'Kimi联网补漏(Moonshot)',
+                    'step4': '百度搜索兜底(仅新华社/人民网)',
+                    'step5': '统一去重(标题+URL)',
+                    'step6': '与已有文章库比对',
+                    'step7': '最终新增入待审核',
                 },
             },
             'duration_seconds': 0,
@@ -578,10 +733,11 @@ def main():
     main_query, queries, search_date, target_date = get_search_query()
 
     people_articles = search_people_jhsjk()
+    qwen_articles = search_with_qwen(main_query)
     kimi_articles = search_with_kimi(main_query)
     baidu_articles = search_with_baidu(queries)
 
-    merged, merge_info = merge_and_dedupe(kimi_articles, baidu_articles, people_articles)
+    merged, merge_info = merge_and_dedupe(kimi_articles, baidu_articles, people_articles, qwen_articles)
     print(f'[Merge] After dedup: {len(merged)} articles')
 
     existing_urls = get_existing_urls()
@@ -633,9 +789,9 @@ def main():
         'save_result': save_result,
     }
 
-    save_log(len(kimi_articles), len(baidu_articles), len(people_articles), saved, status, log_details)
+    save_log(len(qwen_articles), len(kimi_articles), len(baidu_articles), len(people_articles), saved, status, log_details)
 
-    print(f'=== Done: People {len(people_articles)}, Kimi {len(kimi_articles)}, Baidu {len(baidu_articles)}, '
+    print(f'=== Done: People {len(people_articles)}, Qwen {len(qwen_articles)}, Kimi {len(kimi_articles)}, Baidu {len(baidu_articles)}, '
           f'Merged {len(merged)}, ExistingFiltered {len(existing_url_filtered)}, New {saved} ===')
 
 
