@@ -52,8 +52,8 @@ function getDeepSeekApiKeyLocal(): string | null {
 function getAvailableProviderAndKey(): { provider: ApiProvider; key: string } | null {
   const deepseekKey = getDeepSeekApiKeyLocal();
   const kimiKey = getKimiApiKey();
-  const preferred = localStorage.getItem('preferred_api') as ApiProvider || 'kimi';
-  
+  const preferred = localStorage.getItem('preferred_extraction_api') as ApiProvider || 'kimi';
+
   if (preferred === 'deepseek' && deepseekKey) {
     return { provider: 'deepseek', key: deepseekKey };
   }
@@ -142,9 +142,13 @@ async function fetchWithCorsProxy(url: string): Promise<string> {
       if (response.ok) {
         const text = await response.text();
         if (text && text.length > 100) {
-          console.log('Successfully fetched content, length:', text.length);
+          console.log('Successfully fetched content via proxy, length:', text.length, 'first 200 chars:', text.substring(0, 200));
           return text;
+        } else {
+          console.warn('Proxy returned short content, length:', text?.length, 'first 100 chars:', text?.substring(0, 100));
         }
+      } else {
+        console.warn('Proxy returned status:', response.status, response.statusText);
       }
     } catch (e) {
       lastError = e instanceof Error ? e : new Error('Unknown error');
@@ -248,6 +252,40 @@ function cleanHtmlContent(html: string): string {
     .replace(/\n+/g, '\n')
     .replace(/[ \t]+/g, ' ')
     .trim();
+}
+
+function parseArticleJson(content: string): ExtractedArticle {
+  let jsonStr = content;
+
+  const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlockMatch) {
+    jsonStr = codeBlockMatch[1].trim();
+  }
+
+  const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('AI返回内容中未找到JSON对象');
+  }
+
+  let rawJson = jsonMatch[0];
+
+  try {
+    return JSON.parse(rawJson);
+  } catch {
+    // 尝试修复常见JSON问题：控制字符、尾逗号
+    const sanitized = rawJson
+      .replace(/[\x00-\x1f\x7f]/g, (ch) => {
+        if (ch === '\n' || ch === '\r' || ch === '\t') return ch;
+        return '';
+      })
+      .replace(/,\s*([}\]])/g, '$1');
+
+    try {
+      return JSON.parse(sanitized);
+    } catch (e2) {
+      throw new Error(`JSON解析失败: ${e2 instanceof Error ? e2.message : String(e2)}`);
+    }
+  }
 }
 
 /**
@@ -410,24 +448,16 @@ ${truncatedContent}
       throw new Error('API返回内容为空');
     }
 
-    console.log('API response received, content length:', content.length, 'parsing...');
+    console.log(`${provider} API response received, content length:`, content.length);
+    console.log('API raw response (first 500 chars):', content.substring(0, 500));
 
     let article: ExtractedArticle;
     try {
-      let jsonStr = content;
-      const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (codeBlockMatch) {
-        jsonStr = codeBlockMatch[1].trim();
-      }
-      const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        article = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('无法解析返回的JSON');
-      }
+      article = parseArticleJson(content);
     } catch (parseError) {
-      console.error('JSON解析错误, raw content (first 800 chars):', content.substring(0, 800));
-      throw new Error('解析文章内容失败，请重试');
+      console.error('JSON解析错误:', parseError instanceof Error ? parseError.message : parseError);
+      console.error('Raw content (first 800 chars):', content.substring(0, 800));
+      throw new Error('解析文章内容失败，请重试（AI返回格式异常）');
     }
 
     article.url = url;
@@ -586,12 +616,7 @@ ${truncatedContent}
       throw new Error('API返回内容为空');
     }
 
-    const jsonMatch = apiContent.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('解析失败');
-    }
-
-    const article: ExtractedArticle = JSON.parse(jsonMatch[0]);
+    const article: ExtractedArticle = parseArticleJson(apiContent);
     article.url = url;
 
     return article;
