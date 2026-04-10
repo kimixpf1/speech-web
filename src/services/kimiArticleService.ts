@@ -1,5 +1,7 @@
 // Kimi API 服务 - 用于精准提取文章内容
 
+import { getPreferredExtractionApi } from './aiSearchService';
+
 const KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions';
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
@@ -52,8 +54,8 @@ function getDeepSeekApiKeyLocal(): string | null {
 function getAvailableProviderAndKey(): { provider: ApiProvider; key: string } | null {
   const deepseekKey = getDeepSeekApiKeyLocal();
   const kimiKey = getKimiApiKey();
-  const preferred = localStorage.getItem('preferred_api') as ApiProvider || 'kimi';
-  
+  const preferred = getPreferredExtractionApi();
+
   if (preferred === 'deepseek' && deepseekKey) {
     return { provider: 'deepseek', key: deepseekKey };
   }
@@ -74,7 +76,7 @@ function getApiUrl(provider: ApiProvider): string {
 }
 
 function getModel(provider: ApiProvider): string {
-  return provider === 'deepseek' ? 'deepseek-chat' : 'moonshot-v1-8k';
+  return provider === 'deepseek' ? 'deepseek-chat' : 'moonshot-v1-32k';
 }
 
 /**
@@ -142,9 +144,13 @@ async function fetchWithCorsProxy(url: string): Promise<string> {
       if (response.ok) {
         const text = await response.text();
         if (text && text.length > 100) {
-          console.log('Successfully fetched content, length:', text.length);
+          console.log('Successfully fetched content via proxy, length:', text.length, 'first 200 chars:', text.substring(0, 200));
           return text;
+        } else {
+          console.warn('Proxy returned short content, length:', text?.length, 'first 100 chars:', text?.substring(0, 100));
         }
+      } else {
+        console.warn('Proxy returned status:', response.status, response.statusText);
       }
     } catch (e) {
       lastError = e instanceof Error ? e : new Error('Unknown error');
@@ -250,6 +256,103 @@ function cleanHtmlContent(html: string): string {
     .trim();
 }
 
+function extractFullTextFromHtml(html: string, title?: string): string {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+
+  const selectorsToRemove = [
+    'script', 'style', 'nav', 'header', 'footer',
+    '.share', '.comment', '.related', '.recommend',
+    '.sidebar', '.ad', '.advertisement',
+    '.breadcrumb', '.copyright', '.source',
+    '.editor', '.author-info', '.page-nav',
+    '[class*="share"]', '[class*="comment"]',
+    '[class*="related"]', '[class*="recommend"]',
+    '[id*="share"]', '[id*="comment"]',
+    '[class*="footer"]', '[class*="sidebar"]',
+  ];
+  selectorsToRemove.forEach(sel => {
+    doc.querySelectorAll(sel).forEach(el => el.remove());
+  });
+
+  let articleEl = doc.querySelector('.article-content')
+    || doc.querySelector('.article_content')
+    || doc.querySelector('.article-body')
+    || doc.querySelector('.content-body')
+    || doc.querySelector('.text-content')
+    || doc.querySelector('.detail-content')
+    || doc.querySelector('.pages_content')
+    || doc.querySelector('#artContent')
+    || doc.querySelector('.rm_txt_con')
+    || doc.querySelector('article')
+    || doc.querySelector('.post-content')
+    || doc.querySelector('.entry-content')
+    || doc.querySelector('.news-content')
+    || doc.querySelector('.detail');
+
+  if (!articleEl) {
+    articleEl = doc.querySelector('.main') || doc.querySelector('#content') || doc.querySelector('main') || doc.body;
+  }
+
+  const paragraphs = articleEl.querySelectorAll('p, div');
+  const textParts: string[] = [];
+
+  paragraphs.forEach(p => {
+    const text = p.textContent?.trim() || '';
+    if (text.length < 10) return;
+    if (/^(责任编辑|编辑：|记者|来源：|分享|版权|Copyright|备案|京ICP)/.test(text)) return;
+    if (text === title) return;
+    textParts.push(text);
+  });
+
+  if (textParts.length === 0) {
+    const allText = articleEl.textContent?.trim() || '';
+    return allText.replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  return textParts.join('\n\n');
+}
+
+function parseArticleJson(content: string): ExtractedArticle {
+  let jsonStr = content;
+
+  const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlockMatch) {
+    jsonStr = codeBlockMatch[1].trim();
+  }
+
+  const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('AI返回内容中未找到JSON对象');
+  }
+
+  let rawJson = jsonMatch[0];
+
+  try {
+    return JSON.parse(rawJson);
+  } catch {
+    const sanitized = rawJson
+      .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '')
+      .replace(/,\s*([}\]])/g, '$1');
+
+    try {
+      return JSON.parse(sanitized);
+    } catch {
+      const escaped = sanitized
+        .replace(/\r\n/g, '\\n')
+        .replace(/\r/g, '\\n')
+        .replace(/\n/g, '\\n')
+        .replace(/\t/g, '\\t');
+
+      try {
+        return JSON.parse(escaped);
+      } catch (e3) {
+        throw new Error(`JSON解析失败: ${e3 instanceof Error ? e3.message : String(e3)}`);
+      }
+    }
+  }
+}
+
 /**
  * 使用 AI API 从网页内容提取文章（自动选择可用 API）
  */
@@ -294,14 +397,14 @@ export async function extractArticleWithKimi(url: string, apiKey?: string): Prom
 
   console.log('Cleaned content length:', truncatedContent.length);
 
-  const prompt = `你是一个专业的内容提取助手。请从以下网页内容中提取文章信息。
+  const prompt = `你是一个专业的内容提取助手。请从以下网页内容中提取文章的结构化信息。
 
 网页URL: ${url}
 
 网页内容：
 ${truncatedContent}
 
-请严格按照以下JSON格式输出：
+请严格按照以下JSON格式输出（不要输出fullText，正文会从原文自动获取）：
 
 {
   "title": "文章完整标题",
@@ -313,40 +416,27 @@ ${truncatedContent}
   "categoryName": "分类中文名",
   "domain": "领域，必须是以下之一：diplomacy（外交）、defense（国防）、party（党建）、ecology（生态）、culture（文化）、society（社会）、economy（经济）、politics（政治）",
   "domainName": "领域中文名",
-  "summary": "文章摘要，200-300字，概述主要内容",
-  "fullText": "纯净的正文内容（见下方详细要求）",
-  "analysis": "深度解读分析，400-600字，必须分为三个段落，每段开头用小标题标注：\n一、政治高度：结合习近平新时代中国特色社会主义思想，阐述讲话在党和国家事业全局中的重大意义。\n二、理论深度：阐释核心要义、精神实质，分析其中蕴含的马克思主义立场观点方法。\n三、历史贯通与实践：联系习近平总书记历次相关重要讲话，分析一脉相承的思想脉络，指出对推动中国式现代化的实践指导意义。"
+  "summary": "文章摘要（见下方要求）",
+  "analysis": "深度解读分析（见下方要求）"
 }
 
+【摘要撰写规范】
+- 150-250字，简洁明了
+- 尽量使用原文关键表述和核心语句，可适当提炼压缩
+- 不要生造原文没有的表述
+- 涵盖：什么事、什么要求、什么目标
+
 【解读分析撰写规范】
-解读必须分为三个段落，每段开头用小标题标注：
-一、政治高度：结合习近平新时代中国特色社会主义思想，阐述讲话在党和国家事业全局中的重大意义。
-二、理论深度：阐释核心要义、精神实质，分析其中蕴含的马克思主义立场观点方法。
-三、历史贯通与实践：联系习近平总书记历次相关重要讲话，分析一脉相承的思想脉络，指出对推动中国式现代化的实践指导意义。
+400-600字，必须分为三段，每段以"一、""二、""三、"开头：
 
-【最重要】fullText正文提取规则：
+一、政治高度（约150-200字）：结合习近平新时代中国特色社会主义思想，阐述在党和国家事业全局中的重大意义。
 
-必须排除的内容（绝对不能出现在fullText中）：
-× 标题（不要在正文开头重复标题）
-× 来源/日期/时间（如"2026年03月22日08:15"、"来源：人民网"）
-× 作者信息（如"作者：XXX"）
-× 编辑信息（如"责任编辑：XXX"、"编辑：XXX"）
-× 来源声明（如"（来源：XXX）"、"原标题：XXX"）
-× 分享按钮文字（如"分享到："、"微博"、"微信"）
-× 版权声明（如"版权所有"、"未经授权"）
-× 导航/面包屑（如"首页 > 政治"）
-× 推荐/相关（如"相关阅读"、"推荐阅读"、"延伸阅读"）
-× 广告/推广内容
-× 网站固定页脚内容
+二、理论深度（约150-200字）：阐释核心要义、精神实质，分析其中蕴含的马克思主义立场观点方法。
 
-正文格式要求：
-1. 直接从第一段正文内容开始
-2. 每个自然段之间用一个空行分隔
-3. 保持段落完整，不要拆分句子
-4. 正文结束于最后一段实际内容，不要包含后续的网页杂项
+三、历史贯通与实践（约150-200字）：联系习近平总书记历次相关重要讲话，分析一脉相承的思想脉络，指出对推动中国式现代化的实践指导意义。
 
 分类判断（按优先级）：
-1. 标题含"会见"+"外国/总统/总理" → meeting（外交会见）
+1. 标题含"会见"+"外国/总统/总理" → meeting
 2. 标题含"出访/峰会" → meeting
 3. 标题含"讲话/发表重要讲话/致辞" → speech
 4. 标题含"《求是》/发表文章" → article
@@ -354,22 +444,21 @@ ${truncatedContent}
 6. 标题含"会议/座谈会/全会" → meeting
 
 领域判断（按优先级）：
-1. 标题含"外交/出访/峰会/总统/总理/国事访问/会见外国" → diplomacy（外交）
-2. 标题含"军队/国防/军事/军委/强军" → defense（国防）
-3. 标题含"党建/从严治党/纪检/巡视/党校" → party（党建）
-4. 标题含"生态/环境/绿色/碳达峰/碳中和" → ecology（生态）
-5. 标题含"文化/文明/文艺/体育" → culture（文化）
-6. 标题含"民生/扶贫/乡村振兴/医疗/就业/养老" → society（社会）
-7. 标题含"经济/金融/高质量发展/产业/企业/科技/创新/新质生产力/改革开放/营商环境/招商引资/项目建设/产业升级" → economy（经济）
-8. 其他默认 → politics（政治）
+1. 含"外交/出访/峰会/总统/总理/国事访问/会见外国" → diplomacy
+2. 含"军队/国防/军事/军委/强军" → defense
+3. 含"党建/从严治党/纪检/巡视/党校" → party
+4. 含"生态/环境/绿色/碳达峰/碳中和" → ecology
+5. 含"文化/文明/文艺/体育" → culture
+6. 含"民生/扶贫/乡村振兴/医疗/就业/养老" → society
+7. 含"经济/金融/高质量发展/产业/企业/科技/创新/新质生产力/改革开放/营商环境/招商引资/项目建设/产业升级/服务业" → economy
+8. 其他默认 → politics
 
-【重要】考察调研类文章领域判断补充：
-- 分类为"考察调研(inspection)"的文章，需结合内容判断领域：
-- 考察地点为"科技园区/企业/工厂/开发区/产业基地/创新平台" → economy（经济）
-- 考察内容涉及"科技创新/产业发展/企业经营/项目建设/营商环境" → economy（经济）
-- 考察内容涉及"农业生产/乡村振兴/农民增收" → society（社会）或 economy（经济）
-- 考察内容涉及"生态环境/污染治理/绿色发展" → ecology（生态）
-- 考察内容涉及"文化遗产/文物保护/文化教育" → culture（文化）`;
+考察调研类文章领域补充：
+- 考察科技园区/企业/工厂/开发区/产业基地 → economy
+- 涉及科技创新/产业发展/企业经营 → economy
+- 涉及农业生产/乡村振兴 → society 或 economy
+- 涉及生态环境/绿色发展 → ecology
+- 涉及文化遗产/文物保护 → culture`;
 
 
   try {
@@ -394,7 +483,7 @@ ${truncatedContent}
           }
         ],
         temperature: 0.3,
-        max_tokens: 8000,
+        max_tokens: 4000,
       }),
     });
 
@@ -410,25 +499,22 @@ ${truncatedContent}
       throw new Error('API返回内容为空');
     }
 
-    console.log('API response received, parsing...');
+    console.log(`${provider} API response received, content length:`, content.length);
+    console.log('API raw response (first 500 chars):', content.substring(0, 500));
 
-    // 解析JSON
     let article: ExtractedArticle;
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        article = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('无法解析返回的JSON');
-      }
+      article = parseArticleJson(content);
     } catch (parseError) {
-      console.error('JSON解析错误:', content.substring(0, 500));
-      throw new Error('解析文章内容失败，请重试');
+      console.error('JSON解析错误:', parseError instanceof Error ? parseError.message : parseError);
+      console.error('Raw content (first 800 chars):', content.substring(0, 800));
+      throw new Error('解析文章内容失败，请重试（AI返回格式异常）');
     }
 
     article.url = url;
+    article.fullText = extractFullTextFromHtml(pageContent, article.title);
 
-    if (!article.title || !article.fullText) {
+    if (!article.title) {
       throw new Error('提取的内容不完整，请重试');
     }
 
@@ -582,12 +668,7 @@ ${truncatedContent}
       throw new Error('API返回内容为空');
     }
 
-    const jsonMatch = apiContent.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('解析失败');
-    }
-
-    const article: ExtractedArticle = JSON.parse(jsonMatch[0]);
+    const article: ExtractedArticle = parseArticleJson(apiContent);
     article.url = url;
 
     return article;
