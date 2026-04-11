@@ -91,3 +91,45 @@
 
 ### 遗留事项
 - 无，首页点击卡顿问题已关闭
+
+## 2026-04-11 第一批构建体积优化
+
+### 本次目标
+- 执行14项优化方案中的第一批（构建体积优化），减少首屏加载体积
+
+### 实际改动
+- **优化 #1 TTS/ONNX/Piper**：已确认本就是动态 import（`await import('@mintplex-labs/piper-tts-web')`），无需额外改动
+- **优化 #2 recharts 移除**：
+  - 删除 `src/components/ui/chart.tsx`（无任何文件引用的 recharts 封装死代码）
+  - 从 `package.json` 移除 `recharts` 依赖，`npm uninstall` 减少37个npm包
+- **优化 #3 docx + file-saver 动态加载**：
+  - `DetailPage.tsx` 中 docx 和 file-saver 从顶部静态 import 改为 `handleExportWord` 内 `await import()` 动态加载
+  - DetailPage chunk 从 **380.5 KB → 48.5 KB**（减少 87%）
+  - docx 库被 Vite 自动拆分为独立 lazy chunk（~645KB），仅在用户点击"导出Word"时加载
+  - file-saver 被拆分为独立 lazy chunk（~2.9KB）
+- **优化 #4 html2canvas**：确认不存在于代码库中，跳过
+
+### 构建产物对比
+| 文件 | 优化前 | 优化后 |
+|------|--------|--------|
+| DetailPage.js | 380.5 KB | 48.5 KB |
+| FileSaver.min.js | (内联) | 2.9 KB (lazy) |
+| recharts | 有 | 完全消除 |
+
+### 影响文件
+- src/components/ui/chart.tsx（已删除）
+- src/components/DetailPage.tsx（import 改为动态）
+- package.json（移除 recharts 依赖）
+- package-lock.json（自动更新）
+
+### 验证结果
+- ✅ `npx vite build` 成功
+- ✅ TypeScript 零错误（DetailPage.tsx diagnostics = []）
+- ✅ 代码逻辑复核通过：所有 docx/file-saver 变量引用均在 handleExportWord 函数作用域内
+
+### 提交记录
+- `d0bf2c4` perf: 第一批构建体积优化 - 移除recharts死代码 + docx动态加载
+
+### 遗留事项
+- 需用户手动 `git push origin main`（沙箱环境无法弹出凭据窗口）
+- 后续第二批优化待启动：CSS/UI 优化（暗色模式清理、Tailwind 未使用类清除、组件级 CSS 拆分）

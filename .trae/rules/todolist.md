@@ -406,10 +406,10 @@
 
 | # | 优化项 | 涉及文件 | 当前体积 | 优化方式 | 状态 |
 |---|--------|----------|----------|----------|------|
-| 1 | TTS/ONNX/Piper 语音播报改为按需加载 | DetailPage.tsx | ort-wasm-simd-threaded.wasm **24MB** + ort.bundle.min.js **389KB** + piper **86KB** + voices_static **94KB** | 点击播报按钮时才动态 import onnxruntime-web 和 piper-tts-web，不在页面初始加载 | ⬜ 待开始 |
-| 2 | recharts 图表库懒加载 | AdminDashboard.tsx | recharts 打包进 AdminDashboard chunk **122KB** | React.lazy 动态 import，仅在后台页面加载 | ⬜ 待开始 |
-| 3 | docx + file-saver 按需加载 | DetailPage.tsx | 打包进 DetailPage chunk **380KB**（含其他代码） | 点击导出按钮时才动态 import docx 和 file-saver | ⬜ 待开始 |
-| 4 | html2canvas 按需加载 | DetailPage.tsx | 打包进 DetailPage chunk **380KB**（含其他代码） | 点击分享按钮时才动态 import html2canvas | ⬜ 待开始 |
+| 1 | TTS/ONNX/Piper 语音播报改为按需加载 | DetailPage.tsx | ort-wasm-simd-threaded.wasm **24MB** + ort.bundle.min.js **389KB** + piper **86KB** + voices_static **94KB** | 已确认本就是动态 import，无需额外改动 | ✅ 已完成（无需改动） |
+| 2 | recharts 图表库移除 | chart.tsx, package.json | recharts 打包进 AdminDashboard chunk **122KB** | 删除无引用的 chart.tsx 死代码 + 从 package.json 移除 recharts 依赖（减少37个npm包） | ✅ 已完成 |
+| 3 | docx + file-saver 按需加载 | DetailPage.tsx | 打包进 DetailPage chunk **380KB**（含其他代码） | 静态 import 改为 handleExportWord 内动态 import，DetailPage 降至 **48.5KB**（-87%） | ✅ 已完成 |
+| 4 | html2canvas 按需加载 | DetailPage.tsx | 打包进 DetailPage chunk **380KB**（含其他代码） | html2canvas 不存在于代码库中，无需处理 | ⏭ 跳过（不存在） |
 
 ### 第二批：CSS/UI 优化
 
