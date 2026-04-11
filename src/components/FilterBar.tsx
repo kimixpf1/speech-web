@@ -1,4 +1,4 @@
-import { Calendar, X, Mic, FileText, Users, MapPin, LayoutGrid, TrendingUp, Landmark, BookOpen, Leaf, Flag, Shield, Globe, Award } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { categoryOptions, yearOptions, domainOptions } from '@/data/speeches';
+import { categoryColors, domainColors, categoryIconMap, domainIconMap } from '@/config/constants';
 
 interface FilterBarProps {
   selectedDomain: string;
@@ -20,46 +21,6 @@ interface FilterBarProps {
   onYearChange: (year: string) => void;
   resultCount: number;
 }
-
-const categoryIconMap: Record<string, React.ElementType> = {
-  LayoutGrid,
-  Mic,
-  FileText,
-  Users,
-  MapPin,
-};
-
-const domainIconMap: Record<string, React.ElementType> = {
-  LayoutGrid,
-  TrendingUp,
-  Landmark,
-  BookOpen,
-  Users,
-  Leaf,
-  Flag,
-  Shield,
-  Globe,
-};
-
-const categoryColors: Record<string, { bg: string; text: string; border: string }> = {
-  all: { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-300' },
-  speech: { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200' },
-  article: { bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-200' },
-  meeting: { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-200' },
-  inspection: { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-200' },
-};
-
-const domainColors: Record<string, { bg: string; text: string; border: string }> = {
-  all: { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-300' },
-  economy: { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200' },
-  politics: { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200' },
-  culture: { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-200' },
-  society: { bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-200' },
-  ecology: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200' },
-  party: { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-200' },
-  defense: { bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200' },
-  diplomacy: { bg: 'bg-cyan-50', text: 'text-cyan-600', border: 'border-cyan-200' },
-};
 
 export function FilterBar({
   selectedDomain,

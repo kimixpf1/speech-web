@@ -1,39 +1,13 @@
 import { useState } from 'react';
-import { Calendar, MapPin, ExternalLink, Mic, FileText, Users, MapPin as MapPinIcon, BookOpen } from 'lucide-react';
+import { Calendar, MapPin, ExternalLink, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { Speech } from '@/data/speeches';
+import { categoryConfig } from '@/config/constants';
 
 interface TimelineProps {
   speeches: Speech[];
 }
-
-const categoryConfig: Record<string, { icon: React.ElementType; color: string; bgColor: string; borderColor: string }> = {
-  speech: { 
-    icon: Mic, 
-    color: 'text-blue-600', 
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200'
-  },
-  article: { 
-    icon: FileText, 
-    color: 'text-green-600', 
-    bgColor: 'bg-green-50',
-    borderColor: 'border-green-200'
-  },
-  meeting: { 
-    icon: Users, 
-    color: 'text-purple-600', 
-    bgColor: 'bg-purple-50',
-    borderColor: 'border-purple-200'
-  },
-  inspection: { 
-    icon: MapPinIcon, 
-    color: 'text-orange-600', 
-    bgColor: 'bg-orange-50',
-    borderColor: 'border-orange-200'
-  },
-};
 
 export function Timeline({ speeches }: TimelineProps) {
   const [selectedYear, setSelectedYear] = useState<string>('all');
