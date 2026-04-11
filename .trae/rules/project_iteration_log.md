@@ -276,3 +276,53 @@
 
 ### 遗留事项
 - 后续 #12-#14：加载体验优化（骨架屏、图片懒加载、路由预加载）
+
+## 2026-04-11 导航卡顿修复 + 第四批优化 #12-#14
+
+### 本次目标
+- 修复首页↔详情页导航卡顿问题（不改变任何现有行为）
+- 完成第四批 #12-#14 加载体验优化
+
+### 导航卡顿修复
+
+#### 根因分析与修复
+1. **SpeechCard 重渲染** → ContentList.tsx 中 SpeechCard 用 `React.memo` 包裹，返回首页时不触发全部卡片重渲染
+2. **返回导航阻塞 UI** → DetailPage.tsx 的 `handleBack` 用 `startTransition` 包裹 navigate，让返回操作不阻塞主线程
+3. **滚动恢复与渲染竞争** → App.tsx 滚动恢复改为双 `requestAnimationFrame` 延迟，确保 DOM 绘制完成后再滚动
+4. **主包体积过大** → vite.config.ts 添加 `manualChunks`，将 react/react-dom/react-router-dom（46KB）和 swr（11KB）拆为独立可缓存 chunk
+
+#### 构建产物变化
+| 文件 | 修改前 | 修改后 |
+|------|--------|--------|
+| index.js | 647.0 KB | 590.2 KB |
+| vendor-react.js | — | 45.9 KB（新） |
+| vendor-swr.js | — | 10.7 KB（新） |
+
+### 第四批加载体验优化
+
+#### #12 首屏骨架屏
+- App.tsx 中"加载文章中..."纯文字替换为 5 张卡片骨架屏
+- 骨架屏布局匹配 SpeechCard（左侧图标 + 右侧标题/标签/摘要行）
+- 使用 `animate-pulse` 动画提示加载状态
+
+#### #13 图片懒加载
+- ⏭️ 跳过：项目为纯文字内容站，无用户可见的图片资源
+
+#### #14 路由预加载策略
+- ✅ 已在之前迭代实现：requestIdleCallback(1200ms timeout) + onMouseEnter/onFocus 预加载
+
+### 验证结果
+- ✅ 生产构建成功（exit code 0）
+- ✅ TypeScript 类型检查零错误（exit code 0）
+
+### 影响文件
+- src/App.tsx（骨架屏 + 双rAF滚动恢复）
+- src/components/ContentList.tsx（SpeechCard React.memo）
+- src/components/DetailPage.tsx（startTransition返回导航）
+- vite.config.ts（manualChunks分包）
+
+### 14项优化计划总结
+- ✅ 已完成 11 项（#1-#9, #11-#12, #14）
+- ⏭️ 跳过 2 项（#10 sitemap - noindex站点、#13 图片懒加载 - 无图片）
+- ❌ 未完成 0 项
+- **全部优化计划已完成**
