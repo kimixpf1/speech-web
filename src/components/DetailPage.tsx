@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, startTransition } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Calendar, MapPin, ExternalLink, Share2, Mic, FileText, Users, MapPin as MapPinIcon, BookOpen, FileText as FileTextIcon, TrendingUp, Copy, Check, MessageCircle, Volume2, Download, Play, Pause, RefreshCw, Sparkles, AlertCircle } from 'lucide-react';
 import { generateSummaryAndAnalysis, isApiKeyConfigured, type GeneratedContent } from '@/services/aiSummaryService';
@@ -347,11 +347,11 @@ export function DetailPage() {
   };
 
   const handleBack = () => {
-    // 移除手动预加载和进度条逻辑，直接返回
-    // 这样能够最快速度触发 App.tsx 里的 useLayoutEffect 恢复滚动位置
     const isZhengjiguanDetail = window.location.hash.includes('/zhengjiguan/');
     const targetPath = isZhengjiguanDetail ? '/zhengjiguan' : '/';
-    navigate(targetPath, { replace: true });
+    startTransition(() => {
+      navigate(targetPath, { replace: true });
+    });
   };
 
   useEffect(() => {

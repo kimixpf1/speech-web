@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, ExternalLink, ChevronDown, ChevronUp, Mic, FileText, Users, MapPin as MapPinIcon, BookOpen } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,7 +31,7 @@ const domainConfig: Record<string, { color: string; bgColor: string }> = {
 
 const preloadDetailPage = () => import('@/components/DetailPage');
 
-function SpeechCard({ speech }: { speech: Speech }) {
+const SpeechCard = memo(function SpeechCard({ speech }: { speech: Speech }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const navigate = useNavigate();
   const config = categoryConfig[speech.category] || categoryConfig.speech;
@@ -148,7 +148,7 @@ function SpeechCard({ speech }: { speech: Speech }) {
       </CardContent>
     </Card>
   );
-}
+});
 
 export function ContentList({ speeches }: ContentListProps) {
   if (speeches.length === 0) {

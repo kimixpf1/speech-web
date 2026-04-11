@@ -235,7 +235,9 @@ function HomePage() {
     };
 
     if (typeof window.requestAnimationFrame === 'function') {
-      window.requestAnimationFrame(restoreScroll);
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(restoreScroll);
+      });
       return;
     }
 
