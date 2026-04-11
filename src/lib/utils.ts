@@ -194,3 +194,72 @@ export function openExternalUrl(url?: string): void {
     window.location.href = normalizedUrl
   }
 }
+
+const SITE_URL = 'https://kimixpf1.github.io/speech-web'
+
+function getOrCreateMeta(attr: string, attrValue: string, content: string): HTMLMetaElement {
+  let el = document.querySelector(`meta[${attr}="${attrValue}"]`) as HTMLMetaElement | null
+  if (!el) {
+    el = document.createElement('meta')
+    el.setAttribute(attr, attrValue)
+    document.head.appendChild(el)
+  }
+  el.setAttribute('content', content)
+  return el
+}
+
+export function updatePageMeta(title: string, description: string, path?: string): void {
+  if (typeof document === 'undefined') return
+
+  const fullTitle = `${title} - 重要讲话学习平台`
+  document.title = fullTitle
+
+  getOrCreateMeta('name', 'description', description)
+  getOrCreateMeta('property', 'og:title', fullTitle)
+  getOrCreateMeta('property', 'og:description', description)
+  getOrCreateMeta('property', 'og:type', 'article')
+  getOrCreateMeta('property', 'og:url', `${SITE_URL}${path ?? '/#'}`)
+  getOrCreateMeta('property', 'og:image', `${SITE_URL}/share-cover.svg`)
+  getOrCreateMeta('name', 'twitter:title', fullTitle)
+  getOrCreateMeta('name', 'twitter:description', description)
+}
+
+export function resetPageMeta(): void {
+  if (typeof document === 'undefined') return
+
+  document.title = '习近平总书记重要讲话学习平台'
+  getOrCreateMeta('name', 'description', '汇集人民日报、新华社、求是杂志等权威媒体发布的重要讲话、发表文章、重要会议和考察调研动态')
+  getOrCreateMeta('property', 'og:title', '习近平总书记重要讲话学习平台')
+  getOrCreateMeta('property', 'og:description', '汇集人民日报、新华社、求是杂志等权威媒体发布的重要讲话、发表文章、重要会议和考察调研动态')
+  getOrCreateMeta('property', 'og:type', 'website')
+  getOrCreateMeta('property', 'og:url', `${SITE_URL}/`)
+  getOrCreateMeta('name', 'twitter:title', '习近平总书记重要讲话学习平台')
+}
+
+export function injectArticleJsonLd(title: string, date: string, description: string, url?: string): void {
+  if (typeof document === 'undefined') return
+
+  removeJsonLd()
+
+  const script = document.createElement('script')
+  script.type = 'application/ld+json'
+  script.id = 'article-jsonld'
+  script.textContent = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: title,
+    description: description,
+    datePublished: date,
+    url: url || `${SITE_URL}/`,
+    publisher: {
+      '@type': 'Organization',
+      name: '重要讲话学习平台',
+    },
+  })
+  document.head.appendChild(script)
+}
+
+export function removeJsonLd(): void {
+  if (typeof document === 'undefined') return
+  document.getElementById('article-jsonld')?.remove()
+}

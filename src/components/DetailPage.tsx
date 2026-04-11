@@ -22,7 +22,7 @@ import {
   DialogHeader,
 } from '@/components/ui/dialog';
 
-import { normalizeArticleUrl, normalizeSummaryText } from '@/lib/utils';
+import { normalizeArticleUrl, normalizeSummaryText, updatePageMeta, resetPageMeta, injectArticleJsonLd, removeJsonLd } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import type { Progress as PiperProgress, TtsSession as PiperTtsSession } from '@mintplex-labs/piper-tts-web';
 
@@ -273,6 +273,18 @@ export function DetailPage() {
       setIsLoading(false);
     }
   }, [id]);
+
+  useEffect(() => {
+    if (speech) {
+      const desc = speech.summary || speech.abstract || '重要讲话详情';
+      updatePageMeta(speech.title, desc, `/#/detail/${speech.id}`);
+      injectArticleJsonLd(speech.title, speech.date, desc, speech.url);
+    }
+    return () => {
+      resetPageMeta();
+      removeJsonLd();
+    };
+  }, [speech]);
 
   // AI生成摘要和解读
   const handleGenerateContent = useCallback(async () => {

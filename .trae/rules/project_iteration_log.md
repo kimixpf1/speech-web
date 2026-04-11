@@ -238,3 +238,41 @@
 
 ### 遗留事项
 - 后续 #8：社交分享 Meta 标签
+
+## 2026-04-11 第三批优化 #8-#11 SEO/Meta
+
+### 本次目标
+- #8 修正社交分享 Meta 标签（OG URL 错误 + 缺少 Twitter Card）
+- #9 为详情页添加 JSON-LD 结构化数据
+- #10 sitemap.xml 评估（noindex 站点跳过）
+- #11 robots.txt 补充更多 AI 爬虫屏蔽
+
+### 实际改动
+
+#### #8 社交分享 Meta 标签
+- **index.html**：修正 OG URL 从 `z7niv4gwmf4ok.ok.kimi.link` 到 `kimixpf1.github.io/speech-web/`；新增 og:site_name、og:locale；新增 Twitter Card 4 个 meta 标签
+- **src/lib/utils.ts**：新增 `updatePageMeta()` / `resetPageMeta()` / `getOrCreateMeta()` — 动态设置 document.title、OG、Twitter meta
+- **src/components/DetailPage.tsx**：新增 useEffect，在 speech 加载后调用 `updatePageMeta()` 设置每篇文章的动态 meta，离开详情页时 `resetPageMeta()` 恢复默认
+
+#### #9 结构化数据 JSON-LD
+- **src/lib/utils.ts**：新增 `injectArticleJsonLd()` / `removeJsonLd()` — 注入 Article 类型 JSON-LD script 标签
+- **src/components/DetailPage.tsx**：在 meta useEffect 中同步调用 JSON-LD 注入和清理
+
+#### #10 sitemap.xml
+- 跳过：站点 robots meta 为 `noindex, nofollow`，sitemap 对搜索引擎无实际价值
+
+#### #11 robots.txt
+- 新增屏蔽 Anthropic-AI、PerplexityBot、Applebot-Extended
+
+### 验证结果
+- ✅ 生产构建成功（exit code 0）
+- ✅ TypeScript 类型检查零错误（exit code 0）
+
+### 影响文件
+- index.html
+- src/lib/utils.ts
+- src/components/DetailPage.tsx
+- public/robots.txt
+
+### 遗留事项
+- 后续 #12-#14：加载体验优化（骨架屏、图片懒加载、路由预加载）

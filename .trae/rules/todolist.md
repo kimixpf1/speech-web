@@ -423,10 +423,10 @@
 
 | # | 优化项 | 涉及文件 | 说明 | 优化方式 | 状态 |
 |---|--------|----------|------|----------|------|
-| 8 | 社交分享 Meta 标签 | index.html, DetailPage.tsx | 当前无 Open Graph / Twitter Card | 添加 og:title/description/image 等元标签，详情页动态设置 | ⬜ 待开始 |
-| 9 | 结构化数据 JSON-LD | DetailPage.tsx | 当前无结构化数据 | 为文章详情添加 Article 类型 JSON-LD | ⬜ 待开始 |
-| 10 | sitemap.xml 生成 | 构建脚本 | 当前无站点地图 | 构建时自动生成 sitemap.xml | ⬜ 待开始 |
-| 11 | robots.txt 优化 | public/robots.txt | 当前可能不完整 | 完善 robots.txt 允许爬取规则 | ⬜ 待开始 |
+| 8 | 社交分享 Meta 标签 | index.html, DetailPage.tsx, utils.ts | OG URL错误+无Twitter Card | 修正OG URL、添加Twitter Card、详情页动态设置meta | ✅ 已完成 |
+| 9 | 结构化数据 JSON-LD | DetailPage.tsx, utils.ts | 当前无结构化数据 | 为文章详情添加 Article 类型 JSON-LD | ✅ 已完成 |
+| 10 | sitemap.xml 生成 | — | noindex站点无需sitemap | 跳过（站点robots为noindex，sitemap无实际价值） | ⏭️ 跳过 |
+| 11 | robots.txt 优化 | public/robots.txt | 增加AI爬虫覆盖 | 补充Anthropic-AI、PerplexityBot、Applebot-Extended屏蔽 | ✅ 已完成 |
 
 ### 第四批：加载体验优化
 
