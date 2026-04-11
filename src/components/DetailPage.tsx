@@ -21,8 +21,7 @@ import {
   DialogDescription,
   DialogHeader,
 } from '@/components/ui/dialog';
-import { Document, Paragraph, TextRun, AlignmentType, HeadingLevel, Packer } from 'docx';
-import { saveAs } from 'file-saver';
+
 import { normalizeArticleUrl, normalizeSummaryText, openExternalUrl } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import type { Progress as PiperProgress, TtsSession as PiperTtsSession } from '@mintplex-labs/piper-tts-web';
@@ -1043,8 +1042,10 @@ export function DetailPage() {
   // 导出Word功能
   const handleExportWord = async () => {
     if (!speech) return;
-    
-    // 创建公文格式文档
+
+    const { Document, Paragraph, TextRun, AlignmentType, HeadingLevel, Packer } = await import('docx');
+    const { saveAs } = await import('file-saver');
+
     const doc = new Document({
       sections: [{
         properties: {

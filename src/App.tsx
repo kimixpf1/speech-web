@@ -17,6 +17,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { safeGetStorageItem, safeSetStorageItem } from '@/lib/utils';
 import './App.css';
 
+
 // 懒加载页面组件
 const loadDetailPage = () => import('@/components/DetailPage');
 const DetailPage = lazy(() => loadDetailPage().then(m => ({ default: m.DetailPage })));
@@ -66,11 +67,13 @@ function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300); // 300ms 防抖延迟
   const cachedArticles = useMemo(() => getLocalArticlesSync(), []);
+  const hasRestoredScrollRef = useRef(false);
 
   // 记录滚动位置
   useEffect(() => {
     const handleScroll = () => {
       safeSetStorageItem('session', 'lastScrollY', window.scrollY.toString());
+      hasRestoredScrollRef.current = false;
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
@@ -216,12 +219,27 @@ function HomePage() {
 
   // 当文章列表加载完成后，恢复滚动位置
   useLayoutEffect(() => {
-    if (articles.length > 0) {
-      const savedScrollY = getInitialScrollPosition();
-      if (savedScrollY > 0) {
-        window.scrollTo(0, savedScrollY);
-      }
+    if (hasRestoredScrollRef.current || articles.length === 0) {
+      return;
     }
+
+    const savedScrollY = getInitialScrollPosition();
+    if (savedScrollY <= 0) {
+      hasRestoredScrollRef.current = true;
+      return;
+    }
+
+    const restoreScroll = () => {
+      window.scrollTo(0, savedScrollY);
+      hasRestoredScrollRef.current = true;
+    };
+
+    if (typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(restoreScroll);
+      return;
+    }
+
+    window.setTimeout(restoreScroll, 0);
   }, [articles.length]);
 
   return (
