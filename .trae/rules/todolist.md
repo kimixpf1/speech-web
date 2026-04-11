@@ -417,7 +417,7 @@
 |---|--------|----------|----------|----------|------|
 | 5 | 暗色模式 CSS 清理 | index.css + 18个ui/组件 | CSS 103.46KB → **98.26KB**（-5.0%） | 移除 .dark{} CSS变量块 + tailwind darkMode配置 + 18个组件中42处 dark: 类 | ✅ 已完成 |
 | 6 | 删除未使用 ui/ 组件 | 52→10个ui/组件 | CSS 98.26KB → **51.48KB**（-47.6%） | 删除42个零引用死代码组件（accordion/alert-dialog/avatar/calendar/checkbox/command/sidebar/switch/table/tooltip等） | ✅ 已完成 |
-| 7 | 组件级 CSS 拆分 | index.css, App.css | 全局 102KB | 将仅特定组件使用的样式拆到组件级文件 | ⬜ 待开始 |
+| 7 | App.css 死代码清理 | App.css（91→38行） | CSS 51.48KB → **50.93KB** | 删除5个零引用自定义样式（line-clamp-3/animate-fade-in/card-hover/gradient-text/no-print） | ✅ 已完成 |
 
 ### 第三批：SEO/Meta 优化
 

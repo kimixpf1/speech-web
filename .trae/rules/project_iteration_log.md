@@ -207,5 +207,34 @@
 - src/components/ui/ 下 10 个组件文件保留
 
 ### 遗留事项
-- 待推送部署
-- 后续 #7：组件级 CSS 拆分
+- 后续 #7：App.css 死代码清理
+
+## 2026-04-11 第二批优化 #7 App.css 死代码清理
+
+### 本次目标
+- 清理 App.css 中从未被任何组件引用的自定义 CSS 样式
+
+### 排查方法
+- 对 App.css 中所有自定义类名逐一 grep 全项目 .tsx 文件
+- 确认每个类名的外部引用次数
+
+### 最终分类
+- **5 个保留样式**（有引用或全局必需）：scrollbar-hide（3处）、line-clamp-2（6处）、html scroll-behavior、focus-visible、::selection、响应式字体
+- **5 个删除样式**（零引用）：line-clamp-3、@keyframes fadeIn + .animate-fade-in、.card-hover + .card-hover:hover、.gradient-text、@media print .no-print
+
+### 构建产物对比
+| 指标 | 优化前（#6后） | 优化后 |
+|------|---------------|--------|
+| CSS 文件 | 51.48 KB | **50.93 KB**（-0.55 KB） |
+| App.css 行数 | 91 行 | **38 行**（-58%） |
+| 累计 CSS 减少 | 103.46 KB（初始） | **50.93 KB**（总减少 **50.8%**） |
+
+### 验证结果
+- ✅ 生产构建成功（exit code 0）
+- ✅ TypeScript 类型检查零错误（exit code 0）
+
+### 影响文件
+- src/App.css（91行→38行）
+
+### 遗留事项
+- 后续 #8：社交分享 Meta 标签
