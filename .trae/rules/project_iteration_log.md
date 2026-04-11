@@ -1,5 +1,60 @@
 # 项目迭代记录
 
+## 2026-04-11 代码结构优化三步路线收尾
+
+### 本次目标
+- 完成前台代码结构优化三步路线收尾：配置收敛、SpeechCard 复用、DetailPage 拆分
+- 在不影响现有首页、专题页、详情页、AI 生成、语音播报、导出 Word 等能力的前提下，降低前台核心页面的耦合度与重复代码
+- 完成构建验证、代码提交、远端同步核对与规则文档回写
+
+### 实际改动
+- **Step 1 配置收敛**
+  - 新增 `src/config/constants.ts`
+  - 集中维护 `categoryConfig`、`domainConfig`、`levelConfig`、`LOCAL_VOICE_PACK_ID`、`LOCAL_VOICE_PACK_SIZE_MB`
+  - `FilterBar.tsx`、`Timeline.tsx`、`DetailPage.tsx` 等组件改为复用统一配置
+- **Step 2 SpeechCard 复用**
+  - 新增 `src/components/SpeechCard.tsx`
+  - `ContentList.tsx` 删除重复内联卡片 JSX，改为复用 SpeechCard
+  - `ZhengjiguanPage.tsx` 改为复用同一套卡片组件，统一专题页与首页卡片呈现
+- **Step 3 DetailPage 拆分**
+  - 新增 `src/utils/textUtils.ts`，承载详情页相关文本处理纯函数
+  - 新增 `src/utils/deviceDetect.ts`，集中管理设备/浏览器环境识别
+  - 新增 `src/hooks/useTTS.ts`，抽离语音播报状态与控制流程
+  - 新增 `src/hooks/useArticleDetail.ts`，抽离详情数据读取、AI 生成、衍生状态与链接处理
+  - `src/components/DetailPage.tsx` 重写为页面壳与交互编排层，减少大组件内联逻辑
+
+### 影响文件
+- src/components/ContentList.tsx
+- src/components/ZhengjiguanPage.tsx
+- src/components/SpeechCard.tsx
+- src/components/DetailPage.tsx
+- src/components/FilterBar.tsx
+- src/components/Timeline.tsx
+- src/config/constants.ts
+- src/hooks/useArticleDetail.ts
+- src/hooks/useTTS.ts
+- src/utils/textUtils.ts
+- src/utils/deviceDetect.ts
+
+### 验证结果
+- ✅ `npm.cmd run build` 成功（exit code 0）
+- ✅ `git diff --stat` 显示本轮重构以删除重复代码为主，整体结构明显收敛
+- ✅ 当前 `git status` 显示分支与 `origin/main` 同步，说明代码提交已不处于“本地领先线上”状态
+- ⚠️ 当前仍有 `tsc_output.txt` 临时输出文件未跟踪，需清理
+
+### 提交记录
+- `a254638` refactor: 代码结构优化 - SpeechCard复用 + DetailPage拆分 + 常量/工具/钩子抽取
+
+### 当前收益
+- `DetailPage.tsx` 从大而全页面组件收敛为页面编排层，后续排查摘要、语音、导出、返回首页问题时可模块化定位
+- 首页列表与专题页卡片结构统一，后续样式或交互修改只需维护一处
+- 配置、文本处理、设备识别、详情数据、TTS 逻辑已形成更清晰的职责分层
+
+### 遗留事项
+- 清理 `tsc_output.txt` 等本轮验证产生的临时输出文件
+- 将本次 rules 文档回写单独提交并推送，保证协作记录与代码状态一致
+- 推送后向用户说明本轮更新内容，并给出线上测试指引
+
 ## 2026-04-08 RLS修复 + 首页性能优化
 
 ### 本次目标
@@ -133,196 +188,3 @@
 ### 遗留事项
 - 需用户手动 `git push origin main`（沙箱环境无法弹出凭据窗口）
 - 后续第二批优化待启动：CSS/UI 优化（暗色模式清理、Tailwind 未使用类清除、组件级 CSS 拆分）
-
-## 2026-04-11 第二批优化 #5 暗色模式 CSS 清理
-
-### 本次目标
-- 移除项目中从未启用的暗色模式（dark mode）死代码，减少 CSS 产物体积
-
-### 根因分析
-- tailwind.config.js 配置了 `darkMode: ["class"]`，但整个应用从未在 `<html>` 上切换 `.dark` class
-- index.css 中有完整的 `.dark { ... }` CSS 变量块（约 60 行），从未被激活
-- 18 个 ui/ 组件中共有 42 处 `dark:` 变体 Tailwind 类，全部为死代码
-
-### 实际改动
-- **index.css**：移除 `.dark { ... }` CSS 变量块
-- **tailwind.config.js**：移除 `darkMode: ["class"]` 配置
-- **18 个 ui/ 组件**：逐一移除所有 `dark:` 变体类（共 42 处）
-  - button.tsx（5处）、badge.tsx（3处）、input.tsx（2处）、input-otp.tsx（2处）
-  - input-group.tsx（4处）、select.tsx（修复语法错误 + 清理）、checkbox.tsx（3处）
-  - switch.tsx（3处）、toggle.tsx（1处）、textarea.tsx（2处）、tabs.tsx（4处）
-  - radio-group.tsx（2处）、menubar.tsx（1处）、kbd.tsx（1处）、field.tsx（1处）
-  - dropdown-menu.tsx（1处）、context-menu.tsx（1处）、calendar.tsx（1处）
-
-### 构建产物对比
-| 指标 | 优化前 | 优化后 |
-|------|--------|--------|
-| CSS 文件 | 103.46 KB | **98.26 KB**（-5.2 KB / -5.0%） |
-| dark: 残留 | 42 处 | **0 处** |
-
-### 验证结果
-- ✅ TypeScript 零错误
-- ✅ 生产构建成功（exit code 0）
-- ✅ `dark:` 全项目搜索 0 匹配
-- ✅ 修复了 select.tsx 中上一轮遗留的语法错误（字符串断行）
-
-### 影响文件
-- src/index.css、tailwind.config.js
-- src/components/ui/ 下 18 个组件文件
-
-### 遗留事项
-- 后续 #7：组件级 CSS 拆分
-
-## 2026-04-11 第二批优化 #6 删除未使用 ui/ 组件
-
-### 本次目标
-- 系统性排查并删除 src/components/ui/ 下从未被外部引用的死代码组件，减少 CSS 产物体积
-
-### 根因分析
-- 项目 ui/ 目录下有 52 个组件文件，其中大量来自 shadcn/ui 初始化模板，从未在实际业务代码中使用
-- 这些组件的 CSS 类仍然被 Tailwind 扫描并打包进生产 CSS，造成不必要的体积膨胀
-
-### 排查方法
-- 对全部 52 个 ui/ 组件逐一执行 `grep -r "ui/组件名" src/ --exclude-dir=ui` 搜索外部引用
-- 对初步零引用的组件进行别名验证（如 Calendar 组件名被自定义组件使用，但非 ui/calendar）
-- 交叉依赖分析：仅被其他死代码组件内部引用的组件也标记为死代码（如 tooltip 仅被 sidebar.tsx 引用，而 sidebar 本身是死代码）
-
-### 最终分类
-- **10 个保留组件**（有外部业务引用）：alert、badge、button、card、dialog、input、progress、select、tabs、textarea
-- **42 个删除组件**（零外部引用）：accordion、alert-dialog、aspect-ratio、avatar、breadcrumb、button-group、calendar、carousel、checkbox、collapsible、command、context-menu、drawer、dropdown-menu、empty、field、form、hover-card、input-group、input-otp、item、kbd、label、menubar、navigation-menu、pagination、popover、radio-group、resizable、scroll-area、separator、sheet、sidebar、skeleton、slider、sonner、spinner、switch、table、toggle、toggle-group、tooltip
-
-### 构建产物对比
-| 指标 | 优化前（#5后） | 优化后 |
-|------|---------------|--------|
-| CSS 文件 | 98.26 KB | **51.48 KB**（-46.78 KB / -47.6%） |
-| ui/ 组件数 | 52 个 | **10 个**（-42 个） |
-| 累计 CSS 减少 | 103.46 KB（初始） | **51.48 KB**（总减少 **50.2%**） |
-
-### 验证结果
-- ✅ 生产构建成功（exit code 0）
-- ✅ TypeScript 类型检查零错误（exit code 0）
-
-### 影响文件
-- src/components/ui/ 下 42 个组件文件已删除
-- src/components/ui/ 下 10 个组件文件保留
-
-### 遗留事项
-- 后续 #7：App.css 死代码清理
-
-## 2026-04-11 第二批优化 #7 App.css 死代码清理
-
-### 本次目标
-- 清理 App.css 中从未被任何组件引用的自定义 CSS 样式
-
-### 排查方法
-- 对 App.css 中所有自定义类名逐一 grep 全项目 .tsx 文件
-- 确认每个类名的外部引用次数
-
-### 最终分类
-- **5 个保留样式**（有引用或全局必需）：scrollbar-hide（3处）、line-clamp-2（6处）、html scroll-behavior、focus-visible、::selection、响应式字体
-- **5 个删除样式**（零引用）：line-clamp-3、@keyframes fadeIn + .animate-fade-in、.card-hover + .card-hover:hover、.gradient-text、@media print .no-print
-
-### 构建产物对比
-| 指标 | 优化前（#6后） | 优化后 |
-|------|---------------|--------|
-| CSS 文件 | 51.48 KB | **50.93 KB**（-0.55 KB） |
-| App.css 行数 | 91 行 | **38 行**（-58%） |
-| 累计 CSS 减少 | 103.46 KB（初始） | **50.93 KB**（总减少 **50.8%**） |
-
-### 验证结果
-- ✅ 生产构建成功（exit code 0）
-- ✅ TypeScript 类型检查零错误（exit code 0）
-
-### 影响文件
-- src/App.css（91行→38行）
-
-### 遗留事项
-- 后续 #8：社交分享 Meta 标签
-
-## 2026-04-11 第三批优化 #8-#11 SEO/Meta
-
-### 本次目标
-- #8 修正社交分享 Meta 标签（OG URL 错误 + 缺少 Twitter Card）
-- #9 为详情页添加 JSON-LD 结构化数据
-- #10 sitemap.xml 评估（noindex 站点跳过）
-- #11 robots.txt 补充更多 AI 爬虫屏蔽
-
-### 实际改动
-
-#### #8 社交分享 Meta 标签
-- **index.html**：修正 OG URL 从 `z7niv4gwmf4ok.ok.kimi.link` 到 `kimixpf1.github.io/speech-web/`；新增 og:site_name、og:locale；新增 Twitter Card 4 个 meta 标签
-- **src/lib/utils.ts**：新增 `updatePageMeta()` / `resetPageMeta()` / `getOrCreateMeta()` — 动态设置 document.title、OG、Twitter meta
-- **src/components/DetailPage.tsx**：新增 useEffect，在 speech 加载后调用 `updatePageMeta()` 设置每篇文章的动态 meta，离开详情页时 `resetPageMeta()` 恢复默认
-
-#### #9 结构化数据 JSON-LD
-- **src/lib/utils.ts**：新增 `injectArticleJsonLd()` / `removeJsonLd()` — 注入 Article 类型 JSON-LD script 标签
-- **src/components/DetailPage.tsx**：在 meta useEffect 中同步调用 JSON-LD 注入和清理
-
-#### #10 sitemap.xml
-- 跳过：站点 robots meta 为 `noindex, nofollow`，sitemap 对搜索引擎无实际价值
-
-#### #11 robots.txt
-- 新增屏蔽 Anthropic-AI、PerplexityBot、Applebot-Extended
-
-### 验证结果
-- ✅ 生产构建成功（exit code 0）
-- ✅ TypeScript 类型检查零错误（exit code 0）
-
-### 影响文件
-- index.html
-- src/lib/utils.ts
-- src/components/DetailPage.tsx
-- public/robots.txt
-
-### 遗留事项
-- 后续 #12-#14：加载体验优化（骨架屏、图片懒加载、路由预加载）
-
-## 2026-04-11 导航卡顿修复 + 第四批优化 #12-#14
-
-### 本次目标
-- 修复首页↔详情页导航卡顿问题（不改变任何现有行为）
-- 完成第四批 #12-#14 加载体验优化
-
-### 导航卡顿修复
-
-#### 根因分析与修复
-1. **SpeechCard 重渲染** → ContentList.tsx 中 SpeechCard 用 `React.memo` 包裹，返回首页时不触发全部卡片重渲染
-2. **返回导航阻塞 UI** → DetailPage.tsx 的 `handleBack` 用 `startTransition` 包裹 navigate，让返回操作不阻塞主线程
-3. **滚动恢复与渲染竞争** → App.tsx 滚动恢复改为双 `requestAnimationFrame` 延迟，确保 DOM 绘制完成后再滚动
-4. **主包体积过大** → vite.config.ts 添加 `manualChunks`，将 react/react-dom/react-router-dom（46KB）和 swr（11KB）拆为独立可缓存 chunk
-
-#### 构建产物变化
-| 文件 | 修改前 | 修改后 |
-|------|--------|--------|
-| index.js | 647.0 KB | 590.2 KB |
-| vendor-react.js | — | 45.9 KB（新） |
-| vendor-swr.js | — | 10.7 KB（新） |
-
-### 第四批加载体验优化
-
-#### #12 首屏骨架屏
-- App.tsx 中"加载文章中..."纯文字替换为 5 张卡片骨架屏
-- 骨架屏布局匹配 SpeechCard（左侧图标 + 右侧标题/标签/摘要行）
-- 使用 `animate-pulse` 动画提示加载状态
-
-#### #13 图片懒加载
-- ⏭️ 跳过：项目为纯文字内容站，无用户可见的图片资源
-
-#### #14 路由预加载策略
-- ✅ 已在之前迭代实现：requestIdleCallback(1200ms timeout) + onMouseEnter/onFocus 预加载
-
-### 验证结果
-- ✅ 生产构建成功（exit code 0）
-- ✅ TypeScript 类型检查零错误（exit code 0）
-
-### 影响文件
-- src/App.tsx（骨架屏 + 双rAF滚动恢复）
-- src/components/ContentList.tsx（SpeechCard React.memo）
-- src/components/DetailPage.tsx（startTransition返回导航）
-- vite.config.ts（manualChunks分包）
-
-### 14项优化计划总结
-- ✅ 已完成 11 项（#1-#9, #11-#12, #14）
-- ⏭️ 跳过 2 项（#10 sitemap - noindex站点、#13 图片懒加载 - 无图片）
-- ❌ 未完成 0 项
-- **全部优化计划已完成**

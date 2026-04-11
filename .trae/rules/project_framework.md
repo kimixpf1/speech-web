@@ -10,11 +10,13 @@
 - .trae/rules：项目协作规则
 
 ## src 当前结构
-- components：前台页面组件、后台页面组件、通用 UI 组件
-- hooks：后台文章管理等复用逻辑
+- components：前台页面组件、后台页面组件、通用 UI 组件；其中列表卡片已统一收敛到 `SpeechCard.tsx`
+- hooks：后台文章管理、详情数据、TTS 等复用逻辑
 - services：Supabase、AI 提取、摘要生成、详情持久化、后台能力
 - data：静态文章数据与专题数据
 - lib：基础工具与 Supabase 客户端
+- config：集中维护分类、领域、级别、本地语音包等前台配置常量
+- utils：沉淀文本处理、设备识别等纯函数工具
 
 ## 当前核心业务链路
 - 文章列表/详情展示：articles + article_details
@@ -24,14 +26,22 @@
 - 历史解读治理：批量脚本清洗历史 article_details.analysis -> 前端读取继续兜底规范化
 - 访问统计：analytics / supabaseAnalytics 优先命中真实统计表并缓存表名，避免无效 404 探测
 - 首页体验优化：SWR 本地缓存回填 -> 空闲时预加载详情页 -> 列表 hover/focus 预加载详情页 -> 列表摘要统一压缩 -> 详情返回首页恢复列表
+- 详情页渲染链路：`useArticleDetail` 负责详情数据与 AI 生成，`useTTS` 负责语音播放状态与回退控制，`DetailPage.tsx` 负责页面编排与交互拼装
 - 删除文章：删除主记录 -> 数据库级联删除详情 -> 前端校验并清缓存
 - 待审核转正式文章：pending_articles -> 新增文章弹窗 -> 提取/补录 -> 发布
 
 ## 当前关键文件
 - src/components/AdminDashboard.tsx：后台主入口
 - src/App.tsx：首页路由、SWR 数据获取、详情页懒加载与首屏回填
-- src/components/ContentList.tsx：首页列表渲染、详情跳转入口、详情页预加载
-- src/components/DetailPage.tsx：详情页展示、返回首页链路、AI 摘要/解读触发、手机端语音播报分段播放与回退控制；当前仅在开发环境或显式开启 `VITE_ENABLE_TTS_PROXY=true` 时才使用同源 `/api/tts`，并已接入浏览器端中文离线语音包
+- src/components/ContentList.tsx：首页列表渲染、详情跳转入口、详情页预加载；现复用 SpeechCard
+- src/components/SpeechCard.tsx：文章卡片统一展示组件，供首页列表与专题页复用
+- src/components/ZhengjiguanPage.tsx：专题页展示，现复用 SpeechCard
+- src/components/DetailPage.tsx：详情页页面壳，负责展示编排、交互组合、返回首页链路与导出入口
+- src/hooks/useArticleDetail.ts：详情数据获取、AI 摘要/解读生成、衍生状态与链接整理
+- src/hooks/useTTS.ts：语音播报状态管理、离线语音包/原生 TTS/外部音频回退控制
+- src/utils/textUtils.ts：详情页相关文本处理纯函数
+- src/utils/deviceDetect.ts：设备、浏览器与运行环境识别工具
+- src/config/constants.ts：分类、领域、级别、本地语音包等前台配置集中定义
 - api/tts.js：预留的同源语音接口，适用于支持服务端函数的平台
 - src/components/admin/AdminAddArticleDialog.tsx：新增文章弹窗
 - src/components/admin/AdminApiConfigDialog.tsx：后台 API 配置弹窗，现支持分别设置搜索优先模型与新增文章识别优先模型
@@ -57,10 +67,10 @@
 - 后续每次正式运行前，先通读 .trae/rules/ 下的所有规则文件，再开始搜索、改动和部署
 
 ## 当前部署核对结论
-- 本地最新补强修复位于 main 的 95fb260，内容包括统一摘要压缩、首页列表摘要统一压缩、详情页摘要统一压缩
-- 已再次核对远端关键文件，确认 src/lib/utils.ts、src/services/aiSummaryService.ts、src/services/articleDetailService.ts、src/services/articleServiceEnhanced.ts、src/components/DetailPage.tsx 与本地最新代码都已同步到最新补强版本
-- 当前线上“首页卡顿、摘要仍偏长”的后续表现，应主要取决于部署刷新与浏览器缓存，而不再是远端代码缺文件
-- 当前摘要治理链路已经完整闭环：AI 生成 -> 统一压缩 -> article_details 持久化 -> 首页列表压缩展示 -> 详情页压缩展示
+- 本地最新结构优化提交为 `a254638`，内容包括 SpeechCard 复用、DetailPage 拆分、常量/工具/钩子抽取
+- 已完成 `npm.cmd run build` 验证
+- 当前 `git status` 显示本地分支与 `origin/main` 同步；代码层结构优化已不处于“本地领先未推送”状态
+- 当前待补的是 rules 文档记录与临时输出文件清理，不影响已提交代码状态
 
 ## 当前自动搜索链路补充结论
 - 前端手动 AI 搜索主要走 src/services/aiSearchService.ts，但 GitHub Actions 定时自动搜索实际执行 .github/scripts/ai_search.py
