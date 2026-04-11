@@ -171,6 +171,41 @@
 - src/components/ui/ 下 18 个组件文件
 
 ### 遗留事项
+- 后续 #7：组件级 CSS 拆分
+
+## 2026-04-11 第二批优化 #6 删除未使用 ui/ 组件
+
+### 本次目标
+- 系统性排查并删除 src/components/ui/ 下从未被外部引用的死代码组件，减少 CSS 产物体积
+
+### 根因分析
+- 项目 ui/ 目录下有 52 个组件文件，其中大量来自 shadcn/ui 初始化模板，从未在实际业务代码中使用
+- 这些组件的 CSS 类仍然被 Tailwind 扫描并打包进生产 CSS，造成不必要的体积膨胀
+
+### 排查方法
+- 对全部 52 个 ui/ 组件逐一执行 `grep -r "ui/组件名" src/ --exclude-dir=ui` 搜索外部引用
+- 对初步零引用的组件进行别名验证（如 Calendar 组件名被自定义组件使用，但非 ui/calendar）
+- 交叉依赖分析：仅被其他死代码组件内部引用的组件也标记为死代码（如 tooltip 仅被 sidebar.tsx 引用，而 sidebar 本身是死代码）
+
+### 最终分类
+- **10 个保留组件**（有外部业务引用）：alert、badge、button、card、dialog、input、progress、select、tabs、textarea
+- **42 个删除组件**（零外部引用）：accordion、alert-dialog、aspect-ratio、avatar、breadcrumb、button-group、calendar、carousel、checkbox、collapsible、command、context-menu、drawer、dropdown-menu、empty、field、form、hover-card、input-group、input-otp、item、kbd、label、menubar、navigation-menu、pagination、popover、radio-group、resizable、scroll-area、separator、sheet、sidebar、skeleton、slider、sonner、spinner、switch、table、toggle、toggle-group、tooltip
+
+### 构建产物对比
+| 指标 | 优化前（#5后） | 优化后 |
+|------|---------------|--------|
+| CSS 文件 | 98.26 KB | **51.48 KB**（-46.78 KB / -47.6%） |
+| ui/ 组件数 | 52 个 | **10 个**（-42 个） |
+| 累计 CSS 减少 | 103.46 KB（初始） | **51.48 KB**（总减少 **50.2%**） |
+
+### 验证结果
+- ✅ 生产构建成功（exit code 0）
+- ✅ TypeScript 类型检查零错误（exit code 0）
+
+### 影响文件
+- src/components/ui/ 下 42 个组件文件已删除
+- src/components/ui/ 下 10 个组件文件保留
+
+### 遗留事项
 - 待推送部署
-- 后续 #6：Tailwind 未使用类清除 + 删除未使用的 ui/ 组件（约 20+ 个从未被引用的组件）
 - 后续 #7：组件级 CSS 拆分
