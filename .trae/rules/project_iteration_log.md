@@ -133,3 +133,44 @@
 ### 遗留事项
 - 需用户手动 `git push origin main`（沙箱环境无法弹出凭据窗口）
 - 后续第二批优化待启动：CSS/UI 优化（暗色模式清理、Tailwind 未使用类清除、组件级 CSS 拆分）
+
+## 2026-04-11 第二批优化 #5 暗色模式 CSS 清理
+
+### 本次目标
+- 移除项目中从未启用的暗色模式（dark mode）死代码，减少 CSS 产物体积
+
+### 根因分析
+- tailwind.config.js 配置了 `darkMode: ["class"]`，但整个应用从未在 `<html>` 上切换 `.dark` class
+- index.css 中有完整的 `.dark { ... }` CSS 变量块（约 60 行），从未被激活
+- 18 个 ui/ 组件中共有 42 处 `dark:` 变体 Tailwind 类，全部为死代码
+
+### 实际改动
+- **index.css**：移除 `.dark { ... }` CSS 变量块
+- **tailwind.config.js**：移除 `darkMode: ["class"]` 配置
+- **18 个 ui/ 组件**：逐一移除所有 `dark:` 变体类（共 42 处）
+  - button.tsx（5处）、badge.tsx（3处）、input.tsx（2处）、input-otp.tsx（2处）
+  - input-group.tsx（4处）、select.tsx（修复语法错误 + 清理）、checkbox.tsx（3处）
+  - switch.tsx（3处）、toggle.tsx（1处）、textarea.tsx（2处）、tabs.tsx（4处）
+  - radio-group.tsx（2处）、menubar.tsx（1处）、kbd.tsx（1处）、field.tsx（1处）
+  - dropdown-menu.tsx（1处）、context-menu.tsx（1处）、calendar.tsx（1处）
+
+### 构建产物对比
+| 指标 | 优化前 | 优化后 |
+|------|--------|--------|
+| CSS 文件 | 103.46 KB | **98.26 KB**（-5.2 KB / -5.0%） |
+| dark: 残留 | 42 处 | **0 处** |
+
+### 验证结果
+- ✅ TypeScript 零错误
+- ✅ 生产构建成功（exit code 0）
+- ✅ `dark:` 全项目搜索 0 匹配
+- ✅ 修复了 select.tsx 中上一轮遗留的语法错误（字符串断行）
+
+### 影响文件
+- src/index.css、tailwind.config.js
+- src/components/ui/ 下 18 个组件文件
+
+### 遗留事项
+- 待推送部署
+- 后续 #6：Tailwind 未使用类清除 + 删除未使用的 ui/ 组件（约 20+ 个从未被引用的组件）
+- 后续 #7：组件级 CSS 拆分
