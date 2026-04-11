@@ -22,7 +22,7 @@ import {
   DialogHeader,
 } from '@/components/ui/dialog';
 
-import { normalizeArticleUrl, normalizeSummaryText, openExternalUrl } from '@/lib/utils';
+import { normalizeArticleUrl, normalizeSummaryText } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import type { Progress as PiperProgress, TtsSession as PiperTtsSession } from '@mintplex-labs/piper-tts-web';
 
@@ -1361,10 +1361,6 @@ export function DetailPage() {
                   href={normalizedSpeechUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    openExternalUrl(normalizedSpeechUrl);
-                  }}
                   className="text-red-600 hover:text-red-700 flex items-center gap-2 underline"
                 >
                   点击阅读原文
@@ -1448,10 +1444,6 @@ export function DetailPage() {
                     href={normalizedSpeechUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      openExternalUrl(normalizedSpeechUrl);
-                    }}
                     className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     <ExternalLink className="w-5 h-5" />
