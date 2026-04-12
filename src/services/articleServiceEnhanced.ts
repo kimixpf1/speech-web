@@ -96,22 +96,38 @@ export function ensureDomainField(article: Speech): Speech {
   };
 }
 
-// 保存到本地缓存
+let cacheWriteScheduled = false;
+
 function saveLocalCache(articles: Speech[]): void {
-  try {
-    localStorage.setItem(
-      ARTICLES_CACHE_KEY,
-      JSON.stringify(
-        articles.map(article => ({
-          ...article,
-          summary: normalizeSummaryText(article.summary || ''),
-          url: normalizeArticleUrl(article.url || ''),
-        }))
-      )
-    );
-    localStorage.setItem('last_sync_time', new Date().toISOString());
-  } catch (e) {
-    console.error('Failed to save local cache:', e);
+  if (cacheWriteScheduled) return;
+  cacheWriteScheduled = true;
+
+  const doWrite = () => {
+    cacheWriteScheduled = false;
+    try {
+      localStorage.setItem(
+        ARTICLES_CACHE_KEY,
+        JSON.stringify(
+          articles.map(article => ({
+            ...article,
+            summary: normalizeSummaryText(article.summary || ''),
+            url: normalizeArticleUrl(article.url || ''),
+          }))
+        )
+      );
+      localStorage.setItem('last_sync_time', new Date().toISOString());
+    } catch (e) {
+      console.error('Failed to save local cache:', e);
+    }
+  };
+
+  const idleWindow = window as Window & {
+    requestIdleCallback?: (cb: () => void, opts?: { timeout?: number }) => number;
+  };
+  if (idleWindow.requestIdleCallback) {
+    idleWindow.requestIdleCallback(() => doWrite(), { timeout: 2000 });
+  } else {
+    setTimeout(doWrite, 100);
   }
 }
 
