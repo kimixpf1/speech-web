@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useLayoutEffect, useRef, Suspense, lazy } from 'react';
+import { useState, useMemo, useEffect, useLayoutEffect, useRef, Suspense, lazy, memo } from 'react';
 import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Hero } from '@/components/Hero';
@@ -25,17 +25,13 @@ const AdminLogin = lazy(() => import('@/components/AdminLogin').then(m => ({ def
 const AdminDashboard = lazy(() => import('@/components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const SuggestionBox = lazy(() => import('@/components/SuggestionBox').then(m => ({ default: m.SuggestionBox })));
 
-// 全局加载指示器 (骨架屏)
-function PageLoader() {
+const PageLoader = memo(function PageLoader() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-      {/* 顶部标题骨架 */}
       <div className="space-y-4 mb-8">
         <div className="h-8 bg-gray-200 rounded w-3/4 animate-pulse"></div>
         <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
       </div>
-      
-      {/* 内容卡片骨架 */}
       {[1, 2, 3].map((i) => (
         <div key={i} className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 space-y-4">
           <div className="flex gap-4">
@@ -54,7 +50,31 @@ function PageLoader() {
       ))}
     </div>
   );
-}
+});
+
+const ArticleListSkeleton = memo(function ArticleListSkeleton() {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: 5 }, (_, i) => (
+        <div key={i} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+          <div className="flex items-start gap-3">
+            <div className="w-12 h-12 bg-gray-200 rounded-lg animate-pulse flex-shrink-0" />
+            <div className="flex-1 min-w-0 space-y-3">
+              <div className="h-6 bg-gray-200 rounded w-5/6 animate-pulse" />
+              <div className="flex gap-2">
+                <div className="h-5 bg-gray-200 rounded w-14 animate-pulse" />
+                <div className="h-5 bg-gray-200 rounded w-14 animate-pulse" />
+                <div className="h-5 bg-gray-200 rounded w-20 animate-pulse" />
+              </div>
+              <div className="h-4 bg-gray-200 rounded w-full animate-pulse" />
+              <div className="h-4 bg-gray-200 rounded w-4/5 animate-pulse" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+});
 
 // 获取上次的滚动位置以避免返回时白屏等待
 function getInitialScrollPosition() {
@@ -265,25 +285,7 @@ function HomePage() {
       />
       <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6">
         {articles.length === 0 && isLoading ? (
-          <div className="space-y-4">
-            {Array.from({ length: 5 }, (_, i) => (
-              <div key={i} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 bg-gray-200 rounded-lg animate-pulse flex-shrink-0" />
-                  <div className="flex-1 min-w-0 space-y-3">
-                    <div className="h-6 bg-gray-200 rounded w-5/6 animate-pulse" />
-                    <div className="flex gap-2">
-                      <div className="h-5 bg-gray-200 rounded w-14 animate-pulse" />
-                      <div className="h-5 bg-gray-200 rounded w-14 animate-pulse" />
-                      <div className="h-5 bg-gray-200 rounded w-20 animate-pulse" />
-                    </div>
-                    <div className="h-4 bg-gray-200 rounded w-full animate-pulse" />
-                    <div className="h-4 bg-gray-200 rounded w-4/5 animate-pulse" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <ArticleListSkeleton />
         ) : articles.length === 0 ? (
           <div className="text-center py-20 text-gray-400">暂无可显示的文章数据</div>
         ) : (
