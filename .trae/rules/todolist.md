@@ -1,8 +1,8 @@
 # todolist
 
 ## 使用规则
-- 每次动手前先补充“本轮目标 / 待办 / 风险点”
-- 每次改动后回写“已完成 / 验证结果 / 下一步”
+- 每次动手前先补充"本轮目标 / 待办 / 风险点"
+- 每次改动后回写"已完成 / 验证结果 / 下一步"
 - 如果项目结构或关键链路发生变化，同时更新 .trae/rules/project_framework.md
 
 ## 当前长期待办
@@ -39,12 +39,13 @@
 - **验证方式**：build → 预览专题页，滚动后刷新确认恢复正常
 - **实际验证**：✅ build 成功 → ✅ 首页正常 → ✅ 专题页正常（18篇文章）→ ✅ 详情页正常 → ✅ 从详情页返回专题页滚动恢复正常 → ✅ 已推送 `964b514`
 
-### 第3步 ⬜ vite 分包细化（lucide-react 独立缓存）
+### 第3步 ✅ vite 分包细化（lucide-react 独立缓存）（2026-04-12 完成）
 - **为什么**：当前 manualChunks 只拆了 react 和 swr，lucide-react 图标库体积不小但没独立分包，每次改业务代码用户都要重新下载图标
 - **涉及文件**：`vite.config.ts`（约 3 行改动：manualChunks 增加 `'vendor-icons': ['lucide-react']`）
 - **风险**：⭐ 几乎零风险
 - **改后效果**：图标库单独缓存，业务更新时用户不重下图标
 - **验证方式**：build → 检查 dist/assets 是否多出 vendor-icons chunk → 预览确认页面正常
+- **实际验证**：✅ build 成功 → ✅ vendor-icons chunk 生成（13.9 KB）→ ✅ 首页正常（93篇文章）→ ✅ 详情页正常 → ✅ 专题页正常（图标渲染正确）→ ✅ 已推送 `1fa8f14`
 
 ### 第4步 ⬜ 首页骨架屏提取为独立 memo 组件
 - **为什么**：App.tsx 中的 PageLoader 是内联函数 `() => (<div>骨架屏</div>)`，每次父组件渲染都会重建，浪费性能
@@ -85,7 +86,7 @@
 
 ## 最新一轮咨询
 - [x] 评估当前项目仍值得优化的方向
-- [x] 按优先级整理“稳定性 / 可维护性 / 可观测性 / 体验”优化项
+- [x] 按优先级整理"稳定性 / 可维护性 / 可观测性 / 体验"优化项
 - [x] 回写本文件与项目迭代记录，沉淀本轮咨询结论
 
 ## 当前进行中的第一步优化
@@ -100,7 +101,7 @@
 - aiSummaryService、kimiArticleService、articleDetailService、useAdminArticleManagement 已改为复用同一套规则
 - 已补上 articleDetailService 本地缓存读取处的统一调用，避免遗漏旧函数引用
 - 已通过 build / eslint / tsc
-- 已做真人模拟回归：后台文章管理页可打开，新增文章弹窗可正常显示“解读”输入框，前台详情页可正常展示摘要与解读
+- 已做真人模拟回归：后台文章管理页可打开，新增文章弹窗可正常显示"解读"输入框，前台详情页可正常展示摘要与解读
 - 回归中发现的 404 来自 http://127.0.0.1:4174/favicon.ico，与本轮改动无关
 
 ## 当前进行中的第二步优化
@@ -151,7 +152,7 @@
 - 已用代表性人民网 URL 样本验证 finance/cpc/world/military/health/culture/env 等栏目映射结果符合预期，politics 栏目不会被误判为经济
 
 ## 当前进行中的第五步优化
-- [x] 动手前确认本轮目标：优化人民网文章类型识别，减少“发表文章/会议/调研”被默认归为重要讲话
+- [x] 动手前确认本轮目标：优化人民网文章类型识别，减少"发表文章/会议/调研"被默认归为重要讲话
 - [x] 在 kimiArticleService 中补充人民网文章类型兜底修正逻辑，仅在原结果缺失或默认 speech 时介入
 - [x] 保持现有领域纠偏与解读清洗逻辑不变，避免交叉回归
 - [x] 跑 build / eslint / tsc，验证现有功能不受影响
@@ -159,15 +160,15 @@
 - [x] 验证无误后推送部署并回写记录
 
 ## 第五步优化完成情况
-- 已新增人民网文章类型兜底识别：优先识别“发表文章、考察调研、重要会议、重要讲话”
+- 已新增人民网文章类型兜底识别：优先识别"发表文章、考察调研、重要会议、重要讲话"
 - 仅当 AI 未给出类型，或仍停留在默认 speech 时，才使用人民网标题/栏目特征纠偏，避免覆盖已识别正确的非默认类型
-- 已验证“人民日报评论员、和音、《求是》文章”会落到发表文章，“考察/调研/植树/慰问”会落到考察调研，“召开会议/会见/会谈/审议/开幕/闭幕”会落到重要会议
-- 已验证“贺信/贺电/致电/回信/复信/指示/命令/致辞”等仍保持重要讲话，不会被误归到会议
+- 已验证"人民日报评论员、和音、《求是》文章"会落到发表文章，"考察/调研/植树/慰问"会落到考察调研，"召开会议/会见/会谈/审议/开幕/闭幕"会落到重要会议
+- 已验证"贺信/贺电/致电/回信/复信/指示/命令/致辞"等仍保持重要讲话，不会被误归到会议
 - 已通过 build / eslint / tsc
 
 ## 当前进行中的第六步优化
 - [x] 动手前确认本轮目标：提升人民网文章领域类型识别精度，减少经济 / 外交 / 社会 / 生态等内容被默认归到政治
-- [x] 在 kimiArticleService 中补充“URL 栏目 + 标题 + 来源 + 摘要 + 正文关键词”的综合领域评分兜底
+- [x] 在 kimiArticleService 中补充"URL 栏目 + 标题 + 来源 + 摘要 + 正文关键词"的综合领域评分兜底
 - [x] 修正 theory.people.com.cn 被误归到党建的问题，避免《求是》经济类文章继续误判
 - [x] 跑 build / eslint / tsc，验证现有功能不受影响
 - [x] 使用代表性人民网标题 + URL + 摘要 / 正文样本模拟验证领域映射
@@ -179,126 +180,21 @@
 - 已移除 theory.people.com.cn 到党建的硬编码误判，让《求是》理论栏目文章回到由内容语义决定领域
 - 已完成模拟验证：海洋经济文章归为经济，拉共体峰会贺信归为外交，植树活动归为生态，卫生健康相关座谈归为社会，政治局会议保持政治
 - 已通过 build / eslint / tsc 与 diagnostics，确认首页、详情页、后台文章管理主链路未受影响
-- 本轮用户可自行复测：后台新增文章里分别粘贴经济 / 外交 / 社会 / 生态 / 政治类人民网链接，检查提取结果中的领域是否不再大面积默认显示“政治”
+- 本轮用户可自行复测：后台新增文章里分别粘贴经济 / 外交 / 社会 / 生态 / 政治类人民网链接，检查提取结果中的领域是否不再大面积默认显示"政治"
 
 ## 当前进行中的第七步优化
 - [x] 动手前确认本轮目标：继续提升人民网领域识别精度，并同步收紧摘要长度、优化首页/详情页返回体验、排查额外搜索工作流
-- [x] 在 kimiArticleService 中补充“标题/摘要强信号优先 + 扩展关键词评分”，减少经济 / 外交 / 社会 / 生态等内容继续被回落到政治
+- [x] 在 kimiArticleService 中补充"标题/摘要强信号优先 + 扩展关键词评分"，减少经济 / 外交 / 社会 / 生态等内容继续被回落到政治
 - [x] 在 aiSummaryService 中把摘要提示词收紧到 80-120 字，并增加抽取式摘要与长度裁剪兜底
 - [x] 在 App.tsx、ContentList.tsx、DetailPage.tsx、articleServiceEnhanced.ts 中补充首页本地缓存回填、详情页预加载、脏数据兜底，降低首次进入和返回首页卡顿/报错概率
-- [x] 复核 GitHub Actions 工作流，确认今天上午额外“搜索工作流”并非 fetch-articles 定时自动触发
+- [x] 复核 GitHub Actions 工作流，确认今天上午额外"搜索工作流"并非 fetch-articles 定时自动触发
 - [x] 跑 build / eslint / tsc 与 diagnostics，验证现有功能不受影响
 
 ## 第七步优化完成情况
 - 已在 kimiArticleService 中新增标题/摘要强信号识别，外交、国防、党建、生态、文化、社会、经济类文章优先按主题落域，不再轻易被 politics.people.com.cn 频道名带偏
-- 已扩展经济、外交、社会、生态等领域关键词，并放宽非政治领域领先阈值，减少“明明有明显主题词却仍回落政治”的情况
-- 已在摘要生成链路中把摘要要求改为 80-120 字，强调“简洁明了、尽量复用原文表述”，同时新增抽取式兜底和超长裁剪，避免摘要比原文还长
+- 已扩展经济、外交、社会、生态等领域关键词，并放宽非政治领域领先阈值，减少"明明有明显主题词却仍回落政治"的情况
+- 已在摘要生成链路中把摘要要求改为 80-120 字，强调"简洁明了、尽量复用原文表述"，同时新增抽取式兜底和超长裁剪，避免摘要比原文还长
 - 已在首页链路中接入本地缓存 fallback、详情页空闲预加载、列表 hover/focus 预加载，以及 category 异常值兜底，减少首次进入首页、点击详情、详情返回首页时的卡顿和错误边界触发
-- 已确认 fetch-articles.yml 当前只有 workflow_dispatch，没有 schedule；今天上午看到的自动搜索主要来自 ai-auto-search，其他“像搜索”的记录更可能是历史手动运行或其他 workflow
-- 已通过 build / eslint / tsc 与 diagnostics，并在本地页面完成首页进入、详情打开、浏览器返回首页的模拟检查，未再出现“页面在加载时遇到了意外错误”
-- 本轮用户可自行复测：1）后台新增人民网经济/外交/社会/生态/政治文章，看领域是否更精准；2）详情页点“AI生成”重新生成摘要，确认摘要明显缩短；3）首次打开首页、点进详情再返回首页，确认进入速度和稳定性改善
-
-## 当前进行中的第八步优化
-- [x] 动手前确认本轮目标：拆分“AI 搜索优先模型”和“URL 新增文章识别优先模型”，避免两个配置互相联动
-- [x] 在 aiSearchService 中增加独立的新增文章识别优先模型存储键与读写方法
-- [x] 在 AdminDashboard / AdminApiConfigDialog 中拆出两套独立设置入口
-- [x] 在 useAdminArticleManagement 与 kimiArticleService 中改为读取新增文章识别专用偏好
-- [x] 跑 build / eslint / tsc 与 diagnostics，验证拆分后不影响现有功能
-
-## 第八步优化完成情况
-- 已将 AI 搜索优先模型继续保留在 preferred_search_api 中，专门用于搜索链路
-- 已新增 URL 新增文章识别优先模型配置 preferred_article_extraction_api，专门用于后台“新增文章 -> 粘贴 URL -> AI 提取”链路
-- 已在后台 API 配置弹窗中拆出两组按钮：“搜索时优先使用”和“URL新增文章识别时优先使用”，现在切换一项不会再带动另一项
-- 已让 useAdminArticleManagement 与 kimiArticleService 改为读取新增文章识别专用偏好，后台新增文章时可单独优先走 DeepSeek，AI 搜索仍可单独优先走 Kimi
-- 已通过 build / eslint / tsc 与 diagnostics，确认本轮拆分未引入新的编译或类型错误
-- 本轮用户可自行复测：后台“管理 API”里把“搜索时优先使用”设成 Kimi，把“URL新增文章识别时优先使用”设成 DeepSeek；关闭后重新打开确认两个选择仍分别保持；再去新增文章页看“已配置 DeepSeek”标识是否跟随识别优先项，而不是跟搜索优先项一起变化
-
-## 2026-04-11 代码结构优化三步路线（已完成）
-
-### Step 1 配置收敛
-- [x] 提取并统一维护 `src/config/constants.ts`
-- [x] 将分类、领域、级别和本地语音包配置改为集中读取
-- [x] 同步改造 FilterBar、Timeline、DetailPage 等消费端
-
-### Step 2 SpeechCard 复用
-- [x] 新增 `src/components/SpeechCard.tsx` 统一卡片渲染
-- [x] `ContentList.tsx` 改为复用 SpeechCard，删除重复内联卡片 JSX
-- [x] `ZhengjiguanPage.tsx` 改为复用 SpeechCard，保持专题页表现一致
-
-### Step 3 DetailPage 拆分
-- [x] 提取 `src/utils/textUtils.ts` 承载文本处理纯函数
-- [x] 提取 `src/utils/deviceDetect.ts` 承载设备与环境识别
-- [x] 提取 `src/hooks/useTTS.ts` 承载语音播报状态与控制
-- [x] 提取 `src/hooks/useArticleDetail.ts` 承载详情数据、AI 生成、SEO 相关逻辑
-- [x] 重写 `src/components/DetailPage.tsx`，收敛为页面壳与交互编排层
-- [x] 执行 `npm.cmd run build` 验证通过
-- [x] 提交 `a254638`：`refactor: 代码结构优化 - SpeechCard复用 + DetailPage拆分 + 常量/工具/钩子抽取`
-
-### 本轮结构优化结果
-- 前台结构的职责边界更清晰：页面组件负责编排，hooks 负责状态，utils 负责纯逻辑，config 负责常量
-- `DetailPage.tsx` 大幅瘦身，后续排查摘要、导出、语音、返回首页等问题时可按模块定位
-- 首页列表与专题页已共享同一套卡片结构，后续 UI 调整无需双处维护
-- 当前仓库状态仅剩临时类型检查输出文件未跟踪，代码提交已完成
-
-## 版本回退修复 — 建议信箱/搜索日志/导航/浏览器指纹（✅ 已完成）
-- [x] **suggestionService.ts**：重新应用 publicSupabase 客户端（commit 5c7589b 的修复被后续版本覆盖丢失）
-  - 使用 `persistSession: false` 的独立 Supabase 客户端，避免管理员登录时 RLS 冲突
-  - 字段映射确认：`content` 字段正确读取
-- [x] **DetailPage.tsx**：清理 isReturning 残余状态（commit f179328 的简化被覆盖丢失）
-  - 移除无用的 `isReturning` state，返回导航不再出现额外 loading 遮罩
-- [x] **supabaseAnalytics.ts**：重新应用浏览器指纹生成（commit a8ef7d6 的方法被覆盖丢失）
-  - 使用 djb2 hash 算法生成基于 userAgent/language/screen/timezone 等的 `fp_` 前缀唯一标识
-  - 存储到 localStorage 的 `visitor_id` 和 `ip_hash`
-- [x] **project_rules.md**：写入永久防版本回退规则
-  - 禁止整文件重写、改动前确认现有状态、保持历史修复完整性、小步提交、修复前查 git log
-- [x] **搜索日志功能确认**：AdminPendingTab.tsx 中所有搜索日志功能完整存在
-  - 手动/自动区分（search_type）、可折叠详细日志、去重详情（merge_summary/merge_details）
-  - 线上未显示是因为代码尚未推送部署
-- [x] build ✅ 构建通过
-- [x] 模拟测试：线上匿名用户建议信箱提交成功
-- [x] 推送部署 → 待验证线上效果
-
----
-
-## 性能与体验优化方案（2026-04-11 生成）
-
-> 基于构建产物分析，按优先级分为4批共14项。每项完成后实时更新状态（✅已完成 / 🔄进行中 / ⏭跳过）。
-
-### 第一批：构建体积优化（按需加载重型依赖）
-
-| # | 优化项 | 涉及文件 | 当前体积 | 优化方式 | 状态 |
-|---|--------|----------|----------|----------|------|
-| 1 | TTS/ONNX/Piper 语音播报改为按需加载 | DetailPage.tsx | ort-wasm-simd-threaded.wasm **24MB** + ort.bundle.min.js **389KB** + piper **86KB** + voices_static **94KB** | 已确认本就是动态 import，无需额外改动 | ✅ 已完成（无需改动） |
-| 2 | recharts 图表库移除 | chart.tsx, package.json | recharts 打包进 AdminDashboard chunk **122KB** | 删除无引用的 chart.tsx 死代码 + 从 package.json 移除 recharts 依赖（减少37个npm包） | ✅ 已完成 |
-| 3 | docx + file-saver 按需加载 | DetailPage.tsx | 打包进 DetailPage chunk **380KB**（含其他代码） | 静态 import 改为 handleExportWord 内动态 import，DetailPage 降至 **48.5KB**（-87%） | ✅ 已完成 |
-| 4 | html2canvas 按需加载 | DetailPage.tsx | 打包进 DetailPage chunk **380KB**（含其他代码） | html2canvas 不存在于代码库中，无需处理 | ⏭ 跳过（不存在） |
-
-### 第二批：CSS/UI 优化
-
-| # | 优化项 | 涉及文件 | 当前体积 | 优化方式 | 状态 |
-|---|--------|----------|----------|----------|------|
-| 5 | 暗色模式 CSS 清理 | index.css + 18个ui/组件 | CSS 103.46KB → **98.26KB**（-5.0%） | 移除 .dark{} CSS变量块 + tailwind darkMode配置 + 18个组件中42处 dark: 类 | ✅ 已完成 |
-| 6 | 删除未使用 ui/ 组件 | 52→10个ui/组件 | CSS 98.26KB → **51.48KB**（-47.6%） | 删除42个零引用死代码组件（accordion/alert-dialog/avatar/calendar/checkbox/command/sidebar/switch/table/tooltip等） | ✅ 已完成 |
-| 7 | App.css 死代码清理 | App.css（91→38行） | CSS 51.48KB → **50.93KB** | 删除5个零引用自定义样式（line-clamp-3/animate-fade-in/card-hover/gradient-text/no-print） | ✅ 已完成 |
-
-### 第三批：SEO/Meta 优化
-
-| # | 优化项 | 涉及文件 | 说明 | 优化方式 | 状态 |
-|---|--------|----------|------|----------|------|
-| 8 | 社交分享 Meta 标签 | index.html, DetailPage.tsx, utils.ts | OG URL错误+无Twitter Card | 修正OG URL、添加Twitter Card、详情页动态设置meta | ✅ 已完成 |
-| 9 | 结构化数据 JSON-LD | DetailPage.tsx, utils.ts | 当前无结构化数据 | 为文章详情添加 Article 类型 JSON-LD | ✅ 已完成 |
-| 10 | sitemap.xml 生成 | — | noindex站点无需sitemap | 跳过（站点robots为noindex，sitemap无实际价值） | ⏭️ 跳过 |
-| 11 | robots.txt 优化 | public/robots.txt | 增加AI爬虫覆盖 | 补充Anthropic-AI、PerplexityBot、Applebot-Extended屏蔽 | ✅ 已完成 |
-
-### 第四批：加载体验优化
-
-| # | 优化项 | 涉及文件 | 说明 | 优化方式 | 状态 |
-|---|--------|----------|------|----------|------|
-| 12 | 首屏骨架屏 | App.tsx | 首次加载无占位 | 5张卡片骨架屏替代"加载文章中..."文字 | ✅ 已完成 |
-| 13 | 图片懒加载 | — | 纯文字内容站，无实际图片 | 跳过（无图片资源需要懒加载） | ⏭️ 跳过 |
-| 14 | 路由预加载策略 | App.tsx, ContentList.tsx | 详情页预加载 | requestIdleCallback(1200ms) + hover/focus 预加载（已在之前迭代实现） | ✅ 已完成 |
-
-### 优化进度备注
-- 用户可能选择跳过某些优化项，如实记录为 ⏭跳过
-- 每批完成后执行：build → 本地模拟测试 → 推送部署 → 线上验证
-- 预期第一批完成后首屏加载体积从 ~1.3MB 降至 ~650KB（减少约 50%）
+- 已确认 fetch-articles.yml 当前只有 workflow_dispatch，没有 schedule；今天上午看到的自动搜索主要来自 ai-auto-search，其他"像搜索"的记录更可能是历史手动运行或其他 workflow
+- 已通过 build / eslint / tsc 与 diagnostics，并在本地页面完成首页进入、详情打开、浏览器返回首页的模拟检查，未再出现"页面在加载时遇到了意外错误"
+- 本轮用户可自行复测：1）后台新增人民网经济/外交/社会/生态/政治文章，看领域是否更精准；2）详情页点"AI生成"重新生成摘要，确认摘要明显缩短；3）首次打开首页、点进详情再返回首页，确认进入速度和稳定性改善
