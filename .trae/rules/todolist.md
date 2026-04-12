@@ -47,12 +47,13 @@
 - **验证方式**：build → 检查 dist/assets 是否多出 vendor-icons chunk → 预览确认页面正常
 - **实际验证**：✅ build 成功 → ✅ vendor-icons chunk 生成（13.9 KB）→ ✅ 首页正常（93篇文章）→ ✅ 详情页正常 → ✅ 专题页正常（图标渲染正确）→ ✅ 已推送 `1fa8f14`
 
-### 第4步 ⬜ 首页骨架屏提取为独立 memo 组件
+### 第4步 ✅ 首页骨架屏提取为独立 memo 组件（2026-04-12 完成）
 - **为什么**：App.tsx 中的 PageLoader 是内联函数 `() => (<div>骨架屏</div>)`，每次父组件渲染都会重建，浪费性能
-- **涉及文件**：`src/App.tsx`（约 10 行改动：把 PageLoader 提到组件外部用 React.memo 包裹）
+- **涉及文件**：`src/App.tsx`（PageLoader 包裹 memo + 新增 ArticleListSkeleton memo 组件 + HomePage 内联骨架屏替换为引用）
 - **风险**：⭐⭐ 低风险
 - **改后效果**：减少不必要的组件重建，首页渲染更流畅
 - **验证方式**：build → 预览首页加载时骨架屏仍正常显示
+- **实际验证**：✅ build 成功 → ✅ 首页骨架屏正常显示 → ✅ 详情页懒加载正常 → ✅ 返回首页流畅无卡顿 → ✅ 已推送 `bd700df`
 
 ### 第5步 ⬜ 移除 ContentList.tsx 重复的详情页预加载逻辑
 - **为什么**：ContentList.tsx 和 App.tsx 都有 preloadDetailPage 逻辑，存在重复；预加载行为应集中在一处管理
@@ -197,4 +198,3 @@
 - 已在首页链路中接入本地缓存 fallback、详情页空闲预加载、列表 hover/focus 预加载，以及 category 异常值兜底，减少首次进入首页、点击详情、详情返回首页时的卡顿和错误边界触发
 - 已确认 fetch-articles.yml 当前只有 workflow_dispatch，没有 schedule；今天上午看到的自动搜索主要来自 ai-auto-search，其他"像搜索"的记录更可能是历史手动运行或其他 workflow
 - 已通过 build / eslint / tsc 与 diagnostics，并在本地页面完成首页进入、详情打开、浏览器返回首页的模拟检查，未再出现"页面在加载时遇到了意外错误"
-- 本轮用户可自行复测：1）后台新增人民网经济/外交/社会/生态/政治文章，看领域是否更精准；2）详情页点"AI生成"重新生成摘要，确认摘要明显缩短；3）首次打开首页、点进详情再返回首页，确认进入速度和稳定性改善
