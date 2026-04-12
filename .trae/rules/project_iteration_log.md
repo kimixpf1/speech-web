@@ -7,8 +7,8 @@
 - 每步独立执行：build → preview → 模拟测试 → 推送 → 再做下一步
 
 ### 当前状态
-- ⬜ 第1步：删除 Timeline.tsx 死代码（未开始）
-- ⬜ 第2步：统一滚动位置存储方式（未开始）
+- ✅ 第1步：删除 Timeline.tsx 死代码（已完成，`246bb3a`）
+- ✅ 第2步：统一滚动位置存储方式（已完成，`964b514`）
 - ⬜ 第3步：vite 分包细化（未开始）
 - ⬜ 第4步：骨架屏提取为独立 memo 组件（未开始）
 - ⬜ 第5步：移除 ContentList.tsx 重复预加载逻辑（未开始）
@@ -24,7 +24,8 @@
 | 5 | 预加载逻辑去重 | ContentList.tsx | ⭐⭐低风险 |
 
 ### 提交记录
-- （待执行后补充）
+- `246bb3a` refactor: 删除死代码 Timeline.tsx（未被任何路由引用的无效组件）
+- `964b514` refactor: 统一滚动位置存储方式 localStorage→sessionStorage（ZhengjiguanPage）
 
 ### 遗留事项
 - 高优先待办仍为：调试新华社文章搜不到的问题

@@ -23,19 +23,21 @@
 
 > 每步独立，做完一步 build → preview → 模拟测试 → 再做下一步。风险从低到高排列。
 
-### 第1步 ⬜ 删除 Timeline.tsx 死代码
+### 第1步 ✅ 删除 Timeline.tsx 死代码（2026-04-12 完成）
 - **为什么**：Timeline.tsx 未被任何路由引用（App.tsx 的 Routes 里没有 Timeline 路由），是纯死代码；还包含路径 bug（`/#/detail/` 应为 `#/detail/`）
 - **涉及文件**：删除 `src/components/Timeline.tsx`
 - **风险**：⭐ 几乎零风险（无任何页面使用）
 - **改后效果**：减少约 170 行无用代码，包体积微降
 - **验证方式**：build → 预览首页、详情页、专题页，确认无影响
+- **实际验证**：✅ build 成功 → ✅ 首页正常（93篇文章）→ ✅ 详情页正常（标题/来源/AI摘要/解读/语音播报/下载/分享/返回）→ ✅ 专题页正常（18篇文章、三级筛选正常）→ ✅ 已推送 `246bb3a`
 
-### 第2步 ⬜ 统一滚动位置存储方式
+### 第2步 ✅ 统一滚动位置存储方式（2026-04-12 完成）
 - **为什么**：首页用 sessionStorage 存滚动位置，专题页 ZhengjiguanPage 用 localStorage，不一致会导致专题页滚动位置在关闭浏览器后仍然残留
-- **涉及文件**：`src/components/ZhengjiguanPage.tsx`（约 2 行改动：localStorage → sessionStorage）
+- **涉及文件**：`src/components/ZhengjiguanPage.tsx`（6 处 localStorage → sessionStorage）
 - **风险**：⭐ 几乎零风险
 - **改后效果**：专题页滚动恢复行为与首页一致
 - **验证方式**：build → 预览专题页，滚动后刷新确认恢复正常
+- **实际验证**：✅ build 成功 → ✅ 首页正常 → ✅ 专题页正常（18篇文章）→ ✅ 详情页正常 → ✅ 从详情页返回专题页滚动恢复正常 → ✅ 已推送 `964b514`
 
 ### 第3步 ⬜ vite 分包细化（lucide-react 独立缓存）
 - **为什么**：当前 manualChunks 只拆了 react 和 swr，lucide-react 图标库体积不小但没独立分包，每次改业务代码用户都要重新下载图标
