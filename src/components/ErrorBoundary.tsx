@@ -50,7 +50,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </Button>
             <Button 
               variant="outline"
-              onClick={() => window.location.href = '/'}
+              onClick={() => window.location.href = '/speech-web/#/'}
               className="flex items-center gap-2"
             >
               返回首页
