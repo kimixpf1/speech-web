@@ -19,6 +19,52 @@
 - **[中优先]** 后续每一轮正式改动后回写本文件
 - **[低优先]** 改进 jhsjk.people.cn 爬取：该站使用 JS 动态渲染，简单 requests.get 只能获取页脚版权信息，实际文章列表无法抓取
 
+## 2026-04-12 前台小步优化方案（⬜ 待执行）
+
+> 每步独立，做完一步 build → preview → 模拟测试 → 再做下一步。风险从低到高排列。
+
+### 第1步 ⬜ 删除 Timeline.tsx 死代码
+- **为什么**：Timeline.tsx 未被任何路由引用（App.tsx 的 Routes 里没有 Timeline 路由），是纯死代码；还包含路径 bug（`/#/detail/` 应为 `#/detail/`）
+- **涉及文件**：删除 `src/components/Timeline.tsx`
+- **风险**：⭐ 几乎零风险（无任何页面使用）
+- **改后效果**：减少约 170 行无用代码，包体积微降
+- **验证方式**：build → 预览首页、详情页、专题页，确认无影响
+
+### 第2步 ⬜ 统一滚动位置存储方式
+- **为什么**：首页用 sessionStorage 存滚动位置，专题页 ZhengjiguanPage 用 localStorage，不一致会导致专题页滚动位置在关闭浏览器后仍然残留
+- **涉及文件**：`src/components/ZhengjiguanPage.tsx`（约 2 行改动：localStorage → sessionStorage）
+- **风险**：⭐ 几乎零风险
+- **改后效果**：专题页滚动恢复行为与首页一致
+- **验证方式**：build → 预览专题页，滚动后刷新确认恢复正常
+
+### 第3步 ⬜ vite 分包细化（lucide-react 独立缓存）
+- **为什么**：当前 manualChunks 只拆了 react 和 swr，lucide-react 图标库体积不小但没独立分包，每次改业务代码用户都要重新下载图标
+- **涉及文件**：`vite.config.ts`（约 3 行改动：manualChunks 增加 `'vendor-icons': ['lucide-react']`）
+- **风险**：⭐ 几乎零风险
+- **改后效果**：图标库单独缓存，业务更新时用户不重下图标
+- **验证方式**：build → 检查 dist/assets 是否多出 vendor-icons chunk → 预览确认页面正常
+
+### 第4步 ⬜ 首页骨架屏提取为独立 memo 组件
+- **为什么**：App.tsx 中的 PageLoader 是内联函数 `() => (<div>骨架屏</div>)`，每次父组件渲染都会重建，浪费性能
+- **涉及文件**：`src/App.tsx`（约 10 行改动：把 PageLoader 提到组件外部用 React.memo 包裹）
+- **风险**：⭐⭐ 低风险
+- **改后效果**：减少不必要的组件重建，首页渲染更流畅
+- **验证方式**：build → 预览首页加载时骨架屏仍正常显示
+
+### 第5步 ⬜ 移除 ContentList.tsx 重复的详情页预加载逻辑
+- **为什么**：ContentList.tsx 和 App.tsx 都有 preloadDetailPage 逻辑，存在重复；预加载行为应集中在一处管理
+- **涉及文件**：`src/components/ContentList.tsx`（约 5 行改动：移除重复的 preloadDetailPage import 和调用）
+- **风险**：⭐⭐ 低风险
+- **改后效果**：代码更清晰，预加载行为更可预测
+- **验证方式**：build → 预览首页列表 hover 文章标题后点进详情，确认预加载仍生效
+
+### 执行流程（每步必做）
+1. 改代码 → `npm.cmd run build`
+2. `npm.cmd run preview` → 浏览器模拟真人操作（首页、筛选、详情、返回、专题页）
+3. 确认无误 → git add + commit + push
+4. push 后 `git status` 确认远端同步
+5. 更新本文件状态（⬜→✅）和迭代记录
+
 ## 最近已完成
 - [x] 2026-04-11 完成代码结构优化三步路线收尾：配置收敛、SpeechCard 复用、DetailPage 拆分；build 通过并已提交 `a254638`
 - [x] 2026-04-09 修复 URL 提取"解析文章内容失败"：偏好 key 不匹配（preferred_api → preferred_extraction_api）、JSON 解析增强（控制字符/尾逗号修复）、CORS/API 日志增强

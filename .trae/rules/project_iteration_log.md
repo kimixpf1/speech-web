@@ -1,5 +1,76 @@
 # 项目迭代记录
 
+## 2026-04-12 前台小步优化方案（待执行）
+
+### 本次目标
+- 基于 2026-04-12 对全部前台源码的完整审读，整理出 5 项性价比高、风险低的前台优化
+- 每步独立执行：build → preview → 模拟测试 → 推送 → 再做下一步
+
+### 当前状态
+- ⬜ 第1步：删除 Timeline.tsx 死代码（未开始）
+- ⬜ 第2步：统一滚动位置存储方式（未开始）
+- ⬜ 第3步：vite 分包细化（未开始）
+- ⬜ 第4步：骨架屏提取为独立 memo 组件（未开始）
+- ⬜ 第5步：移除 ContentList.tsx 重复预加载逻辑（未开始）
+
+### 优化方案详情（已写入 todolist.md）
+
+| # | 优化项 | 涉及文件 | 风险 |
+|---|--------|----------|------|
+| 1 | 删除 Timeline.tsx 死代码 | 删除 Timeline.tsx | ⭐零风险 |
+| 2 | 统一滚动存储方式 | ZhengjiguanPage.tsx | ⭐零风险 |
+| 3 | lucide-react 独立分包 | vite.config.ts | ⭐零风险 |
+| 4 | 骨架屏提取为 memo 组件 | App.tsx | ⭐⭐低风险 |
+| 5 | 预加载逻辑去重 | ContentList.tsx | ⭐⭐低风险 |
+
+### 提交记录
+- （待执行后补充）
+
+### 遗留事项
+- 高优先待办仍为：调试新华社文章搜不到的问题
+- 中优先待办：修复 search_people_jhsjk() 时区问题
+- 每步完成后需更新 todolist.md 状态标记和本文件
+
+## 2026-04-12 线上崩溃事故复盘与规则回写
+
+### 事故根因（三个问题叠加）
+
+1. **FilterBar.tsx import 丢失**：2026-04-11 代码结构优化（commit a254638）中，FilterBar.tsx 被整文件重写，导致之前已有的 `LayoutGrid`、`Award`、`Calendar` 图标 import 被静默覆盖丢失。线上运行时抛出 `ReferenceError: Award is not defined`，整个 FilterBar 组件崩溃。
+2. **ErrorBoundary "返回首页"路径错误**：ErrorBoundary 的"返回首页"按钮使用 `window.location.href = '/'`，在 GitHub Pages 子路径部署（`/speech-web/`）下导航到根路径导致 404，用户看到错误页后无法自救。
+3. **git push 静默失败**：修复代码后执行 `git push origin main` 返回 exit code 0，但实际未推送任何对象到远端。用户访问线上仍看到崩溃版本。
+
+### 连锁崩溃链
+```
+整文件重写 → 丢失图标 import → FilterBar 运行时崩溃
+→ ErrorBoundary 捕获显示错误页
+→ 用户点"返回首页"→ 路径错误 → GitHub 404
+→ 修复代码后 git push 静默失败
+→ 线上持续显示崩溃版本
+→ 用户反复看到问题"还是不行"
+```
+
+### 修复措施
+- FilterBar.tsx 第 1 行恢复完整 import：`import { X, LayoutGrid, Award, Calendar } from 'lucide-react'`
+- ErrorBoundary.tsx 第 54 行路径修正：`window.location.href = '/speech-web/#/'`
+- 通过 `git push origin main --force` 成功将修复推送到远端
+
+### 提交记录
+- `c8df23c` fix: 修复FilterBar缺失图标导入导致崩溃 + ErrorBoundary返回首页路径错误
+
+### 验证结果
+- ✅ Chrome DevTools 线上验证：页面完全恢复正常，所有 UI 元素正确渲染
+- ✅ Console 无 JS 错误（仅第三方 cookie 警告）
+- ✅ `git status` 确认 `Your branch is up-to-date with 'origin/main'`
+
+### 规则回写
+- 已在 project_rules.md 新增"代码安全网规则（2026-04-12）"，包含三条永久规则：
+  - 规则 A：import 完整性保护（改动后核对 import、重构前记录 import 清单、build 是最终安全网）
+  - 规则 B：ErrorBoundary 路径安全（禁止 `/` 跳转、必须用 `/speech-web/#/` 格式）
+  - 规则 C：git push 真实性验证（push 后必须用 git status 或 GitHub API 确认远端状态）
+
+### 遗留事项
+- 无代码遗留事项，规则已回写完成
+
 ## 2026-04-11 代码结构优化三步路线收尾
 
 ### 本次目标

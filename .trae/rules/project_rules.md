@@ -33,3 +33,29 @@
 3. **推送后给运行总结**：每次推送部署成功后，必须给用户一个本次运行的总结说明，包括：改了什么文件、做了什么优化、解决了什么问题、线上怎么验证。
 4. **优化方案写入todolist**：每次生成优化方案后，必须把完整方案写入 todolist.md，包含优化项、涉及文件、预期效果、当前状态，避免后续遗忘或穿插其他修复后需要重新读取代码。
 5. **优化进度实时更新**：优化执行过程中实时更新 todolist.md 中的状态（⬜待开始→🔄进行中→✅已完成/⏭跳过），用户可能选择跳过某些优化项，如实记录。
+
+## 代码安全网规则（2026-04-12 永久写入 — 线上崩溃事故教训）
+
+**事故回顾**：2026-04-11 代码结构优化时，FilterBar.tsx 整文件重写丢失了已有的图标 import（LayoutGrid/Award/Calendar），导致线上运行时崩溃；ErrorBoundary"返回首页"按钮路径错误（`/` 而非 `/speech-web/#/`）导致用户无法自救；git push 返回 exit code 0 但实际未推送，导致修复未到达线上。三个问题叠加，用户反复看到崩溃页面无法恢复。
+
+### 规则 A：import 完整性保护（防止 FilterBar 类事故再犯）
+
+1. **改动后必须核对 import**：每次修改某个文件后，必须检查该文件中所有使用的变量、组件、函数是否都有对应的 import 声明。TypeScript 编译（tsc）能捕获这类错误，但前提是必须执行 tsc。
+2. **重构前先记录 import 清单**：对文件做结构性重构前，先用 `head -20` 查看该文件当前的 import 列表，重构后逐一对照确认没有遗漏。
+3. **新增引用时同步补 import**：在代码中使用了新的变量/组件/函数时，必须立即在文件顶部补充对应的 import 语句，不能等到最后再统一补。
+4. **build 是最终安全网**：每次改动后必须执行 `npm.cmd run build`（包含 tsc），这是发现遗漏 import 的最后一道防线。build 失败则绝对不能推送。
+
+### 规则 B：ErrorBoundary 路径安全（防止"返回首页"404 再犯）
+
+1. **所有页面内导航必须使用 HashRouter 兼容路径**：本项目使用 HashRouter + GitHub Pages 部署在 `/speech-web/` 子路径下，任何硬编码的页面跳转都必须使用 `/speech-web/#/路径` 格式。
+2. **禁止使用 `/` 作为跳转目标**：`window.location.href = '/'` 在 GitHub Pages 子路径部署下会 404。必须使用 `/speech-web/#/` 作为首页路径。
+3. **ErrorBoundary 是最后的救命稻草**：ErrorBoundary 页面是用户在崩溃时唯一的自救入口，其"返回首页"按钮必须始终有效。每次修改 ErrorBoundary 或路由配置时，必须验证该按钮路径正确。
+4. **全局搜索路径硬编码**：每次改动涉及路由跳转时，用 grep 搜索 `window.location.href` 和 `window.location.replace`，确认所有硬编码路径都带有 `/speech-web/` 前缀。
+
+### 规则 C：git push 真实性验证（防止"推送成功但实际未推"再犯）
+
+1. **push 后必须验证远端状态**：执行 `git push` 后，不能仅依赖 exit code 0 判断成功。必须通过以下方式之一确认推送真实到达远端：
+   - 执行 `git status`，确认显示 `Your branch is up-to-date with 'origin/main'` 且无 ahead 提示
+   - 或通过 GitHub API（MCP 工具 get_file_contents）确认远端文件内容是最新版本
+2. **push 后如 status 仍显示 ahead**：说明推送未成功，必须尝试 `git push origin main --force`，并再次验证。
+3. **用户报告"还是不行"时优先排查推送**：如果本地已修复但线上仍显示旧问题，第一步不是重新排查代码，而是先确认远端是否已收到最新提交。
