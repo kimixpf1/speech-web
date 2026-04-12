@@ -64,7 +64,7 @@ function ContentList({ speeches }: ContentListProps) {
                   key={speech.id}
                   speech={speech}
                   detailUrl={`/speech-web/#/zhengjiguan/${speech.id}`}
-                  onSaveScroll={() => localStorage.setItem('zhengjiguan_scrollPosition', window.scrollY.toString())}
+                  onSaveScroll={() => sessionStorage.setItem('zhengjiguan_scrollPosition', window.scrollY.toString())}
                   showLevel
                 />
               ))}
@@ -86,7 +86,7 @@ export function ZhengjiguanPage() {
   // 滚动恢复
   const targetScrollRef = useRef<number | null>(null);
   const [isScrollRestoring, setIsScrollRestoring] = useState(
-    () => localStorage.getItem('zhengjiguan_scrollPosition') !== null
+    () => sessionStorage.getItem('zhengjiguan_scrollPosition') !== null
   );
 
   // 禁用浏览器自动滚动恢复
@@ -98,7 +98,7 @@ export function ZhengjiguanPage() {
 
   // 读取保存的滚动位置
   useLayoutEffect(() => {
-    const savedPosition = localStorage.getItem('zhengjiguan_scrollPosition');
+    const savedPosition = sessionStorage.getItem('zhengjiguan_scrollPosition');
     if (savedPosition) {
       targetScrollRef.current = parseInt(savedPosition, 10);
     }
@@ -111,7 +111,7 @@ export function ZhengjiguanPage() {
 
     const targetPosition = targetScrollRef.current;
     window.scrollTo(0, targetPosition);
-    localStorage.removeItem('zhengjiguan_scrollPosition');
+    sessionStorage.removeItem('zhengjiguan_scrollPosition');
     targetScrollRef.current = null;
     setIsScrollRestoring(false);
   }, [articles]);
@@ -122,7 +122,7 @@ export function ZhengjiguanPage() {
     const timer = setTimeout(() => {
       if (targetScrollRef.current !== null) {
         window.scrollTo(0, targetScrollRef.current);
-        localStorage.removeItem('zhengjiguan_scrollPosition');
+        sessionStorage.removeItem('zhengjiguan_scrollPosition');
         targetScrollRef.current = null;
       }
       setIsScrollRestoring(false);
@@ -132,7 +132,7 @@ export function ZhengjiguanPage() {
 
   useEffect(() => {
     // 如果没有保存的滚动位置，才滚动到顶部
-    if (!localStorage.getItem('zhengjiguan_scrollPosition')) {
+    if (!sessionStorage.getItem('zhengjiguan_scrollPosition')) {
       window.scrollTo({ top: 0, behavior: 'auto' });
     }
 
