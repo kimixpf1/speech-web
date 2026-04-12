@@ -10,7 +10,7 @@
 - ✅ 第1步：删除 Timeline.tsx 死代码（已完成，`246bb3a`）
 - ✅ 第2步：统一滚动位置存储方式（已完成，`964b514`）
 - ✅ 第3步：vite 分包细化（已完成，`1fa8f14`）
-- ⬜ 第4步：骨架屏提取为独立 memo 组件（未开始）
+- ✅ 第4步：骨架屏提取为独立 memo 组件（已完成，`bd700df`）
 - ⬜ 第5步：移除 ContentList.tsx 重复预加载逻辑（未开始）
 
 ### 优化方案详情（已写入 todolist.md）
@@ -24,6 +24,7 @@
 | 5 | 预加载逻辑去重 | ContentList.tsx | ⭐⭐低风险 |
 
 ### 提交记录
+- `bd700df` perf: 骨架屏组件提取为独立memo组件，避免不必要重渲染
 - `246bb3a` refactor: 删除死代码 Timeline.tsx（未被任何路由引用的无效组件）
 - `964b514` refactor: 统一滚动位置存储方式 localStorage→sessionStorage（ZhengjiguanPage）
 - `1fa8f14` perf: vite分包细化 - lucide-react独立为vendor-icons chunk优化缓存
@@ -197,67 +198,3 @@
 
 ### 下一步
 - 找到真正的回归点并做局部修复
-- 完成本地模拟验证后，再补充本轮结果与遗留事项
-
-## 2026-04-10 首页点击卡顿修复验证通过
-
-### 本次目标
-- 验证之前在 App.tsx 中实施的首页点击卡顿修复是否生效
-
-### 修复回顾
-- 在 App.tsx 的 `HomePage` 组件中增加 `hasRestoredScrollRef` 一次性滚动恢复守卫
-- 将滚动恢复延迟到 `requestAnimationFrame` 执行，避免返回首页后立即抢占首帧渲染
-- 详情页返回首页使用 `navigate(targetPath, { replace: true })` 减少路由栈开销
-
-### 验证结果
-- ✅ 首页点击文章标题 → 详情页 → 返回首页：全链路流畅
-- ✅ 用户真人验证确认"不卡了"
-- ✅ build 成功
-
-### 影响文件
-- src/App.tsx（滚动恢复逻辑）
-
-### 遗留事项
-- 无，首页点击卡顿问题已关闭
-
-## 2026-04-11 第一批构建体积优化
-
-### 本次目标
-- 执行14项优化方案中的第一批（构建体积优化），减少首屏加载体积
-
-### 实际改动
-- **优化 #1 TTS/ONNX/Piper**：已确认本就是动态 import（`await import('@mintplex-labs/piper-tts-web')`），无需额外改动
-- **优化 #2 recharts 移除**：
-  - 删除 `src/components/ui/chart.tsx`（无任何文件引用的 recharts 封装死代码）
-  - 从 `package.json` 移除 `recharts` 依赖，`npm uninstall` 减少37个npm包
-- **优化 #3 docx + file-saver 动态加载**：
-  - `DetailPage.tsx` 中 docx 和 file-saver 从顶部静态 import 改为 `handleExportWord` 内 `await import()` 动态加载
-  - DetailPage chunk 从 **380.5 KB → 48.5 KB**（减少 87%）
-  - docx 库被 Vite 自动拆分为独立 lazy chunk（~645KB），仅在用户点击"导出Word"时加载
-  - file-saver 被拆分为独立 lazy chunk（~2.9KB）
-- **优化 #4 html2canvas**：确认不存在于代码库中，跳过
-
-### 构建产物对比
-| 文件 | 优化前 | 优化后 |
-|------|--------|--------|
-| DetailPage.js | 380.5 KB | 48.5 KB |
-| FileSaver.min.js | (内联) | 2.9 KB (lazy) |
-| recharts | 有 | 完全消除 |
-
-### 影响文件
-- src/components/ui/chart.tsx（已删除）
-- src/components/DetailPage.tsx（import 改为动态）
-- package.json（移除 recharts 依赖）
-- package-lock.json（自动更新）
-
-### 验证结果
-- ✅ `npx vite build` 成功
-- ✅ TypeScript 零错误（DetailPage.tsx diagnostics = []）
-- ✅ 代码逻辑复核通过：所有 docx/file-saver 变量引用均在 handleExportWord 函数作用域内
-
-### 提交记录
-- `d0bf2c4` perf: 第一批构建体积优化 - 移除recharts死代码 + docx动态加载
-
-### 遗留事项
-- 需用户手动 `git push origin main`（沙箱环境无法弹出凭据窗口）
-- 后续第二批优化待启动：CSS/UI 优化（暗色模式清理、Tailwind 未使用类清除、组件级 CSS 拆分）
