@@ -1,6 +1,6 @@
 # 项目迭代记录
 
-## 2026-04-12 前台小步优化方案（待执行）
+## 2026-04-12 前台小步优化方案（✅ 全部完成）
 
 ### 本次目标
 - 基于 2026-04-12 对全部前台源码的完整审读，整理出 5 项性价比高、风险低的前台优化
@@ -11,19 +11,20 @@
 - ✅ 第2步：统一滚动位置存储方式（已完成，`964b514`）
 - ✅ 第3步：vite 分包细化（已完成，`1fa8f14`）
 - ✅ 第4步：骨架屏提取为独立 memo 组件（已完成，`bd700df`）
-- ⬜ 第5步：移除 ContentList.tsx 重复预加载逻辑（未开始）
+- ✅ 第5步：移除 ContentList.tsx 重复预加载逻辑（已完成，`388bb8d`）
 
-### 优化方案详情（已写入 todolist.md）
+### 优化方案详情
 
-| # | 优化项 | 涉及文件 | 风险 |
-|---|--------|----------|------|
-| 1 | 删除 Timeline.tsx 死代码 | 删除 Timeline.tsx | ⭐零风险 |
-| 2 | 统一滚动存储方式 | ZhengjiguanPage.tsx | ⭐零风险 |
-| 3 | lucide-react 独立分包 | vite.config.ts | ⭐零风险 |
-| 4 | 骨架屏提取为 memo 组件 | App.tsx | ⭐⭐低风险 |
-| 5 | 预加载逻辑去重 | ContentList.tsx | ⭐⭐低风险 |
+| # | 优化项 | 涉及文件 | 风险 | 状态 |
+|---|--------|----------|------|------|
+| 1 | 删除 Timeline.tsx 死代码 | 删除 Timeline.tsx | ⭐零风险 | ✅ |
+| 2 | 统一滚动存储方式 | ZhengjiguanPage.tsx | ⭐零风险 | ✅ |
+| 3 | lucide-react 独立分包 | vite.config.ts | ⭐零风险 | ✅ |
+| 4 | 骨架屏提取为 memo 组件 | App.tsx | ⭐⭐低风险 | ✅ |
+| 5 | 预加载逻辑去重 | ContentList.tsx | ⭐⭐低风险 | ✅ |
 
 ### 提交记录
+- `388bb8d` refactor: 移除ContentList.tsx重复的详情页预加载逻辑（已由App.tsx统一管理）
 - `bd700df` perf: 骨架屏组件提取为独立memo组件，避免不必要重渲染
 - `246bb3a` refactor: 删除死代码 Timeline.tsx（未被任何路由引用的无效组件）
 - `964b514` refactor: 统一滚动位置存储方式 localStorage→sessionStorage（ZhengjiguanPage）
@@ -32,7 +33,7 @@
 ### 遗留事项
 - 高优先待办仍为：调试新华社文章搜不到的问题
 - 中优先待办：修复 search_people_jhsjk() 时区问题
-- 每步完成后需更新 todolist.md 状态标记和本文件
+- 低优先待办：改进 jhsjk.people.cn 爬取（JS 动态渲染）
 
 ## 2026-04-12 线上崩溃事故复盘与规则回写
 
@@ -163,38 +164,3 @@
 ### 遗留事项
 - 需真人验证线上admin后台建议列表、搜索日志是否正常显示
 - 需真人验证首页滚动和返回首页是否流畅
-
-## 当前进行中的第八步
-
-### 目标
-- 继续排查首页首次进入、详情返回首页时的点击卡顿回归点，确认是否是路由切换后首屏同步工作阻塞了交互
-
-### 预期方式
-- 在不破坏现有首页、详情页和专题页链路的前提下，优先复核历史优化是否已回退，再定位当前真正的同步阻塞点
-- 必要时对首页滚动恢复、详情页进入清理、详情跳转前的预加载策略做最小范围调整
-- 修复后进行真人模拟验证：首次进入首页、从详情页返回首页后立即点击文章标题/查看详情是否仍有卡顿
-
-### 当前状态
-- ✅ 已复核历史首页优化仍在：`ContentList.tsx` 的排序/分组仍是 `useMemo`
-- ✅ 已复核 `articleServiceEnhanced.ts` 的本地缓存读取未回退为重复 normalize
-- ✅ 已重新读取 .trae/rules/ 下的所有规则文件
-- ✅ 已对首页滚动恢复做最小修复：改为仅首次恢复一次，并延后到 `requestAnimationFrame` 执行，避免返回首页后立即抢占首帧
-- 🔄 正在做本地模拟验证，确认首次进入与返回首页后的点击是否恢复顺畅
-- ❌ 尚未完成最终验证与远端推送
-
-### 需要重点复核的代码链路
-- `src/App.tsx`
-  - 首页 `getLocalArticlesSync` 作为 `SWR fallbackData`
-  - `requestIdleCallback` / `setTimeout` 的详情页预加载
-  - `useLayoutEffect` 基于 `articles.length` 的滚动恢复
-  - `scroll` 事件持续写入 `sessionStorage.lastScrollY`
-- `src/components/DetailPage.tsx`
-  - 进入详情页时的 `window.scrollTo({ top: 0, behavior: 'auto' })`
-  - `setIsLoading(true)`、`setSpeech(null)` 的同步状态重置
-  - 返回首页时 `navigate(targetPath, { replace: true })`
-- `src/components/ContentList.tsx`
-  - 标题/查看详情点击链路、`sessionStorage.lastScrollY` 写入
-  - hover/focus 预加载详情页模块
-
-### 下一步
-- 找到真正的回归点并做局部修复
