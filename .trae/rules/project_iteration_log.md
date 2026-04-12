@@ -9,7 +9,7 @@
 ### 当前状态
 - ✅ 第1步：删除 Timeline.tsx 死代码（已完成，`246bb3a`）
 - ✅ 第2步：统一滚动位置存储方式（已完成，`964b514`）
-- ⬜ 第3步：vite 分包细化（未开始）
+- ✅ 第3步：vite 分包细化（已完成，`1fa8f14`）
 - ⬜ 第4步：骨架屏提取为独立 memo 组件（未开始）
 - ⬜ 第5步：移除 ContentList.tsx 重复预加载逻辑（未开始）
 
@@ -26,6 +26,7 @@
 ### 提交记录
 - `246bb3a` refactor: 删除死代码 Timeline.tsx（未被任何路由引用的无效组件）
 - `964b514` refactor: 统一滚动位置存储方式 localStorage→sessionStorage（ZhengjiguanPage）
+- `1fa8f14` perf: vite分包细化 - lucide-react独立为vendor-icons chunk优化缓存
 
 ### 遗留事项
 - 高优先待办仍为：调试新华社文章搜不到的问题
@@ -111,7 +112,7 @@
 ### 验证结果
 - ✅ `npm.cmd run build` 成功（exit code 0）
 - ✅ `git diff --stat` 显示本轮重构以删除重复代码为主，整体结构明显收敛
-- ✅ 当前 `git status` 显示分支与 `origin/main` 同步，说明代码提交已不处于“本地领先线上”状态
+- ✅ 当前 `git status` 显示分支与 `origin/main` 同步，说明代码提交已不处于"本地领先线上"状态
 - ⚠️ 当前仍有 `tsc_output.txt` 临时输出文件未跟踪，需清理
 
 ### 提交记录
