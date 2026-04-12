@@ -3,8 +3,6 @@ import { FileText } from 'lucide-react';
 import type { Speech } from '@/data/speeches';
 import { SpeechCard } from '@/components/SpeechCard';
 
-const preloadDetailPage = () => import('@/components/DetailPage');
-
 interface ContentListProps {
   speeches: Speech[];
 }
@@ -68,7 +66,6 @@ export function ContentList({ speeches }: ContentListProps) {
                 detailUrl={`#/detail/${speech.id}`}
                 onSaveScroll={() => sessionStorage.setItem('lastScrollY', window.scrollY.toString())}
                 showDomain
-                onMouseEnter={() => void preloadDetailPage()}
               />
             ))}
           </div>
