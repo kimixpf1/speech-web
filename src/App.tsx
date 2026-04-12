@@ -92,7 +92,10 @@ function HomePage() {
   // 使用 SWR 获取数据并处理缓存，替代手写的 useState 和 useEffect 获取逻辑
   const { data: articles = [], mutate, isLoading } = useSWR<Speech[]>('articles', getArticles, {
     fallbackData: cachedArticles,
-    revalidateOnFocus: false, // 避免切换标签页时频繁拉取
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    revalidateIfStale: false,
+    dedupingInterval: 60000,
   });
   const { data: zhengjiguanArticles = [], mutate: mutateZhengjiguan } = useSWR<Speech[]>('zhengjiguan-articles', getZhengjiguanArticles, {
     fallbackData: [],
