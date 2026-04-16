@@ -87,6 +87,7 @@ def get_search_query():
         f'习近平{date_keyword}考察调研会议 {target_date}',
         f'习近平{date_keyword}重要活动新闻 {target_date}',
         f'习近平{date_keyword}回信贺信致辞 {target_date}',
+        f'《求是》杂志 习近平{date_keyword}重要文章 {target_date}',
     ]
     
     main_query = f'习近平总书记{date_keyword}最新活动新闻 {target_date}'
@@ -161,7 +162,7 @@ def validate_article(article: Dict) -> Dict:
             art_date = datetime.strptime(article_date, '%Y-%m-%d')
             today = datetime.utcnow() + timedelta(hours=8)
             days_diff = (today - art_date).days
-            if days_diff > 3 or days_diff < -1:
+            if days_diff > 3 or days_diff < -5:
                 result['valid'] = False
                 result['reasons'].append(f'日期过旧: {article_date}（距今{days_diff}天）')
                 return result
@@ -231,6 +232,7 @@ def _build_news_search_prompt() -> tuple:
 
 请联网搜索习近平总书记最近的重要讲话、重要文章、重要会议、考察调研、指示批示、回信贺信等全部最新活动新闻。
 特别注意：除了重要讲话和会议，还要关注产业发展、服务业、科技创新、民生保障等各领域的新动向。
+特别注意：《求是》杂志发表习近平总书记重要文章是高频场景，务必重点搜索求是网(qstheory.cn)上的总书记原文。
 搜索范围包括但不限于：新华网(xinhuanet.com/news.cn)、人民网(people.com.cn)、中国政府网(gov.cn)、央视网(cctv.com)、求是网(qstheory.cn)。
 返回JSON数组，每条包含：
 {{"title": "标题", "date": "YYYY-MM-DD", "category": "speech", "categoryName": "重要讲话", "source": "来源", "url": "真实可访问的链接", "summary": "摘要"}}
@@ -399,7 +401,7 @@ def search_with_baidu(queries: List[str]) -> List[Dict]:
     blocked = False
     
     # 只用第一个 query + 3个核心站点，减少被封概率
-    fallback_sites = ['xinhuanet.com', 'news.cn', 'people.com.cn']
+    fallback_sites = ['xinhuanet.com', 'news.cn', 'people.com.cn', 'qstheory.cn']
     fallback_query = queries[0] if queries else ''
     
     for site in fallback_sites:
@@ -533,7 +535,99 @@ def search_people_jhsjk() -> List[Dict]:
         return []
 
 
-def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], people_articles: List[Dict] = None, qwen_articles: List[Dict] = None):
+def search_qstheory() -> List[Dict]:
+    """直接从求是网抓取最新习近平总书记重要文章"""
+    print('[QiuShi] Starting direct crawl of qstheory.cn...')
+    articles = []
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        print('[QiuShi] BeautifulSoup not installed')
+        return []
+
+    today = (datetime.utcnow() + timedelta(hours=8)).date()
+    yesterday = today - timedelta(days=1)
+    valid_dates = [today.strftime('%Y-%m-%d'), yesterday.strftime('%Y-%m-%d'),
+                   (today - timedelta(days=2)).strftime('%Y-%m-%d')]
+
+    urls_to_check = [
+        'http://www.qstheory.cn/',
+        'http://www.qstheory.cn/dukan/qs/',
+    ]
+
+    seen_urls = set()
+
+    for page_url in urls_to_check:
+        try:
+            resp = requests.get(page_url, headers=headers, timeout=30)
+            if resp.status_code != 200:
+                print(f'[QiuShi] HTTP {resp.status_code} for {page_url}')
+                continue
+
+            resp.encoding = 'utf-8'
+            soup = BeautifulSoup(resp.text, 'html.parser')
+
+            for a_tag in soup.find_all('a', href=True):
+                title = a_tag.get_text(strip=True)
+                href = a_tag['href']
+
+                if not title or len(title) < 8:
+                    continue
+
+                is_xi_article = (
+                    '习近平' in title and (
+                        '重要文章' in title or
+                        '《求是》' in title or
+                        '发表' in title or
+                        '总书记' in title
+                    )
+                ) or (
+                    '总书记' in title and '重要文章' in title
+                )
+
+                if not is_xi_article:
+                    continue
+
+                if href.startswith('/'):
+                    full_url = f'http://www.qstheory.cn{href}'
+                elif href.startswith('http'):
+                    full_url = href
+                else:
+                    full_url = f'http://www.qstheory.cn/{href}'
+
+                if full_url in seen_urls:
+                    continue
+                seen_urls.add(full_url)
+
+                article_date = today.strftime('%Y-%m-%d')
+
+                date_match = re.search(r'/(\d{4}-\d{2}/\d{2})/', full_url)
+                if date_match:
+                    try:
+                        parsed = datetime.strptime(date_match.group(1), '%Y-%m/%d')
+                        article_date = parsed.strftime('%Y-%m-%d')
+                    except ValueError:
+                        pass
+
+                articles.append({
+                    'title': title,
+                    'url': full_url,
+                    'source': '求是网',
+                    'date': article_date,
+                    'summary': title,
+                })
+                print(f'[QiuShi] Found: {title[:50]}... ({article_date})')
+
+        except Exception as e:
+            print(f'[QiuShi] Error crawling {page_url}: {e}')
+
+    print(f'[QiuShi] Total: {len(articles)} articles found')
+    return articles
+
+
+def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], people_articles: List[Dict] = None, qwen_articles: List[Dict] = None, qstheory_articles: List[Dict] = None):
     all_articles = []
     seen_titles = set()
     seen_urls = set()
@@ -546,8 +640,10 @@ def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], peop
         people_articles = []
     if qwen_articles is None:
         qwen_articles = []
+    if qstheory_articles is None:
+        qstheory_articles = []
 
-    source_counts = {'kimi': len(kimi_articles or []), 'qwen': len(qwen_articles or []), 'baidu': len(baidu_articles or []), 'people': len(people_articles or [])}
+    source_counts = {'kimi': len(kimi_articles or []), 'qwen': len(qwen_articles or []), 'baidu': len(baidu_articles or []), 'people': len(people_articles or []), 'qstheory': len(qstheory_articles or [])}
 
     def simplify(t): return re.sub(r'[《》""「」『』【】\s]', '', t)
 
@@ -593,6 +689,8 @@ def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], peop
 
     for a in people_articles:
         add(a, 'people')
+    for a in qstheory_articles:
+        add(a, 'qstheory')
     for a in qwen_articles:
         add(a, 'qwen')
     for a in kimi_articles:
@@ -693,12 +791,13 @@ def save_log(qwen_count, kimi_count, baidu_count, people_count, new_count, statu
                 'api_used': pipeline_label,
                 'pipeline': {
                     'step1': '直抓人民网讲话数据库',
-                    'step2': 'Qwen联网搜索(通义千问+enable_search)',
-                    'step3': 'Kimi联网补漏(Moonshot)',
-                    'step4': '百度搜索兜底(仅新华社/人民网)',
-                    'step5': '统一去重(标题+URL)',
-                    'step6': '与已有文章库比对',
-                    'step7': '最终新增入待审核',
+                    'step2': '直抓求是网(qstheory.cn)',
+                    'step3': 'Qwen联网搜索(通义千问+enable_search)',
+                    'step4': 'Kimi联网补漏(Moonshot)',
+                    'step5': '百度搜索兜底(含求是网)',
+                    'step6': '统一去重(标题+URL)',
+                    'step7': '与已有文章库比对',
+                    'step8': '最终新增入待审核',
                 },
             },
             'duration_seconds': 0,
@@ -733,11 +832,12 @@ def main():
     main_query, queries, search_date, target_date = get_search_query()
 
     people_articles = search_people_jhsjk()
+    qstheory_articles = search_qstheory()
     qwen_articles = search_with_qwen(main_query)
     kimi_articles = search_with_kimi(main_query)
     baidu_articles = search_with_baidu(queries)
 
-    merged, merge_info = merge_and_dedupe(kimi_articles, baidu_articles, people_articles, qwen_articles)
+    merged, merge_info = merge_and_dedupe(kimi_articles, baidu_articles, people_articles, qwen_articles, qstheory_articles)
     print(f'[Merge] After dedup: {len(merged)} articles')
 
     existing_urls = get_existing_urls()
@@ -791,7 +891,7 @@ def main():
 
     save_log(len(qwen_articles), len(kimi_articles), len(baidu_articles), len(people_articles), saved, status, log_details)
 
-    print(f'=== Done: People {len(people_articles)}, Qwen {len(qwen_articles)}, Kimi {len(kimi_articles)}, Baidu {len(baidu_articles)}, '
+    print(f'=== Done: People {len(people_articles)}, QiuShi {len(qstheory_articles)}, Qwen {len(qwen_articles)}, Kimi {len(kimi_articles)}, Baidu {len(baidu_articles)}, '
           f'Merged {len(merged)}, ExistingFiltered {len(existing_url_filtered)}, New {saved} ===')
 
 
