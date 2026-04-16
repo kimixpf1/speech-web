@@ -49,7 +49,7 @@ DOMAIN_KEYWORDS = {
     'defense': ['军队', '国防', '军事', '军委', '强军', '部队', '战士'],
     'party': ['党建', '从严治党', '纪检', '巡视', '党校', '党员', '党组织'],
     'ecology': ['生态', '环境', '绿色', '碳达峰', '碳中和', '环保'],
-    'culture': ['文化', '文明', '文艺', '体育', '艺术', '文学'],
+    'culture': ['文化', '文明', '文艺', '体育', '艺术', '文学', '阅读', '读书', '书香', '出版', '图书', '教育'],
     'society': ['民生', '扶贫', '乡村振兴', '医疗', '就业', '养老', '住房'],
     'economy': ['经济', '金融', '科技', '创新', '高质量发展', '产业', '企业'],
     'politics': ['政治', '人大', '政协', '全会', '两会', '法治', '立法'],
@@ -536,7 +536,7 @@ def search_people_jhsjk() -> List[Dict]:
 
 
 def search_qstheory() -> List[Dict]:
-    """直接从求是网抓取最新习近平总书记重要文章"""
+    """直接从求是网抓取最新习近平总书记重要文章原文（非报道/评论）"""
     print('[QiuShi] Starting direct crawl of qstheory.cn...')
     articles = []
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
@@ -550,8 +550,6 @@ def search_qstheory() -> List[Dict]:
     today = (datetime.utcnow() + timedelta(hours=8)).date()
     yesterday = today - timedelta(days=1)
     valid_dates = [today.strftime('%Y-%m-%d'), yesterday.strftime('%Y-%m-%d')]
-
-    NON_ORIGINAL_KEYWORDS = ['评论员', '社论', '编者按', '解读', '综述', '综述评', '学习体会', '心得体会', '体会文章', '理论之声', '思想阐释', '宣讲', '侧记']
 
     urls_to_check = [
         'http://www.qstheory.cn/',
@@ -577,22 +575,12 @@ def search_qstheory() -> List[Dict]:
                 if not title or len(title) < 8:
                     continue
 
-                if any(kw in title for kw in NON_ORIGINAL_KEYWORDS):
-                    print(f'[QiuShi] 跳过非原文: {title[:40]}...')
-                    continue
+                is_original = '※习近平' in title
 
-                is_xi_article = (
-                    '习近平' in title and (
-                        '重要文章' in title or
-                        '《求是》' in title or
-                        '发表' in title or
-                        '总书记' in title
-                    )
-                ) or (
-                    '总书记' in title and '重要文章' in title
-                )
-
-                if not is_xi_article:
+                if not is_original:
+                    if '习近平' not in title and '总书记' not in title:
+                        continue
+                    print(f'[QiuShi] 跳过非原文（无※习近平标记）: {title[:50]}...')
                     continue
 
                 if href.startswith('/'):
@@ -620,14 +608,15 @@ def search_qstheory() -> List[Dict]:
                     print(f'[QiuShi] 跳过旧文章: {title[:40]}... ({article_date})')
                     continue
 
+                clean_title = title.replace('※习近平', '').strip()
                 articles.append({
-                    'title': title,
+                    'title': clean_title,
                     'url': full_url,
                     'source': '求是网',
                     'date': article_date,
-                    'summary': title,
+                    'summary': clean_title,
                 })
-                print(f'[QiuShi] Found: {title[:50]}... ({article_date})')
+                print(f'[QiuShi] Found: {clean_title[:50]}... ({article_date})')
 
         except Exception as e:
             print(f'[QiuShi] Error crawling {page_url}: {e}')
