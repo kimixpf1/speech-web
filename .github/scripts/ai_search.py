@@ -162,7 +162,7 @@ def validate_article(article: Dict) -> Dict:
             art_date = datetime.strptime(article_date, '%Y-%m-%d')
             today = datetime.utcnow() + timedelta(hours=8)
             days_diff = (today - art_date).days
-            if days_diff > 3 or days_diff < -5:
+            if days_diff > 1 or days_diff < -2:
                 result['valid'] = False
                 result['reasons'].append(f'日期过旧: {article_date}（距今{days_diff}天）')
                 return result
@@ -549,8 +549,9 @@ def search_qstheory() -> List[Dict]:
 
     today = (datetime.utcnow() + timedelta(hours=8)).date()
     yesterday = today - timedelta(days=1)
-    valid_dates = [today.strftime('%Y-%m-%d'), yesterday.strftime('%Y-%m-%d'),
-                   (today - timedelta(days=2)).strftime('%Y-%m-%d')]
+    valid_dates = [today.strftime('%Y-%m-%d'), yesterday.strftime('%Y-%m-%d')]
+
+    NON_ORIGINAL_KEYWORDS = ['评论员', '社论', '编者按', '解读', '综述', '综述评', '学习体会', '心得体会', '体会文章', '理论之声', '思想阐释', '宣讲', '侧记']
 
     urls_to_check = [
         'http://www.qstheory.cn/',
@@ -574,6 +575,10 @@ def search_qstheory() -> List[Dict]:
                 href = a_tag['href']
 
                 if not title or len(title) < 8:
+                    continue
+
+                if any(kw in title for kw in NON_ORIGINAL_KEYWORDS):
+                    print(f'[QiuShi] 跳过非原文: {title[:40]}...')
                     continue
 
                 is_xi_article = (
@@ -610,6 +615,10 @@ def search_qstheory() -> List[Dict]:
                         article_date = parsed.strftime('%Y-%m-%d')
                     except ValueError:
                         pass
+
+                if article_date not in valid_dates:
+                    print(f'[QiuShi] 跳过旧文章: {title[:40]}... ({article_date})')
+                    continue
 
                 articles.append({
                     'title': title,
