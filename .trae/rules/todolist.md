@@ -71,6 +71,7 @@
 5. 更新本文件状态（⬜→✅）和迭代记录
 
 ## 最近已完成
+- [x] 2026-04-12 修复《求是》杂志总书记重要文章漏搜问题：新增 search_qstheory() 直抓求是网、搜索查询增加《求是》关键词、百度 fallback 增加 qstheory.cn、AI 提示词增加求是重点提示、日期校验放宽未来容忍度（`45bd004`）
 - [x] 2026-04-12 前台5步小步优化全部完成：Timeline死代码删除、滚动存储统一、vite分包细化、骨架屏memo化、预加载去重
 - [x] 2026-04-11 完成代码结构优化三步路线收尾：配置收敛、SpeechCard 复用、DetailPage 拆分；build 通过并已提交 `a254638`
 - [x] 2026-04-09 修复 URL 提取"解析文章内容失败"：偏好 key 不匹配（preferred_api → preferred_extraction_api）、JSON 解析增强（控制字符/尾逗号修复）、CORS/API 日志增强
