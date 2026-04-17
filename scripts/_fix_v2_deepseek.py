@@ -2,9 +2,9 @@ import requests, json, sys, io, os, re, time, urllib.parse
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
-SUPABASE_URL = "https://ejeiuqcmkznfbglvbkbe.supabase.co"
-ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqZWl1cWNta3puZmJnbHZia2JlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1ODU4NzIsImV4cCI6MjA4NzE2MTg3Mn0.NfmTSA9DhuP51XKF0qfTuPINtSc7i26u5yIbl69cdAg"
-DEEPSEEK_API_KEY = "sk-d8718e08229f408782512f0abe13e208"
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://ejeiuqcmkznfbglvbkbe.supabase.co")
+ANON_KEY = os.getenv("SUPABASE_ANON_KEY") or os.getenv("ANON_KEY", "")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 
 GARBAGE_PATTERNS = [

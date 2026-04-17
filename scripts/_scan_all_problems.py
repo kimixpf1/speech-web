@@ -2,8 +2,8 @@ import requests, json, io, sys, os, re, time, urllib.parse
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
-SUPABASE_URL = "https://ejeiuqcmkznfbglvbkbe.supabase.co"
-ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqZWl1cWNta3puZmJnbHZia2JlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1ODU4NzIsImV4cCI6MjA4NzE2MTg3Mn0.NfmTSA9DhuP51XKF0qfTuPINtSc7i26u5yIbl69cdAg"
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://ejeiuqcmkznfbglvbkbe.supabase.co")
+ANON_KEY = os.getenv("SUPABASE_ANON_KEY") or os.getenv("ANON_KEY", "")
 
 GARBAGE_PATTERNS = [
     r"不忘初心.*牢记使命",
@@ -42,6 +42,9 @@ GARBAGE_PATTERNS = [
 ]
 
 def fetch_all(table, select, order="id"):
+    if not ANON_KEY:
+        raise RuntimeError("SUPABASE_ANON_KEY or ANON_KEY is required")
+
     rows, offset = [], 0
     while True:
         r = requests.get(
@@ -158,14 +161,6 @@ def main():
     print(f"\nStats:")
     for cat, count in sorted(stats.items(), key=lambda x: -x[1]):
         print(f"  {cat}: {count}")
-
-    print(f"\nProblem articles (top 30):")
-    for p in problems[:30]:
-        print(f"  [{p['category']}] {p['id']} {p['title']}")
-        print(f"    summary: {p['summary'][:80]}...")
-        print(f"    abstract: {p['abstract'][:80]}...")
-
-    print(f"\nResult saved to {out_path}")
 
 if __name__ == "__main__":
     main()

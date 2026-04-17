@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 AI scheduled search script - Kimi API + Baidu search + People.cn direct crawl
 Morning 8:00: search yesterday's articles (catch up)
@@ -71,17 +71,20 @@ DOMAIN_NAMES = {'economy': '经济', 'politics': '政治', 'culture': '文化', 
 def get_search_query():
     """Generate multiple search queries based on time: morning searches yesterday, evening searches today"""
     utc_now = datetime.utcnow()
-    beijing_hour = (utc_now.hour + 8) % 24
-    
+    beijing_now = utc_now + timedelta(hours=8)
+    beijing_hour = beijing_now.hour
+
     if beijing_hour < 12:
-        target_date = (utc_now + timedelta(hours=8) - timedelta(days=1)).strftime('%Y年%m月%d日')
+        target_dt = beijing_now - timedelta(days=1)
         date_keyword = '昨日'
         search_date = 'yesterday'
     else:
-        target_date = (utc_now + timedelta(hours=8)).strftime('%Y年%m月%d日')
+        target_dt = beijing_now
         date_keyword = '今日'
         search_date = 'today'
-    
+
+    target_date = f'{target_dt.year}年{target_dt.month:02d}月{target_dt.day:02d}日'
+
     queries = [
         f'习近平{date_keyword}最新讲话 指示 {target_date}',
         f'习近平{date_keyword}考察调研会议 {target_date}',
@@ -552,8 +555,8 @@ def search_qstheory() -> List[Dict]:
     valid_dates = [today.strftime('%Y-%m-%d'), yesterday.strftime('%Y-%m-%d')]
 
     urls_to_check = [
-        'http://www.qstheory.cn/',
-        'http://www.qstheory.cn/dukan/qs/',
+        'https://www.qstheory.cn/',
+        'https://www.qstheory.cn/dt/',
     ]
 
     seen_urls = set()
@@ -575,20 +578,36 @@ def search_qstheory() -> List[Dict]:
                 if not title or len(title) < 8:
                     continue
 
-                is_original = '※习近平' in title
+                is_original = (
+                    '※习近平' in title
+                    or title.startswith('习近平：')
+                    or (
+                        title.startswith('《求是》杂志发表习近平总书记重要文章《')
+                        and title.endswith('》')
+                        and '【新闻联播】' not in title
+                    )
+                )
 
                 if not is_original:
                     if '习近平' not in title and '总书记' not in title:
                         continue
-                    print(f'[QiuShi] 跳过非原文（无※习近平标记）: {title[:50]}...')
+                    print(f'[QiuShi] 跳过非原文（未命中原文规则）: {title[:50]}...')
                     continue
 
                 if href.startswith('/'):
-                    full_url = f'http://www.qstheory.cn{href}'
+                    full_url = f'https://www.qstheory.cn{href}'
                 elif href.startswith('http'):
                     full_url = href
                 else:
-                    full_url = f'http://www.qstheory.cn/{href}'
+                    full_url = f'https://www.qstheory.cn/{href}'
+
+                normalized_url = full_url.lower()
+                if '/video/' in normalized_url or '/pk/' in normalized_url:
+                    print(f'[QiuShi] 跳过非原文链接: {title[:50]}... ({full_url})')
+                    continue
+                if '/c.html' not in normalized_url:
+                    print(f'[QiuShi] 跳过非文章页链接: {title[:50]}... ({full_url})')
+                    continue
 
                 if full_url in seen_urls:
                     continue
@@ -597,7 +616,12 @@ def search_qstheory() -> List[Dict]:
                 article_date = today.strftime('%Y-%m-%d')
 
                 date_match = re.search(r'/(\d{4}-\d{2}/\d{2})/', full_url)
-                if date_match:
+                if not date_match:
+                    date_match = re.search(r'(\d{2}-\d{2})', a_tag.parent.get_text(' ', strip=True))
+                    if date_match:
+                        mmdd = date_match.group(1)
+                        article_date = f'{today.year}-{mmdd}'
+                if date_match and '/' in date_match.group(1):
                     try:
                         parsed = datetime.strptime(date_match.group(1), '%Y-%m/%d')
                         article_date = parsed.strftime('%Y-%m-%d')
