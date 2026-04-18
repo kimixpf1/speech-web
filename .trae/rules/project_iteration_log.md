@@ -1,5 +1,75 @@
 # 项目迭代记录
 
+## 2026-04-18 新增人民日报直抓 + 新华社命中率精修 + 双 BOM 修复
+
+### 本次目标
+- 精修新华社直抓规则，解决 search_xinhua_mrdx() 长期 0 条的问题
+- 接入人民日报电子版直抓到主链（头版/要闻版，最小接入）
+- 修复 ai_search.py 双 BOM 编码问题
+- 保持来源优先级：新华社 / 求是 / 人民日报优先，人民网兜底
+
+### 实际改动
+- 修复文件头部双 BOM（efbbbfefbbbf → efbbbf）
+- OFFICIAL_DOMAINS 和 BAIDU_SITES 补入 mrdx.cn
+- search_xinhua_mrdx() 新增 mrdx.cn 版面页补抓（Page01BC.htm）
+- URL 归一化增加基于版面页的相对链接处理
+- 文章 URL 识别放宽：兼容 /c.html、/c_、/leaders/、Articel... 等
+- 新增 search_rmrb()：直抓人民日报电子版头版/要闻版（node_01~04）
+- merge_and_dedupe() 接入 rmrb_articles，来源顺序：新华社→求是→人民日报→Qwen→Kimi→百度→人民网
+- save_log() 签名新增 rmrb_count，pipeline 描述更新为 10 步
+- main() 调用链新增 rmrb_articles
+
+### 当前状态
+- ✅ py_compile 通过
+- ✅ npm run lint 通过
+- ✅ search_rmrb() 本地实测命中 5 条（2026-04-17/18）
+- ✅ search_xinhua_mrdx() 本地实测命中 1 条（2026-04-17）
+- ✅ 未修改 src/ 和前端代码
+
+### 提交记录
+- 待推送
+
+### 遗留事项
+- existing_titles_simple 历史标题去重逻辑仍需修复
+- search_people_jhsjk() 时区问题仍待修复
+- 人民日报同标题不同 URL（跨版重复）依赖 merge_and_dedupe 标题去重处理
+
+## 2026-04-17 rules 文档职责收敛
+
+### 本次目标
+- 在不触碰业务代码和线上功能的前提下，优化 .trae/rules 文档结构
+- 明确 project_rules.md、project_framework.md、todolist.md、project_iteration_log.md 的边界
+- 把“运行前读取 / 运行后回写”的执行路径写清楚，降低后续协作成本
+
+### 当前状态
+- ✅ 已完成：重写 project_rules.md 的文件职责说明，收敛为长期规则、执行边界、安全网规则
+- ✅ 已完成：重写 project_framework.md 的文件职责说明，收敛为结构、链路、关键文件职责、长期有效结论
+- ✅ 已完成：重写 todolist.md 的文件职责说明，收敛为本轮目标、风险点、当前待办、验证结果、下一步
+- ✅ 已完成：补充本轮迭代记录，明确本次为纯 rules 文档整理
+- ✅ 已完成：确认改动范围仅限 .trae/rules，未触碰业务代码、构建配置、部署链路
+
+### 实际改动
+- 调整了 rules 目录中 4 个核心文件的职责边界，避免长期规则、本轮进度、结构说明、复盘记录继续相互混写
+- 在 project_rules.md 中新增“本文件职责”和“每轮执行边界”，明确开始前、进行中、结束前分别要做什么
+- 在 project_framework.md 中新增“本文件职责”“当前协作文件分工”“当前文档优化结论”，保留长期有效的结构与链路信息
+- 在 todolist.md 中新增“本文件职责”“本轮目标”“本轮风险点”“本轮执行状态”“本轮验证结果”“下一步”，使其成为真正的执行面板
+- 在本文件中补齐本轮目标、状态、改动、验证和遗留项，确保本轮文档优化有正式记录
+
+### 验证结果
+- ✅ 改动范围确认仅限 `.trae/rules/project_rules.md`
+- ✅ 改动范围确认仅限 `.trae/rules/project_framework.md`
+- ✅ 改动范围确认仅限 `.trae/rules/todolist.md`
+- ✅ 改动范围确认仅限 `.trae/rules/project_iteration_log.md`
+- ✅ 未修改 `src/`、`package.json`、`.github/workflows/`、`supabase/` 等任何运行链路文件
+- ✅ 本轮为纯文档优化，不会影响线上平台现有功能
+
+### 提交记录
+- 本轮尚未提交
+
+### 遗留事项
+- 后续如要进一步自动化“运行前读取 / 运行后回写”，再单独评估是否需要调整 README 或 package.json
+- 当前高优先业务遗留仍是新华社文章漏搜问题，后续正式动代码前需先更新 todolist.md
+
 ## 2026-04-12 修复《求是》杂志文章漏搜问题
 
 ### 本次目标
@@ -8,18 +78,18 @@
 
 ### 根因分析
 1. **没有求是网直抓逻辑**：搜索流程只有 `search_people_jhsjk()` 直抓人民网讲话数据库，缺少对应的求是网抓取函数
-2. **搜索查询未覆盖《求是》场景**：`get_search_query()` 生成的查询没有包含"《求是》杂志/重要文章"相关关键词
+2. **搜索查询未覆盖《求是》场景**：`get_search_query()` 生成的查询没有包含“《求是》杂志/重要文章”相关关键词
 3. **百度 fallback 站点遗漏 qstheory.cn**：`fallback_sites` 只有新华社和人民网，不包含求是网
 4. **AI 提示词未强调求是网**：虽然提到了求是网但未特别强调《求是》杂志发表文章是高频场景
 5. **日期校验过严**：只允许未来 1 天，但杂志可能提前数天预告
 
 ### 实际改动
-- **新增 `search_qstheory()` 函数**：直抓求是网首页和电子刊目录页，识别包含"习近平+重要文章/《求是》/发表/总书记"标题的文章
+- **新增 `search_qstheory()` 函数**：直抓求是网首页和电子刊目录页，识别包含“习近平 + 重要文章 / 《求是》 / 发表 / 总书记”标题的文章
 - **搜索查询增加《求是》关键词**：`get_search_query()` 新增第 5 条查询
 - **百度 fallback 增加 qstheory.cn**：`fallback_sites` 从 3 个扩展到 4 个
-- **AI 提示词增加求是重点提示**：`_build_news_search_prompt()` 新增"《求是》杂志发表习近平总书记重要文章是高频场景"
+- **AI 提示词增加求是重点提示**：`_build_news_search_prompt()` 新增“《求是》杂志发表习近平总书记重要文章是高频场景”
 - **日期校验放宽**：`validate_article()` 未来日期容忍度从 -1 天放宽到 -5 天
-- **pipeline 步骤更新**：从 7 步扩展到 8 步，新增"直抓求是网"
+- **pipeline 步骤更新**：从 7 步扩展到 8 步，新增“直抓求是网”
 - **merge_and_dedupe 增加 qstheory_articles 参数**：求是网文章优先级仅次于人民网
 
 ### 影响文件
@@ -74,129 +144,22 @@
 ## 2026-04-12 线上崩溃事故复盘与规则回写
 
 ### 事故根因（三个问题叠加）
-
-1. **FilterBar.tsx import 丢失**：2026-04-11 代码结构优化（commit a254638）中，FilterBar.tsx 被整文件重写，导致之前已有的 `LayoutGrid`、`Award`、`Calendar` 图标 import 被静默覆盖丢失。线上运行时抛出 `ReferenceError: Award is not defined`，整个 FilterBar 组件崩溃。
-2. **ErrorBoundary "返回首页"路径错误**：ErrorBoundary 的"返回首页"按钮使用 `window.location.href = '/'`，在 GitHub Pages 子路径部署（`/speech-web/`）下导航到根路径导致 404，用户看到错误页后无法自救。
-3. **git push 静默失败**：修复代码后执行 `git push origin main` 返回 exit code 0，但实际未推送任何对象到远端。用户访问线上仍看到崩溃版本。
-
-### 连锁崩溃链
-```
-整文件重写 → 丢失图标 import → FilterBar 运行时崩溃
-→ ErrorBoundary 捕获显示错误页
-→ 用户点"返回首页"→ 路径错误 → GitHub 404
-→ 修复代码后 git push 静默失败
-→ 线上持续显示崩溃版本
-→ 用户反复看到问题"还是不行"
-```
+1. **FilterBar.tsx import 丢失**：2026-04-11 代码结构优化中，FilterBar.tsx 被整文件重写，导致已有图标 import 被静默覆盖丢失，线上运行时崩溃。
+2. **ErrorBoundary 返回首页路径错误**：ErrorBoundary 的“返回首页”按钮使用 `/`，在 GitHub Pages 子路径部署下导航到根路径导致 404。
+3. **git push 静默失败**：修复代码后执行 `git push origin main` 返回 exit code 0，但实际未推送任何对象到远端。
 
 ### 修复措施
-- FilterBar.tsx 第 1 行恢复完整 import：`import { X, LayoutGrid, Award, Calendar } from 'lucide-react'`
-- ErrorBoundary.tsx 第 54 行路径修正：`window.location.href = '/speech-web/#/'`
+- 恢复 FilterBar.tsx 完整 import
+- 修正 ErrorBoundary.tsx 返回首页路径为 `/speech-web/#/`
 - 通过 `git push origin main --force` 成功将修复推送到远端
 
 ### 提交记录
-- `c8df23c` fix: 修复FilterBar缺失图标导入导致崩溃 + ErrorBoundary返回首页路径错误
+- `c8df23c` fix: 修复 FilterBar 缺失图标导入导致崩溃 + ErrorBoundary 返回首页路径错误
 
 ### 验证结果
-- ✅ Chrome DevTools 线上验证：页面完全恢复正常，所有 UI 元素正确渲染
+- ✅ Chrome DevTools 线上验证通过
 - ✅ Console 无 JS 错误（仅第三方 cookie 警告）
-- ✅ `git status` 确认 `Your branch is up-to-date with 'origin/main'`
-
-### 规则回写
-- 已在 project_rules.md 新增"代码安全网规则（2026-04-12）"，包含三条永久规则：
-  - 规则 A：import 完整性保护（改动后核对 import、重构前记录 import 清单、build 是最终安全网）
-  - 规则 B：ErrorBoundary 路径安全（禁止 `/` 跳转、必须用 `/speech-web/#/` 格式）
-  - 规则 C：git push 真实性验证（push 后必须用 git status 或 GitHub API 确认远端状态）
+- ✅ `git status` 确认分支与 `origin/main` 同步
 
 ### 遗留事项
 - 无代码遗留事项，规则已回写完成
-
-## 2026-04-11 代码结构优化三步路线收尾
-
-### 本次目标
-- 完成前台代码结构优化三步路线收尾：配置收敛、SpeechCard 复用、DetailPage 拆分
-- 在不影响现有首页、专题页、详情页、AI 生成、语音播报、导出 Word 等能力的前提下，降低前台核心页面的耦合度与重复代码
-- 完成构建验证、代码提交、远端同步核对与规则文档回写
-
-### 实际改动
-- **Step 1 配置收敛**
-  - 新增 `src/config/constants.ts`
-  - 集中维护 `categoryConfig`、`domainConfig`、`levelConfig`、`LOCAL_VOICE_PACK_ID`、`LOCAL_VOICE_PACK_SIZE_MB`
-  - `FilterBar.tsx`、`Timeline.tsx`、`DetailPage.tsx` 等组件改为复用统一配置
-- **Step 2 SpeechCard 复用**
-  - 新增 `src/components/SpeechCard.tsx`
-  - `ContentList.tsx` 删除重复内联卡片 JSX，改为复用 SpeechCard
-  - `ZhengjiguanPage.tsx` 改为复用同一套卡片组件，统一专题页与首页卡片呈现
-- **Step 3 DetailPage 拆分**
-  - 新增 `src/utils/textUtils.ts`，承载详情页相关文本处理纯函数
-  - 新增 `src/utils/deviceDetect.ts`，集中管理设备/浏览器环境识别
-  - 新增 `src/hooks/useTTS.ts`，抽离语音播报状态与控制流程
-  - 新增 `src/hooks/useArticleDetail.ts`，抽离详情数据读取、AI 生成、衍生状态与链接处理
-  - `src/components/DetailPage.tsx` 重写为页面壳与交互编排层，减少大组件内联逻辑
-
-### 影响文件
-- src/components/ContentList.tsx
-- src/components/ZhengjiguanPage.tsx
-- src/components/SpeechCard.tsx
-- src/components/DetailPage.tsx
-- src/components/FilterBar.tsx
-- src/components/Timeline.tsx
-- src/config/constants.ts
-- src/hooks/useArticleDetail.ts
-- src/hooks/useTTS.ts
-- src/utils/textUtils.ts
-- src/utils/deviceDetect.ts
-
-### 验证结果
-- ✅ `npm.cmd run build` 成功（exit code 0）
-- ✅ `git diff --stat` 显示本轮重构以删除重复代码为主，整体结构明显收敛
-- ✅ 当前 `git status` 显示分支与 `origin/main` 同步，说明代码提交已不处于"本地领先线上"状态
-- ⚠️ 当前仍有 `tsc_output.txt` 临时输出文件未跟踪，需清理
-
-### 提交记录
-- `a254638` refactor: 代码结构优化 - SpeechCard复用 + DetailPage拆分 + 常量/工具/钩子抽取
-
-### 当前收益
-- `DetailPage.tsx` 从大而全页面组件收敛为页面编排层，后续排查摘要、语音、导出、返回首页问题时可模块化定位
-- 首页列表与专题页卡片结构统一，后续样式或交互修改只需维护一处
-- 配置、文本处理、设备识别、详情数据、TTS 逻辑已形成更清晰的职责分层
-
-### 遗留事项
-- 清理 `tsc_output.txt` 等本轮验证产生的临时输出文件
-- 将本次 rules 文档回写单独提交并推送，保证协作记录与代码状态一致
-- 推送后向用户说明本轮更新内容，并给出线上测试指引
-
-## 2026-04-08 RLS修复 + 首页性能优化
-
-### 本次目标
-- 修复admin后台无法看到用户建议（suggestions）
-- 修复admin后台搜索日志不显示、待审文章不加载
-- 修复首页/返回首页卡顿问题
-
-### 根因分析
-- **建议/搜索日志问题**：`suggestionService.ts` 和 `pendingArticleService.ts` 全部使用普通 `supabase` 客户端，RLS策略要求 `auth.uid()` 匹配，但admin认证是自定义的（localStorage UUID白名单），`auth.uid()` 返回 NULL，导致 SELECT/UPDATE/DELETE 被 RLS静默拒绝
-- **首页卡顿**：ContentList.tsx 排序和分组在每次渲染时重新计算（无 useMemo）；articleServiceEnhanced.ts 的 `getLocalCache()` 每次读取都对所有文章执行 `normalizeSummaryText` 和 `normalizeArticleUrl`
-
-### 实际改动
-- **suggestionService.ts**：全部8个函数从 `supabase` 改为 `publicSupabase`（persistSession: false 的客户端绕过RLS）
-- **pendingArticleService.ts**：全部文章读取改用 `publicSupabase`，避免 admin 读取被 RLS 拦截
-- **articleServiceEnhanced.ts**：`getLocalCache()` 不再重复 normalize，直接复用本地缓存
-- **ContentList.tsx**：将列表排序/分组包裹进 `useMemo`
-
-### 影响文件
-- src/services/suggestionService.ts
-- src/services/pendingArticleService.ts
-- src/components/admin/PendingArticlesPanel.tsx
-- src/components/admin/SuggestionsPanel.tsx
-- src/components/ContentList.tsx
-- src/services/articleServiceEnhanced.ts
-
-### 提交记录
-- `8a4c451` fix: RLS导致admin无法查看建议/搜索日志 + 首页渲染卡顿优化
-
-### 验证结果
-- build 成功（exit code 0）
-
-### 遗留事项
-- 需真人验证线上admin后台建议列表、搜索日志是否正常显示
-- 需真人验证首页滚动和返回首页是否流畅

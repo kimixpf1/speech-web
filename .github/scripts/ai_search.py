@@ -35,13 +35,13 @@ LOG_TABLE = 'search_logs'
 # 官方来源域名白名单
 OFFICIAL_DOMAINS = [
     'people.com.cn', 'www.people.com.cn', 'jhsjk.people.cn',  # 人民网
-    'xinhuanet.com', 'www.xinhuanet.com', 'news.cn', 'www.news.cn',  # 新华网
+    'xinhuanet.com', 'www.xinhuanet.com', 'news.cn', 'www.news.cn', 'mrdx.cn', 'www.mrdx.cn',  # 新华网/新华每日电讯
     'qstheory.cn', 'www.qstheory.cn',  # 求是网
     'cctv.com', 'www.cctv.com', 'cntv.cn',  # 央视网
     'gov.cn', 'www.gov.cn',  # 中国政府网
 ]
 
-BAIDU_SITES = ['people.com.cn', 'xinhuanet.com', 'news.cn', 'qstheory.cn', 'gov.cn', 'cctv.com']
+BAIDU_SITES = ['people.com.cn', 'xinhuanet.com', 'news.cn', 'mrdx.cn', 'qstheory.cn', 'gov.cn', 'cctv.com']
 
 # 领域关键词 - 按优先级排列（外交优先检测）
 DOMAIN_KEYWORDS = {
@@ -649,7 +649,227 @@ def search_qstheory() -> List[Dict]:
     return articles
 
 
-def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], people_articles: List[Dict] = None, qwen_articles: List[Dict] = None, qstheory_articles: List[Dict] = None):
+def search_xinhua_mrdx() -> List[Dict]:
+    """直接从新华每日电讯抓取新华社最新相关文章"""
+    print('[Xinhua] Starting direct crawl of news.cn/mrdx...')
+    articles = []
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        print('[Xinhua] BeautifulSoup not installed')
+        return []
+
+    today = (datetime.utcnow() + timedelta(hours=8)).date()
+    yesterday = today - timedelta(days=1)
+    valid_dates = [today.strftime('%Y-%m-%d'), yesterday.strftime('%Y-%m-%d')]
+    issue_dates = [today.strftime('%Y%m%d'), yesterday.strftime('%Y%m%d')]
+    urls_to_check = [
+        'https://www.news.cn/mrdx/index.htm',
+        'https://www.news.cn/mrdx/top.htm',
+        'https://www.news.cn/politics/leaders/index.htm',
+    ]
+    seen_urls = set()
+
+    def normalize_xinhua_url(href: str, base_url: str = '') -> str:
+        href = (href or '').strip()
+        if not href:
+            return ''
+        if href.startswith('//'):
+            return f'https:{href}'
+        if href.startswith('/'):
+            return f'https://www.news.cn{href}'
+        if href.startswith('http'):
+            return href
+        if href.startswith('Articel') and base_url and '/content/' in base_url:
+            return requests.compat.urljoin(base_url, href)
+        if href.startswith('Page') and base_url and '/content/' in base_url:
+            return requests.compat.urljoin(base_url, href)
+        return f'https://www.news.cn/mrdx/{href}'
+
+    def extract_article_date(text: str, url: str) -> str:
+        normalized_url = (url or '').lower()
+        date_match = re.search(r'/((?:\d{4})-\d{2}-\d{2}|\d{8})/', normalized_url)
+        if date_match:
+            raw_date = date_match.group(1)
+            if '-' in raw_date:
+                return raw_date
+            return f'{raw_date[:4]}-{raw_date[4:6]}-{raw_date[6:8]}'
+
+        text_match = re.search(r'(20\d{2})[-年/.](\d{1,2})[-月/.](\d{1,2})', text or '')
+        if text_match:
+            return f'{text_match.group(1)}-{int(text_match.group(2)):02d}-{int(text_match.group(3)):02d}'
+
+        return ''
+
+    def maybe_add_article(title: str, url: str, context_text: str, base_url: str = ''):
+        clean_title = re.sub(r'\s+', ' ', (title or '')).strip(' *')
+        full_url = normalize_xinhua_url(url, base_url)
+        if not clean_title or len(clean_title) < 8 or not full_url:
+            return
+        if '习近平' not in clean_title and '总书记' not in clean_title and '主席' not in clean_title:
+            return
+
+        normalized_url = full_url.lower()
+        is_xinhua_article_url = (
+            any(domain in normalized_url for domain in ['news.cn/', 'xinhuanet.com/', 'mrdx.cn/'])
+            and (
+                '/c.html' in normalized_url
+                or '/c_' in normalized_url
+                or '/leaders/' in normalized_url
+                or 'articel' in normalized_url
+            )
+        )
+        if not is_xinhua_article_url:
+            return
+        if full_url in seen_urls:
+            return
+
+        article_date = extract_article_date(context_text, full_url)
+        if not article_date or article_date not in valid_dates:
+            return
+
+        seen_urls.add(full_url)
+        articles.append({
+            'title': clean_title,
+            'url': full_url,
+            'source': '新华社',
+            'date': article_date,
+            'summary': clean_title,
+        })
+        print(f'[Xinhua] Found: {clean_title[:50]}... ({article_date})')
+
+    def crawl_mrdx_issue_pages():
+        for issue_date in issue_dates:
+            issue_url = f'http://mrdx.cn/content/{issue_date}/Page01BC.htm'
+            try:
+                resp = requests.get(issue_url, headers=headers, timeout=30)
+                if resp.status_code != 200:
+                    print(f'[Xinhua] HTTP {resp.status_code} for {issue_url}')
+                    continue
+
+                resp.encoding = 'utf-8'
+                soup = BeautifulSoup(resp.text, 'html.parser')
+                issue_text = soup.get_text(' ', strip=True)
+
+                for a_tag in soup.find_all('a'):
+                    href = (a_tag.get('daoxiang') or a_tag.get('href') or '').strip()
+                    title = a_tag.get_text(' ', strip=True)
+                    if not href or not title:
+                        continue
+                    context_text = ' '.join(filter(None, [
+                        title,
+                        issue_text,
+                        a_tag.get('title', ''),
+                    ]))
+                    maybe_add_article(title, href, context_text, issue_url)
+            except Exception as e:
+                print(f'[Xinhua] Error crawling {issue_url}: {e}')
+
+    crawl_mrdx_issue_pages()
+
+    for page_url in urls_to_check:
+        try:
+            resp = requests.get(page_url, headers=headers, timeout=30)
+            if resp.status_code != 200:
+                print(f'[Xinhua] HTTP {resp.status_code} for {page_url}')
+                continue
+
+            resp.encoding = 'utf-8'
+            soup = BeautifulSoup(resp.text, 'html.parser')
+
+            page_title = ''
+            for selector in ['h1', '.title', '.h-title']:
+                title_node = soup.select_one(selector)
+                if title_node:
+                    page_title = title_node.get_text(' ', strip=True)
+                    if page_title:
+                        break
+            if page_title:
+                maybe_add_article(page_title, page_url, soup.get_text(' ', strip=True), page_url)
+
+            for a_tag in soup.find_all('a', href=True):
+                title = a_tag.get_text(' ', strip=True)
+                href = a_tag.get('href', '').strip()
+                context_text = ' '.join(filter(None, [
+                    title,
+                    a_tag.parent.get_text(' ', strip=True) if a_tag.parent else '',
+                    a_tag.get('title', ''),
+                ]))
+                maybe_add_article(title, href, context_text, page_url)
+
+        except Exception as e:
+            print(f'[Xinhua] Error crawling {page_url}: {e}')
+
+    print(f'[Xinhua] Total: {len(articles)} articles found')
+    return articles
+
+
+def search_rmrb() -> List[Dict]:
+    """直接从人民日报电子版头版/要闻版抓取最新相关文章"""
+    print('[RMRB] Starting direct crawl of paper.people.com.cn...')
+    articles = []
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        print('[RMRB] BeautifulSoup not installed')
+        return []
+
+    today = (datetime.utcnow() + timedelta(hours=8)).date()
+    yesterday = today - timedelta(days=1)
+    valid_dates = [today.strftime('%Y-%m-%d'), yesterday.strftime('%Y-%m-%d')]
+    seen_urls = set()
+
+    from urllib.parse import urljoin
+
+    for target_date in [today, yesterday]:
+        date_str = target_date.strftime('%Y%m/%d')
+        for node in ['node_01.html', 'node_02.html', 'node_03.html', 'node_04.html']:
+            page_url = f'https://paper.people.com.cn/rmrb/pc/layout/{date_str}/{node}'
+            try:
+                resp = requests.get(page_url, headers=headers, timeout=30)
+                if resp.status_code != 200:
+                    print(f'[RMRB] HTTP {resp.status_code} for {page_url}')
+                    continue
+                resp.encoding = 'utf-8'
+                soup = BeautifulSoup(resp.text, 'html.parser')
+
+                for a_tag in soup.find_all('a', href=True):
+                    title = a_tag.get_text(' ', strip=True)
+                    href = a_tag.get('href', '').strip()
+                    if not title or len(title) < 8:
+                        continue
+                    if '习近平' not in title and '总书记' not in title and '主席' not in title:
+                        continue
+
+                    full_url = urljoin(page_url, href)
+                    if 'content_' not in full_url:
+                        continue
+                    if full_url in seen_urls:
+                        continue
+
+                    article_date = target_date.strftime('%Y-%m-%d')
+
+                    seen_urls.add(full_url)
+                    articles.append({
+                        'title': title,
+                        'url': full_url,
+                        'source': '人民日报',
+                        'date': article_date,
+                        'summary': title,
+                    })
+                    print(f'[RMRB] Found: {title[:50]}... ({article_date})')
+            except Exception as e:
+                print(f'[RMRB] Error crawling {page_url}: {e}')
+
+    print(f'[RMRB] Total: {len(articles)} articles found')
+    return articles
+
+
+def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], people_articles: List[Dict] = None, qwen_articles: List[Dict] = None, qstheory_articles: List[Dict] = None, xinhua_articles: List[Dict] = None, rmrb_articles: List[Dict] = None):
     all_articles = []
     seen_titles = set()
     seen_urls = set()
@@ -664,8 +884,20 @@ def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], peop
         qwen_articles = []
     if qstheory_articles is None:
         qstheory_articles = []
+    if xinhua_articles is None:
+        xinhua_articles = []
+    if rmrb_articles is None:
+        rmrb_articles = []
 
-    source_counts = {'kimi': len(kimi_articles or []), 'qwen': len(qwen_articles or []), 'baidu': len(baidu_articles or []), 'people': len(people_articles or []), 'qstheory': len(qstheory_articles or [])}
+    source_counts = {
+        'xinhua': len(xinhua_articles or []),
+        'qstheory': len(qstheory_articles or []),
+        'rmrb': len(rmrb_articles or []),
+        'qwen': len(qwen_articles or []),
+        'kimi': len(kimi_articles or []),
+        'baidu': len(baidu_articles or []),
+        'people': len(people_articles or []),
+    }
 
     def simplify(t): return re.sub(r'[《》""「」『』【】\s]', '', t)
 
@@ -709,16 +941,20 @@ def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], peop
         })
         kept_articles.append({'title': title, 'url': url, 'source': source_tag})
 
-    for a in people_articles:
-        add(a, 'people')
+    for a in xinhua_articles:
+        add(a, 'xinhua')
     for a in qstheory_articles:
         add(a, 'qstheory')
+    for a in rmrb_articles:
+        add(a, 'rmrb')
     for a in qwen_articles:
         add(a, 'qwen')
     for a in kimi_articles:
         add(a, 'kimi')
     for a in baidu_articles:
         add(a, 'baidu')
+    for a in people_articles:
+        add(a, 'people')
 
     merge_info = {
         'source_breakdown': source_counts,
@@ -790,7 +1026,7 @@ def get_search_pipeline_label(search_type):
     return '手动触发搜索'
 
 
-def save_log(qwen_count, kimi_count, baidu_count, people_count, new_count, status, details):
+def save_log(qwen_count, kimi_count, baidu_count, people_count, qstheory_count, xinhua_count, rmrb_count, new_count, status, details):
     if not SUPABASE_URL:
         print('[Log] SUPABASE_URL not configured')
         return
@@ -800,7 +1036,7 @@ def save_log(qwen_count, kimi_count, baidu_count, people_count, new_count, statu
         beijing_now = datetime.now(beijing_tz)
         search_type = get_search_type()
         pipeline_label = get_search_pipeline_label(search_type)
-        total = qwen_count + kimi_count + baidu_count + people_count
+        total = qwen_count + kimi_count + baidu_count + people_count + qstheory_count + xinhua_count + rmrb_count
         log_data = {
             'executed_at': beijing_now.isoformat(),
             'crawl_count': total,
@@ -812,14 +1048,16 @@ def save_log(qwen_count, kimi_count, baidu_count, people_count, new_count, statu
                 'search_type': search_type,
                 'api_used': pipeline_label,
                 'pipeline': {
-                    'step1': '直抓人民网讲话数据库',
-                    'step2': '直抓求是网(qstheory.cn)',
-                    'step3': 'Qwen联网搜索(通义千问+enable_search)',
-                    'step4': 'Kimi联网补漏(Moonshot)',
-                    'step5': '百度搜索兜底(含求是网)',
-                    'step6': '统一去重(标题+URL)',
-                    'step7': '与已有文章库比对',
-                    'step8': '最终新增入待审核',
+                    'step1': '直抓新华社（新华每日电讯）',
+                    'step2': '直抓人民日报电子版(头版/要闻)',
+                    'step3': '直抓求是网(qstheory.cn)',
+                    'step4': 'Qwen联网搜索(通义千问+enable_search)',
+                    'step5': 'Kimi联网补漏(Moonshot)',
+                    'step6': '百度搜索兜底(含求是网)',
+                    'step7': '人民网讲话数据库兜底',
+                    'step8': '统一去重(标题+URL)',
+                    'step9': '与已有文章库比对',
+                    'step10': '最终新增入待审核',
                 },
             },
             'duration_seconds': 0,
@@ -853,13 +1091,15 @@ def main():
 
     main_query, queries, search_date, target_date = get_search_query()
 
+    xinhua_articles = search_xinhua_mrdx()
+    rmrb_articles = search_rmrb()
     people_articles = search_people_jhsjk()
     qstheory_articles = search_qstheory()
     qwen_articles = search_with_qwen(main_query)
     kimi_articles = search_with_kimi(main_query)
     baidu_articles = search_with_baidu(queries)
 
-    merged, merge_info = merge_and_dedupe(kimi_articles, baidu_articles, people_articles, qwen_articles, qstheory_articles)
+    merged, merge_info = merge_and_dedupe(kimi_articles, baidu_articles, people_articles, qwen_articles, qstheory_articles, xinhua_articles, rmrb_articles)
     print(f'[Merge] After dedup: {len(merged)} articles')
 
     existing_urls = get_existing_urls()
@@ -911,9 +1151,20 @@ def main():
         'save_result': save_result,
     }
 
-    save_log(len(qwen_articles), len(kimi_articles), len(baidu_articles), len(people_articles), saved, status, log_details)
+    save_log(
+        len(qwen_articles),
+        len(kimi_articles),
+        len(baidu_articles),
+        len(people_articles),
+        len(qstheory_articles),
+        len(xinhua_articles),
+        len(rmrb_articles),
+        saved,
+        status,
+        log_details,
+    )
 
-    print(f'=== Done: People {len(people_articles)}, QiuShi {len(qstheory_articles)}, Qwen {len(qwen_articles)}, Kimi {len(kimi_articles)}, Baidu {len(baidu_articles)}, '
+    print(f'=== Done: Xinhua {len(xinhua_articles)}, RMRB {len(rmrb_articles)}, People {len(people_articles)}, QiuShi {len(qstheory_articles)}, Qwen {len(qwen_articles)}, Kimi {len(kimi_articles)}, Baidu {len(baidu_articles)}, '
           f'Merged {len(merged)}, ExistingFiltered {len(existing_url_filtered)}, New {saved} ===')
 
 
