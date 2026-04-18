@@ -67,6 +67,48 @@ CATEGORY_NAMES = {'speech': '重要讲话', 'article': '发表文章', 'meeting'
 DOMAIN_NAMES = {'economy': '经济', 'politics': '政治', 'culture': '文化', 'society': '社会',
                 'ecology': '生态', 'party': '党建', 'defense': '国防', 'diplomacy': '外交'}
 
+NON_ORIGINAL_TITLE_KEYWORDS = [
+    '总书记的关切·落地的回响', '评论员', '评论', '本报评论员', '述评', '观察', '解读', '综述', '侧记', '特稿',
+    '通讯', '纪实', '报道', '扫描', '透视', '述写', '随笔', '感言', '网评', '圆桌', '专访', '之一', '之二', '之三'
+]
+NON_ORIGINAL_TITLE_PATTERNS = [
+    r'（[^）]*(回响|评论|述评|观察|解读|综述|侧记|特稿|通讯|纪实|报道|扫描|透视)[^）]*）',
+    r'\([^)]*(回响|评论|述评|观察|解读|综述|侧记|特稿|通讯|纪实|报道|扫描|透视)[^)]*\)',
+]
+QSTHEORY_TITLE_PREFIXES = [
+    '《求是》杂志发表习近平总书记重要文章',
+    '《求是》杂志发表习近平总书记重要文章：',
+    '《求是》杂志发表习近平总书记重要文章“',
+    '《求是》杂志发表习近平总书记重要文章《',
+]
+
+
+def is_non_original_title(title: str) -> bool:
+    title = (title or '').strip()
+    if not title:
+        return True
+    if any(keyword in title for keyword in NON_ORIGINAL_TITLE_KEYWORDS):
+        return True
+    return any(re.search(pattern, title) for pattern in NON_ORIGINAL_TITLE_PATTERNS)
+
+
+def normalize_article_title(title: str) -> str:
+    title = re.sub(r'\s+', ' ', (title or '')).strip()
+    title = title.replace('※习近平', '').strip()
+
+    for prefix in QSTHEORY_TITLE_PREFIXES:
+        if title.startswith(prefix):
+            title = title[len(prefix):].strip(' ：:《》“”"')
+
+    title = re.sub(r'^习近平：', '', title).strip()
+    title = re.sub(r'^习近平\s+', '', title).strip()
+    return title
+
+
+def simplify_title(t):
+    normalized = normalize_article_title(t)
+    return re.sub(r'[《》“”"「」『』【】\s：:·\-—（）()、，,\.．]', '', normalized)
+
 
 def get_search_query():
     """Generate multiple search queries based on time: morning searches yesterday, evening searches today"""
@@ -590,11 +632,6 @@ def search_qstheory() -> List[Dict]:
                 is_original = (
                     '※习近平' in title
                     or title.startswith('习近平：')
-                    or (
-                        title.startswith('《求是》杂志发表习近平总书记重要文章《')
-                        and title.endswith('》')
-                        and '【新闻联播】' not in title
-                    )
                 )
 
                 if not is_original:
@@ -720,6 +757,9 @@ def search_xinhua_mrdx() -> List[Dict]:
         if not clean_title or len(clean_title) < 8 or not full_url:
             return
         if '习近平' not in clean_title and '总书记' not in clean_title and '主席' not in clean_title:
+            return
+        if is_non_original_title(clean_title):
+            print(f'[Xinhua] 跳过评论/解读类: {clean_title[:50]}...')
             return
 
         normalized_url = full_url.lower()
@@ -862,6 +902,9 @@ def search_rmrb() -> List[Dict]:
                         continue
                     if '习近平' not in title and '总书记' not in title and '主席' not in title:
                         continue
+                    if is_non_original_title(title):
+                        print(f'[RMRB] 跳过评论/解读类: {title[:50]}...')
+                        continue
 
                     full_url = urljoin(page_url, href)
                     if 'content_' not in full_url:
@@ -913,7 +956,7 @@ def merge_and_dedupe(baidu_articles: List[Dict], people_articles: List[Dict] = N
         'people': len(people_articles or []),
     }
 
-    def simplify(t): return re.sub(r'[《》""「」『』【】\s]', '', t)
+    def simplify(t): return simplify_title(t)
 
     def add(article, source_tag):
         title, url = article.get('title', ''), article.get('url', '')
@@ -992,18 +1035,63 @@ def merge_and_dedupe(baidu_articles: List[Dict], people_articles: List[Dict] = N
     return all_articles, merge_info
 
 
-def get_existing_urls() -> set:
+def get_existing_articles() -> Dict[str, Dict]:
+    existing_urls = set()
+    existing_titles = {}
     if not SUPABASE_URL:
-        return set()
-    try:
-        resp = requests.get(
-            f'{SUPABASE_URL}/rest/v1/{TABLE}?select=url',
-            headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'},
-            timeout=10
-        )
-        return {r['url'] for r in resp.json() if r.get('url')} if resp.status_code == 200 else set()
-    except:
-        return set()
+        return {'urls': existing_urls, 'titles': existing_titles}
+
+    headers = {'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'}
+    targets = ['pending_articles', 'articles']
+
+    for table_name in targets:
+        try:
+            resp = requests.get(
+                f'{SUPABASE_URL}/rest/v1/{table_name}?select=url,title&limit=1000',
+                headers=headers,
+                timeout=10
+            )
+            if resp.status_code != 200:
+                print(f'[Existing] Failed to fetch {table_name}: HTTP {resp.status_code}')
+                continue
+
+            for row in resp.json():
+                url = row.get('url')
+                title = row.get('title')
+                if url:
+                    existing_urls.add(url)
+                if title:
+                    simple = simplify_title(title)
+                    if simple and simple not in existing_titles:
+                        existing_titles[simple] = title
+        except Exception as e:
+            print(f'[Existing] Error fetching {table_name}: {e}')
+
+    print(f'[Existing] Loaded {len(existing_urls)} urls, {len(existing_titles)} simplified titles')
+    return {'urls': existing_urls, 'titles': existing_titles}
+
+
+
+
+def titles_look_duplicate(title: str, existing_simple_map: Dict[str, str]) -> str:
+    simple = simplify_title(title)
+    if not simple:
+        return ''
+
+    exact = existing_simple_map.get(simple)
+    if exact:
+        return exact
+
+    if len(simple) < 8:
+        return ''
+
+    for existing_simple, existing_title in existing_simple_map.items():
+        if len(existing_simple) < 8:
+            continue
+        if simple in existing_simple or existing_simple in simple:
+            return existing_title
+
+    return ''
 
 
 def save_articles(articles: List[Dict]) -> int:
@@ -1090,10 +1178,6 @@ def save_log(baidu_count, people_count, qstheory_count, xinhua_count, rmrb_count
         print(f'[Log] Exception: {e}')
 
 
-def simplify_title(t):
-    return re.sub(r'[《》""「」『』【】\s]', '', t)
-
-
 def main():
     print(f'=== AI Scheduled Search {datetime.now()} ===')
 
@@ -1108,15 +1192,11 @@ def main():
     merged, merge_info = merge_and_dedupe(baidu_articles, people_articles, qstheory_articles, xinhua_articles, rmrb_articles)
     print(f'[Merge] After dedup: {len(merged)} articles')
 
-    existing_urls = get_existing_urls()
+    existing_data = get_existing_articles()
+    existing_urls = existing_data['urls']
+    existing_titles_simple = existing_data['titles']
     existing_url_filtered = []
     duplicate_existing_title = []
-
-    existing_titles_simple = {}
-    for a in merged:
-        s = simplify_title(a.get('title', ''))
-        if s:
-            existing_titles_simple[s] = a.get('title', '')
 
     new_articles = []
     for a in merged:
@@ -1124,12 +1204,14 @@ def main():
             existing_url_filtered.append({'title': a['title'], 'url': a['url']})
             continue
 
-        simple = simplify_title(a.get('title', ''))
-        matched = existing_titles_simple.get(simple)
-        if matched and matched != a.get('title', ''):
+        matched = titles_look_duplicate(a.get('title', ''), existing_titles_simple)
+        if matched:
             duplicate_existing_title.append({'title': a['title'], 'url': a['url'], 'matched_title': matched})
             continue
 
+        simple = simplify_title(a.get('title', ''))
+        if simple and simple not in existing_titles_simple:
+            existing_titles_simple[simple] = a.get('title', '')
         new_articles.append(a)
 
     print(f'[Filter] Existing URL filtered: {len(existing_url_filtered)}, New: {len(new_articles)} articles')
