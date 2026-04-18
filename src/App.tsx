@@ -82,6 +82,8 @@ function getInitialScrollPosition() {
   return saved ? parseInt(saved, 10) : 0;
 }
 
+const PAGE_SIZE_OPTIONS = [20, 50, 100, 500] as const;
+
 function HomePage() {
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -108,6 +110,16 @@ function HomePage() {
   const [selectedYear, setSelectedYear] = useState(
     () => safeGetStorageItem('session', 'selectedYear') || 'all'
   );
+  const [currentPage, setCurrentPage] = useState(() => {
+    const saved = safeGetStorageItem('session', 'homeCurrentPage');
+    const page = saved ? parseInt(saved, 10) : 1;
+    return Number.isFinite(page) && page > 0 ? page : 1;
+  });
+  const [pageSize, setPageSize] = useState(() => {
+    const saved = safeGetStorageItem('session', 'homePageSize');
+    const parsed = saved ? parseInt(saved, 10) : 50;
+    return PAGE_SIZE_OPTIONS.includes(parsed as (typeof PAGE_SIZE_OPTIONS)[number]) ? parsed : 50;
+  });
 
   // 使用 SWR 获取数据并处理缓存，替代手写的 useState 和 useEffect 获取逻辑
   const { data: articles = [], mutate, isLoading } = useSWR<Speech[]>('articles', getArticles, {
@@ -134,6 +146,14 @@ function HomePage() {
   useEffect(() => {
     safeSetStorageItem('session', 'selectedYear', selectedYear);
   }, [selectedYear]);
+
+  useEffect(() => {
+    safeSetStorageItem('session', 'homeCurrentPage', currentPage.toString());
+  }, [currentPage]);
+
+  useEffect(() => {
+    safeSetStorageItem('session', 'homePageSize', pageSize.toString());
+  }, [pageSize]);
 
   useEffect(() => {
     const preload = () => {
@@ -240,6 +260,23 @@ function HomePage() {
     return result;
   }, [debouncedSearchQuery, selectedDomain, selectedCategory, selectedYear, articles]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchQuery, selectedDomain, selectedCategory, selectedYear]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredSpeeches.length / pageSize));
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const pagedSpeeches = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredSpeeches.slice(start, start + pageSize);
+  }, [filteredSpeeches, currentPage, pageSize]);
+
   // 当文章列表加载完成后，恢复滚动位置
   useLayoutEffect(() => {
     if (hasRestoredScrollRef.current || articles.length === 0) {
@@ -289,7 +326,53 @@ function HomePage() {
         ) : articles.length === 0 ? (
           <div className="text-center py-20 text-gray-400">暂无可显示的文章数据</div>
         ) : (
-          <ContentList speeches={filteredSpeeches} />
+          <>
+            <div className="mb-4 flex flex-col gap-3 rounded-lg border border-gray-100 bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm text-gray-500">
+                第 {currentPage} / {totalPages} 页，共 {filteredSpeeches.length} 条
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-500">每页</span>
+                <select
+                  className="h-9 rounded-md border border-gray-200 bg-white px-2 text-sm"
+                  value={pageSize}
+                  onChange={(e) => {
+                    const nextSize = parseInt(e.target.value, 10);
+                    if (!PAGE_SIZE_OPTIONS.includes(nextSize as (typeof PAGE_SIZE_OPTIONS)[number])) {
+                      return;
+                    }
+                    setPageSize(nextSize);
+                    setCurrentPage(1);
+                  }}
+                >
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size}>{size}</option>
+                  ))}
+                </select>
+                <span className="text-gray-500">条</span>
+              </div>
+            </div>
+
+            <ContentList speeches={pagedSpeeches} />
+
+            <div className="mt-6 flex items-center justify-center gap-2">
+              <button
+                className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              >
+                上一页
+              </button>
+              <span className="px-3 text-sm text-gray-600">{currentPage} / {totalPages}</span>
+              <button
+                className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              >
+                下一页
+              </button>
+            </div>
+          </>
         )}
       </main>
     </div>
