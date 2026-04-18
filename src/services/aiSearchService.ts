@@ -120,7 +120,6 @@ function getSearchSystemPrompt(): string {
 4. 只返回JSON数组，无其他文字
 5. 如果没找到或不确定URL真实性，返回空数组 []`;
 }
-}
 
 export interface SearchedArticle {
   title: string;
