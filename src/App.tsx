@@ -84,12 +84,50 @@ function getInitialScrollPosition() {
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100, 500] as const;
 
+function getVisiblePages(currentPage: number, totalPages: number) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const pages = new Set<number>([1, totalPages, currentPage]);
+  for (let offset = -1; offset <= 1; offset += 1) {
+    const page = currentPage + offset;
+    if (page > 1 && page < totalPages) {
+      pages.add(page);
+    }
+  }
+
+  if (currentPage <= 3) {
+    pages.add(2);
+    pages.add(3);
+    pages.add(4);
+  }
+
+  if (currentPage >= totalPages - 2) {
+    pages.add(totalPages - 1);
+    pages.add(totalPages - 2);
+    pages.add(totalPages - 3);
+  }
+
+  return Array.from(pages)
+    .filter((page) => page >= 1 && page <= totalPages)
+    .sort((a, b) => a - b);
+}
+
 function HomePage() {
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300); // 300ms 防抖延迟
   const cachedArticles = useMemo(() => getLocalArticlesSync(), []);
   const hasRestoredScrollRef = useRef(false);
+  const listTopRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToListTop = (behavior: ScrollBehavior = 'smooth') => {
+    const targetTop = listTopRef.current
+      ? listTopRef.current.getBoundingClientRect().top + window.scrollY - 12
+      : 0;
+    window.scrollTo({ top: Math.max(0, targetTop), behavior });
+  };
 
   // 记录滚动位置
   useEffect(() => {
@@ -277,6 +315,16 @@ function HomePage() {
     return filteredSpeeches.slice(start, start + pageSize);
   }, [filteredSpeeches, currentPage, pageSize]);
 
+  const visiblePages = useMemo(() => getVisiblePages(currentPage, totalPages), [currentPage, totalPages]);
+
+  const handlePageChange = (page: number) => {
+    if (page === currentPage || page < 1 || page > totalPages) {
+      return;
+    }
+    setCurrentPage(page);
+    scrollToListTop();
+  };
+
   // 当文章列表加载完成后，恢复滚动位置
   useLayoutEffect(() => {
     if (hasRestoredScrollRef.current || articles.length === 0) {
@@ -321,6 +369,7 @@ function HomePage() {
         resultCount={filteredSpeeches.length}
       />
       <main className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6">
+        <div ref={listTopRef} />
         {articles.length === 0 && isLoading ? (
           <ArticleListSkeleton />
         ) : articles.length === 0 ? (
@@ -355,22 +404,44 @@ function HomePage() {
 
             <ContentList speeches={pagedSpeeches} />
 
-            <div className="mt-6 flex items-center justify-center gap-2">
-              <button
-                className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={currentPage <= 1}
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              >
-                上一页
-              </button>
-              <span className="px-3 text-sm text-gray-600">{currentPage} / {totalPages}</span>
-              <button
-                className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-              >
-                下一页
-              </button>
+            <div className="mt-6 flex flex-col items-center gap-3">
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <button
+                  className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={currentPage <= 1}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                >
+                  上一页
+                </button>
+
+                {visiblePages.map((page, index) => {
+                  const prevPage = visiblePages[index - 1];
+                  const shouldShowEllipsis = prevPage && page - prevPage > 1;
+
+                  return (
+                    <div key={page} className="flex items-center gap-2">
+                      {shouldShowEllipsis ? <span className="px-1 text-sm text-gray-400">...</span> : null}
+                      <button
+                        className={`h-9 min-w-9 rounded-md border px-3 text-sm ${page === currentPage
+                          ? 'border-red-600 bg-red-600 text-white'
+                          : 'border-gray-200 bg-white text-gray-600'}`}
+                        onClick={() => handlePageChange(page)}
+                      >
+                        {page}
+                      </button>
+                    </div>
+                  );
+                })}
+
+                <button
+                  className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                >
+                  下一页
+                </button>
+              </div>
+              <div className="text-sm text-gray-500">当前第 {currentPage} 页，共 {totalPages} 页</div>
             </div>
           </>
         )}
