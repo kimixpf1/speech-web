@@ -57,13 +57,13 @@ DOMAIN_KEYWORDS = {
 
 # 分类关键词 - 优化优先级
 CATEGORY_KEYWORDS = {
-    'inspection': ['考察', '调研', '视察', '走访', '看望', '慰问', '植树', '探访', '出席'],
+    'inspection': ['考察', '调研', '视察', '走访', '看望', '慰问', '检查'],
     'article': ['《求是》', '发表文章', '重要文章', '署名文章', '节录', '论述摘编', '重要论述'],
-    'meeting': ['会议', '座谈会', '全会', '研讨会', '工作会', '审议', '集体学习', '学习会'],
+    'meeting': ['会议', '座谈会', '全会', '研讨会', '工作会', '审议', '集体学习', '学习会', '会见', '会谈', '接见'],
     'speech': ['讲话', '指示', '批示', '贺电', '贺信', '致辞', '发言', '回信', '复信', '命令', '主旨演讲'],
 }
 
-CATEGORY_NAMES = {'speech': '重要讲话', 'article': '发表文章', 'meeting': '重要会议', 'inspection': '考察调研'}
+CATEGORY_NAMES = {'speech': '重要讲话', 'article': '发表文章', 'meeting': '重要会议', 'inspection': '考察调研', 'call': '致电'}
 DOMAIN_NAMES = {'economy': '经济', 'politics': '政治', 'culture': '文化', 'society': '社会',
                 'ecology': '生态', 'party': '党建', 'defense': '国防', 'diplomacy': '外交'}
 
@@ -92,65 +92,74 @@ def get_search_query():
         f'习近平{date_keyword}回信贺信致辞 {target_date}',
         f'《求是》杂志 习近平{date_keyword}重要文章 {target_date}',
     ]
-    
+
     main_query = f'习近平总书记{date_keyword}最新活动新闻 {target_date}'
-    
+
     print(f'[Time] Beijing {beijing_hour}:00, searching {date_keyword} ({target_date}), {len(queries)} queries')
     return main_query, queries, search_date, target_date
 
 
 def detect_domain(title: str) -> str:
     """检测文章领域，外交优先"""
-    # 优先检测外交（因为外交活动常包含"会见"等词）
-    diplomacy_keywords = ['外交', '出访', '峰会', '总统', '总理', '国际', '外国', '国事访问', '友好访问', '会见', '访问', '联合声明', '多边', '双边', '联合国', '一带一路', '合作', '签署']
+    diplomacy_keywords = ['外交', '出访', '峰会', '总统', '总理', '国际', '外国', '国事访问', '友好访问', '会见', '访问', '联合声明', '多边', '双边', '联合国', '一带一路', '合作', '签署', '致电', '贺电', '回信', '复信']
     if any(kw in title for kw in diplomacy_keywords):
         return 'diplomacy'
-    
-    # 再按顺序检测其他领域
+
     for domain, keywords in DOMAIN_KEYWORDS.items():
         if domain == 'diplomacy':
-            continue  # 已检测过
+            continue
         if any(kw in title for kw in keywords):
             return domain
     return 'politics'
 
 
-def detect_category(title: str) -> str:
-    """检测文章分类，考虑外交会见的特殊情况"""
-    # 如果是外交相关的会见，归为 meeting
-    diplomacy_keywords = ['外交', '出访', '峰会', '总统', '总理', '国际', '外国', '会见', '访问', '联合国', '一带一路']
-    is_diplomacy = any(kw in title for kw in diplomacy_keywords)
-    
-    # 按优先级检测
-    for category, keywords in CATEGORY_KEYWORDS.items():
-        if any(kw in title for kw in keywords):
-            # 特殊处理：外交+会见 = meeting
-            if is_diplomacy and '会见' in title:
-                return 'meeting'
-            return category
-    
-    # 如果有"会见"但没匹配到其他，归为 meeting
+def detect_category(article: Dict) -> str:
+    """检测文章分类，支持致电单独归类，并避免求是文章误判为讲话"""
+    title = article.get('title', '') or ''
+    source = (article.get('source', '') or '').lower()
+    url = (article.get('url', '') or '').lower()
+    is_qstheory = 'qstheory.cn' in url or '求是' in source
+
+    if '致电' in title:
+        return 'call'
+
     if '会见' in title:
         return 'meeting'
-    
+
+    if any(kw in title for kw in ['会议', '座谈会', '全会', '研讨会', '工作会', '审议', '集体学习', '学习会']):
+        return 'meeting'
+
+    if any(kw in title for kw in ['考察', '调研', '视察', '走访', '看望', '慰问', '检查']):
+        return 'inspection'
+
+    if is_qstheory and (('发表' in title) or ('文章' in title) or ('《求是》' in title) or ('总书记重要文章' in title)):
+        return 'article'
+
+    if any(kw in title for kw in ['《求是》', '发表文章', '重要文章', '署名文章', '节录', '论述摘编', '重要论述']):
+        return 'article'
+
+    if any(kw in title for kw in ['讲话', '指示', '批示', '贺电', '贺信', '致辞', '发言', '回信', '复信', '命令', '主旨演讲']):
+        return 'speech'
+
+    if is_qstheory:
+        return 'article'
+
     return 'speech'
 
 
 def validate_article(article: Dict) -> Dict:
     """验证文章有效性：URL可访问、日期正确、来源官方"""
     result = {'valid': True, 'reasons': []}
-    
+
     url = article.get('url', '')
     title = article.get('title', '')
     article_date = article.get('date', '')
-    
-    # 1. 检查URL格式
+
     if not url or not url.startswith('http'):
         result['valid'] = False
         result['reasons'].append('URL格式无效')
         return result
-    
-    # 2. 检查来源是否官方
+
     from urllib.parse import urlparse
     domain = urlparse(url).netloc.lower()
     is_official = any(off_domain in domain for off_domain in OFFICIAL_DOMAINS)
@@ -158,8 +167,7 @@ def validate_article(article: Dict) -> Dict:
         result['valid'] = False
         result['reasons'].append(f'非官方来源: {domain}')
         return result
-    
-    # 3. 检查日期是否最近3天
+
     try:
         if article_date:
             art_date = datetime.strptime(article_date, '%Y-%m-%d')
@@ -171,25 +179,26 @@ def validate_article(article: Dict) -> Dict:
                 return result
     except:
         pass
-    
-    # 4. 检查URL是否可访问（HEAD请求）
+
+    headers = {'User-Agent': 'Mozilla/5.0'}
     try:
-        resp = requests.head(url, timeout=10, allow_redirects=True, 
-                           headers={'User-Agent': 'Mozilla/5.0'})
-        if resp.status_code == 404:
-            result['valid'] = False
-            result['reasons'].append('URL返回404')
+        resp = requests.head(url, timeout=10, allow_redirects=True, headers=headers)
+        if resp.status_code < 400:
             return result
+    except Exception:
+        pass
+
+    try:
+        resp = requests.get(url, timeout=15, allow_redirects=True, headers=headers, stream=True)
         if resp.status_code >= 400:
             result['valid'] = False
             result['reasons'].append(f'URL返回错误: {resp.status_code}')
             return result
+        return result
     except Exception as e:
         result['valid'] = False
         result['reasons'].append(f'URL无法访问: {str(e)[:50]}')
         return result
-    
-    return result
 
 
 def _parse_ai_articles(content: str, source_name: str) -> List[Dict]:
@@ -688,14 +697,16 @@ def search_xinhua_mrdx() -> List[Dict]:
             return requests.compat.urljoin(base_url, href)
         return f'https://www.news.cn/mrdx/{href}'
 
-    def extract_article_date(text: str, url: str) -> str:
+    def extract_article_date(text: str, url: str, base_url: str = '') -> str:
         normalized_url = (url or '').lower()
-        date_match = re.search(r'/((?:\d{4})-\d{2}-\d{2}|\d{8})/', normalized_url)
-        if date_match:
-            raw_date = date_match.group(1)
-            if '-' in raw_date:
-                return raw_date
-            return f'{raw_date[:4]}-{raw_date[4:6]}-{raw_date[6:8]}'
+        normalized_base = (base_url or '').lower()
+        for candidate in [normalized_url, normalized_base]:
+            date_match = re.search(r'/(20\d{2})[-/](\d{2})[-/](\d{2})/', candidate)
+            if date_match:
+                return f'{date_match.group(1)}-{date_match.group(2)}-{date_match.group(3)}'
+            date_match = re.search(r'/(20\d{2})(\d{2})(\d{2})/', candidate)
+            if date_match:
+                return f'{date_match.group(1)}-{date_match.group(2)}-{date_match.group(3)}'
 
         text_match = re.search(r'(20\d{2})[-年/.](\d{1,2})[-月/.](\d{1,2})', text or '')
         if text_match:
@@ -726,9 +737,16 @@ def search_xinhua_mrdx() -> List[Dict]:
         if full_url in seen_urls:
             return
 
-        article_date = extract_article_date(context_text, full_url)
+        article_date = extract_article_date(context_text, full_url, base_url)
         if not article_date or article_date not in valid_dates:
-            return
+            if article_date and len(article_date) == 10:
+                article_date = article_date[:10]
+            if article_date not in valid_dates:
+                fallback_date = next((d for d in valid_dates if d.replace('-', '') in normalized_url), '')
+                if fallback_date:
+                    article_date = fallback_date
+            if article_date not in valid_dates:
+                return
 
         seen_urls.add(full_url)
         articles.append({
@@ -869,7 +887,7 @@ def search_rmrb() -> List[Dict]:
     return articles
 
 
-def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], people_articles: List[Dict] = None, qwen_articles: List[Dict] = None, qstheory_articles: List[Dict] = None, xinhua_articles: List[Dict] = None, rmrb_articles: List[Dict] = None):
+def merge_and_dedupe(baidu_articles: List[Dict], people_articles: List[Dict] = None, qstheory_articles: List[Dict] = None, xinhua_articles: List[Dict] = None, rmrb_articles: List[Dict] = None):
     all_articles = []
     seen_titles = set()
     seen_urls = set()
@@ -880,8 +898,6 @@ def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], peop
 
     if people_articles is None:
         people_articles = []
-    if qwen_articles is None:
-        qwen_articles = []
     if qstheory_articles is None:
         qstheory_articles = []
     if xinhua_articles is None:
@@ -893,8 +909,6 @@ def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], peop
         'xinhua': len(xinhua_articles or []),
         'qstheory': len(qstheory_articles or []),
         'rmrb': len(rmrb_articles or []),
-        'qwen': len(qwen_articles or []),
-        'kimi': len(kimi_articles or []),
         'baidu': len(baidu_articles or []),
         'people': len(people_articles or []),
     }
@@ -925,7 +939,7 @@ def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], peop
         seen_titles.add(simple)
 
         domain = detect_domain(title)
-        category = detect_category(title)
+        category = detect_category({'title': title, 'source': article.get('source', ''), 'url': url})
 
         all_articles.append({
             'id': str(uuid.uuid4()),
@@ -947,10 +961,6 @@ def merge_and_dedupe(kimi_articles: List[Dict], baidu_articles: List[Dict], peop
         add(a, 'qstheory')
     for a in rmrb_articles:
         add(a, 'rmrb')
-    for a in qwen_articles:
-        add(a, 'qwen')
-    for a in kimi_articles:
-        add(a, 'kimi')
     for a in baidu_articles:
         add(a, 'baidu')
     for a in people_articles:
@@ -1026,7 +1036,7 @@ def get_search_pipeline_label(search_type):
     return '手动触发搜索'
 
 
-def save_log(qwen_count, kimi_count, baidu_count, people_count, qstheory_count, xinhua_count, rmrb_count, new_count, status, details):
+def save_log(baidu_count, people_count, qstheory_count, xinhua_count, rmrb_count, new_count, status, details):
     if not SUPABASE_URL:
         print('[Log] SUPABASE_URL not configured')
         return
@@ -1036,7 +1046,7 @@ def save_log(qwen_count, kimi_count, baidu_count, people_count, qstheory_count, 
         beijing_now = datetime.now(beijing_tz)
         search_type = get_search_type()
         pipeline_label = get_search_pipeline_label(search_type)
-        total = qwen_count + kimi_count + baidu_count + people_count + qstheory_count + xinhua_count + rmrb_count
+        total = baidu_count + people_count + qstheory_count + xinhua_count + rmrb_count
         log_data = {
             'executed_at': beijing_now.isoformat(),
             'crawl_count': total,
@@ -1051,13 +1061,11 @@ def save_log(qwen_count, kimi_count, baidu_count, people_count, qstheory_count, 
                     'step1': '直抓新华社（新华每日电讯）',
                     'step2': '直抓人民日报电子版(头版/要闻)',
                     'step3': '直抓求是网(qstheory.cn)',
-                    'step4': 'Qwen联网搜索(通义千问+enable_search)',
-                    'step5': 'Kimi联网补漏(Moonshot)',
-                    'step6': '百度搜索兜底(含求是网)',
-                    'step7': '人民网讲话数据库兜底',
-                    'step8': '统一去重(标题+URL)',
-                    'step9': '与已有文章库比对',
-                    'step10': '最终新增入待审核',
+                    'step4': '百度搜索兜底(含求是网)',
+                    'step5': '人民网讲话数据库兜底',
+                    'step6': '统一去重(标题+URL)',
+                    'step7': '与已有文章库比对',
+                    'step8': '最终新增入待审核',
                 },
             },
             'duration_seconds': 0,
@@ -1095,11 +1103,9 @@ def main():
     rmrb_articles = search_rmrb()
     people_articles = search_people_jhsjk()
     qstheory_articles = search_qstheory()
-    qwen_articles = search_with_qwen(main_query)
-    kimi_articles = search_with_kimi(main_query)
     baidu_articles = search_with_baidu(queries)
 
-    merged, merge_info = merge_and_dedupe(kimi_articles, baidu_articles, people_articles, qwen_articles, qstheory_articles, xinhua_articles, rmrb_articles)
+    merged, merge_info = merge_and_dedupe(baidu_articles, people_articles, qstheory_articles, xinhua_articles, rmrb_articles)
     print(f'[Merge] After dedup: {len(merged)} articles')
 
     existing_urls = get_existing_urls()
@@ -1152,8 +1158,6 @@ def main():
     }
 
     save_log(
-        len(qwen_articles),
-        len(kimi_articles),
         len(baidu_articles),
         len(people_articles),
         len(qstheory_articles),
@@ -1164,7 +1168,7 @@ def main():
         log_details,
     )
 
-    print(f'=== Done: Xinhua {len(xinhua_articles)}, RMRB {len(rmrb_articles)}, People {len(people_articles)}, QiuShi {len(qstheory_articles)}, Qwen {len(qwen_articles)}, Kimi {len(kimi_articles)}, Baidu {len(baidu_articles)}, '
+    print(f'=== Done: Xinhua {len(xinhua_articles)}, RMRB {len(rmrb_articles)}, People {len(people_articles)}, QiuShi {len(qstheory_articles)}, Baidu {len(baidu_articles)}, '
           f'Merged {len(merged)}, ExistingFiltered {len(existing_url_filtered)}, New {saved} ===')
 
 

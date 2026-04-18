@@ -6,7 +6,7 @@ export interface Speech {
   month: number;
   day: number;
   // 类型分类
-  category: 'speech' | 'article' | 'meeting' | 'inspection';
+  category: 'speech' | 'article' | 'meeting' | 'inspection' | 'call';
   categoryName: string;
   // 领域分类
   domain: 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy';
@@ -1020,7 +1020,8 @@ export const categoryOptions = [
   { value: 'speech', label: '重要讲话', icon: 'Mic' },
   { value: 'article', label: '发表文章', icon: 'FileText' },
   { value: 'meeting', label: '重要会议', icon: 'Users' },
-  { value: 'inspection', label: '考察调研', icon: 'MapPin' }
+  { value: 'inspection', label: '考察调研', icon: 'MapPin' },
+  { value: 'call', label: '致电', icon: 'Globe' }
 ];
 
 // 领域分类配置

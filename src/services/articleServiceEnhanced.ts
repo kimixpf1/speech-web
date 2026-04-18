@@ -61,7 +61,8 @@ function toDbFormat(article: Speech): Record<string, unknown> {
 
 // 将数据库格式转换为 Speech 对象
 function fromDbFormat(dbArticle: Record<string, unknown>): Speech {
-  const category = (dbArticle.category || 'speech') as 'speech' | 'article' | 'meeting' | 'inspection';
+  const category = (dbArticle.category || 'speech') as 'speech' | 'article' | 'meeting' | 'inspection' | 'call';
+  const categoryName = (dbArticle.categoryname || dbArticle.categoryName || (category === 'call' ? '致电' : '重要讲话')) as string;
   const domain = (dbArticle.domain || 'economy') as 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy';
 
   return {
@@ -72,8 +73,9 @@ function fromDbFormat(dbArticle: Record<string, unknown>): Speech {
     month: dbArticle.month as number,
     day: dbArticle.day as number,
     category,
-    categoryName: (dbArticle.categoryname || dbArticle.categoryName || '重要讲话') as string,
+    categoryName,
     domain,
+
     domainName: (dbArticle.domain_name || dbArticle.domainName || '经济') as string,
     isZhengjiguan: (dbArticle.is_zhengjiguan || false) as boolean,
     zhengjiguanLevel: dbArticle.zhengjiguan_level as 'central' | 'jiangsu' | 'suzhou' | undefined,

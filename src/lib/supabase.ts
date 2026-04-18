@@ -25,7 +25,7 @@ export interface Speech {
   year: number
   month: number
   day: number
-  category: string
+  category: 'speech' | 'article' | 'meeting' | 'inspection' | 'call'
   categoryName: string
   source: string
   location: string

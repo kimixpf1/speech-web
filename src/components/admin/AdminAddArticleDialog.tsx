@@ -39,6 +39,7 @@ const CATEGORY_NAMES: Record<Speech['category'], string> = {
   article: '发表文章',
   meeting: '重要会议',
   inspection: '考察调研',
+  call: '致电',
 };
 
 const DOMAIN_NAMES: Record<NonNullable<Speech['domain']>, string> = {
@@ -231,6 +232,7 @@ export function AdminAddArticleDialog({
                 <option value="article">发表文章</option>
                 <option value="meeting">重要会议</option>
                 <option value="inspection">考察调研</option>
+                <option value="call">致电</option>
               </select>
             </div>
           </div>

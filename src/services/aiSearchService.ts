@@ -82,7 +82,13 @@ function getSearchSystemPrompt(): string {
   const datePrompt = getTodayDatePrompt();
   return `你是一个新闻搜索助手。${datePrompt}
 
-请使用联网搜索功能搜索习近平总书记最近的重要讲话、文章、会议、考察调研新闻。
+请使用联网搜索功能搜索习近平总书记最近的重要讲话、文章、会议、考察调研、致电新闻。
+
+【分类规则】
+- 会见 / 会谈 / 接见 -> 重要会议
+- 致电 / 贺电 / 贺信 / 回信 / 复信 -> 致电
+- 求是相关文章 -> 发表文章
+- 考察 / 调研 / 视察 -> 考察调研
 
 【最重要的规则 - URL真实性】
 1. 你必须使用 $web_search 联网搜索
@@ -100,8 +106,8 @@ function getSearchSystemPrompt(): string {
 {
   "title": "完整新闻标题",
   "date": "YYYY-MM-DD",
-  "category": "speech/article/meeting/inspection",
-  "categoryName": "重要讲话/发表文章/重要会议/考察调研",
+  "category": "speech/article/meeting/inspection/call",
+  "categoryName": "重要讲话/发表文章/重要会议/考察调研/致电",
   "source": "人民网/新华网/央视等",
   "url": "搜索结果中的真实URL",
   "summary": "一句话摘要"
@@ -113,6 +119,7 @@ function getSearchSystemPrompt(): string {
 3. URL必须是搜索结果中真实存在的
 4. 只返回JSON数组，无其他文字
 5. 如果没找到或不确定URL真实性，返回空数组 []`;
+}
 }
 
 export interface SearchedArticle {
@@ -759,10 +766,11 @@ async function crawlOfficialListPages(apiKey: string): Promise<SearchedArticle[]
  * 根据标题检测文章分类
  */
 function detectCategory(title: string): string {
-  if (title.includes('讲话') || title.includes('致辞') || title.includes('演讲')) return 'speech';
-  if (title.includes('文章') || title.includes('发表')) return 'article';
-  if (title.includes('会议') || title.includes('会见') || title.includes('会谈')) return 'meeting';
+  if (title.includes('致电')) return 'call';
+  if (title.includes('会见') || title.includes('会谈') || title.includes('接见')) return 'meeting';
   if (title.includes('考察') || title.includes('调研') || title.includes('视察')) return 'inspection';
+  if (title.includes('文章') || title.includes('发表') || title.includes('求是')) return 'article';
+  if (title.includes('讲话') || title.includes('致辞') || title.includes('演讲') || title.includes('指示') || title.includes('批示') || title.includes('贺电') || title.includes('贺信') || title.includes('回信') || title.includes('复信')) return 'speech';
   return 'speech';
 }
 
@@ -770,10 +778,11 @@ function detectCategory(title: string): string {
  * 根据标题检测分类名称
  */
 function detectCategoryName(title: string): string {
-  if (title.includes('讲话') || title.includes('致辞') || title.includes('演讲')) return '重要讲话';
-  if (title.includes('文章') || title.includes('发表')) return '发表文章';
-  if (title.includes('会议') || title.includes('会见') || title.includes('会谈')) return '重要会议';
+  if (title.includes('致电')) return '致电';
+  if (title.includes('会见') || title.includes('会谈') || title.includes('接见')) return '重要会议';
   if (title.includes('考察') || title.includes('调研') || title.includes('视察')) return '考察调研';
+  if (title.includes('文章') || title.includes('发表') || title.includes('求是')) return '发表文章';
+  if (title.includes('讲话') || title.includes('致辞') || title.includes('演讲') || title.includes('指示') || title.includes('批示') || title.includes('贺电') || title.includes('贺信') || title.includes('回信') || title.includes('复信')) return '重要讲话';
   return '重要讲话';
 }
 
@@ -1132,7 +1141,7 @@ async function savePendingArticles(articles: SearchedArticle[]): Promise<void> {
       month,
       day,
       category: article.category || 'speech',
-      categoryname: article.categoryName || '重要讲话',
+      categoryname: article.categoryName || (article.category === 'call' ? '致电' : '重要讲话'),
       source: article.source || '官方媒体',
       url: article.url,
       summary: article.summary || article.title,

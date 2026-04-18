@@ -1,38 +1,36 @@
 # 项目迭代记录
 
-## 2026-04-18 新增人民日报直抓 + 新华社命中率精修 + 双 BOM 修复
+## 2026-04-18 分类规则与直抓兜底修复
 
 ### 本次目标
-- 精修新华社直抓规则，解决 search_xinhua_mrdx() 长期 0 条的问题
-- 接入人民日报电子版直抓到主链（头版/要闻版，最小接入）
-- 修复 ai_search.py 双 BOM 编码问题
+- 修复新华社与人民日报直抓未命中符合条件内容的问题
+- 修正致电与会见的分类规则：会见归重要会议，致电单独归类
+- 修正求是文章被误判为重要讲话的问题
+- 为新增致电类型同步补齐前端配置
 - 保持来源优先级：新华社 / 求是 / 人民日报优先，人民网兜底
 
 ### 实际改动
-- 修复文件头部双 BOM（efbbbfefbbbf → efbbbf）
-- OFFICIAL_DOMAINS 和 BAIDU_SITES 补入 mrdx.cn
-- search_xinhua_mrdx() 新增 mrdx.cn 版面页补抓（Page01BC.htm）
-- URL 归一化增加基于版面页的相对链接处理
-- 文章 URL 识别放宽：兼容 /c.html、/c_、/leaders/、Articel... 等
-- 新增 search_rmrb()：直抓人民日报电子版头版/要闻版（node_01~04）
-- merge_and_dedupe() 接入 rmrb_articles，来源顺序：新华社→求是→人民日报→Qwen→Kimi→百度→人民网
-- save_log() 签名新增 rmrb_count，pipeline 描述更新为 10 步
-- main() 调用链新增 rmrb_articles
+- ai_search.py 的 detect_category 调用修正为传入文章字典，避免调用参数错误
+- validate_article() 改为先尝试 HEAD，失败后回退 GET，减少新华社/人民日报被误杀
+- 新华社/人民日报日期提取增加 URL/上下文双兜底，避免版面页与正文页日期不一致导致过滤
+- detect_category() 规则调整：会见仅归重要会议，致电单独归类，求是来源优先归发表文章
+- detect_domain() 增强外交关键词，致电/会见/回信等优先归外交领域
+- 前端新增 call 类型：Speech 类型、categoryConfig、categoryIconMap、categoryOptions、新增/编辑文章表单、后台文章管理默认名称都已补齐
+- aiSearchService 提示词补充致电分类与会见归类说明
 
 ### 当前状态
 - ✅ py_compile 通过
 - ✅ npm run lint 通过
-- ✅ search_rmrb() 本地实测命中 5 条（2026-04-17/18）
-- ✅ search_xinhua_mrdx() 本地实测命中 1 条（2026-04-17）
-- ✅ 未修改 src/ 和前端代码
+- ✅ 前端和后台新增/编辑表单已兼容致电类型
+- ✅ 未改动工作流文件和部署配置
 
 ### 提交记录
 - 待推送
 
 ### 遗留事项
-- existing_titles_simple 历史标题去重逻辑仍需修复
-- search_people_jhsjk() 时区问题仍待修复
-- 人民日报同标题不同 URL（跨版重复）依赖 merge_and_dedupe 标题去重处理
+- 仍需在下一次实际工作流运行中确认新华社和人民日报是否真正进入搜索管道
+- existing_titles_simple 历史标题去重逻辑仍待后续修复
+- search_people_jhsjk() 时区问题仍待后续修复
 
 ## 2026-04-17 rules 文档职责收敛
 

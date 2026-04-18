@@ -20,7 +20,7 @@ export interface ExtractedArticle {
   url: string;
   author?: string;
   location?: string;
-  category?: 'speech' | 'article' | 'meeting' | 'inspection';
+  category?: 'speech' | 'article' | 'meeting' | 'inspection' | 'call';
   categoryName?: string;
   domain?: 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy';
   domainName?: string;

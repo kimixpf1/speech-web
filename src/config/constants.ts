@@ -9,6 +9,7 @@ export const categoryConfig = {
   article: { icon: FileText, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-100', label: '发表文章' },
   meeting: { icon: Users, color: 'text-purple-600', bgColor: 'bg-purple-50', borderColor: 'border-purple-100', label: '重要会议' },
   inspection: { icon: MapPinIcon, color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-100', label: '考察调研' },
+  call: { icon: Globe, color: 'text-cyan-600', bgColor: 'bg-cyan-50', borderColor: 'border-cyan-100', label: '致电' },
 } as const;
 
 export const domainConfig = {
@@ -34,6 +35,7 @@ export const categoryColors: Record<string, { bg: string; text: string; border: 
   article: { bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-200' },
   meeting: { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-200' },
   inspection: { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-200' },
+  call: { bg: 'bg-cyan-50', text: 'text-cyan-600', border: 'border-cyan-200' },
 };
 
 export const domainColors: Record<string, { bg: string; text: string; border: string }> = {
@@ -54,6 +56,7 @@ export const categoryIconMap: Record<string, React.ElementType> = {
   FileText,
   Users,
   MapPin: MapPinIcon,
+  Globe,
 };
 
 export const domainIconMap: Record<string, React.ElementType> = {
