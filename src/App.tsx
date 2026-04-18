@@ -121,12 +121,17 @@ function HomePage() {
   const cachedArticles = useMemo(() => getLocalArticlesSync(), []);
   const hasRestoredScrollRef = useRef(false);
   const listTopRef = useRef<HTMLDivElement | null>(null);
+  const pendingListScrollBehaviorRef = useRef<ScrollBehavior | null>(null);
 
   const scrollToListTop = (behavior: ScrollBehavior = 'smooth') => {
     const targetTop = listTopRef.current
       ? listTopRef.current.getBoundingClientRect().top + window.scrollY - 12
       : 0;
     window.scrollTo({ top: Math.max(0, targetTop), behavior });
+  };
+
+  const queueListTopScroll = (behavior: ScrollBehavior = 'smooth') => {
+    pendingListScrollBehaviorRef.current = behavior;
   };
 
   // 记录滚动位置
@@ -321,9 +326,27 @@ function HomePage() {
     if (page === currentPage || page < 1 || page > totalPages) {
       return;
     }
+    queueListTopScroll();
     setCurrentPage(page);
-    scrollToListTop();
   };
+
+  useEffect(() => {
+    if (!pendingListScrollBehaviorRef.current) {
+      return;
+    }
+
+    const behavior = pendingListScrollBehaviorRef.current;
+    pendingListScrollBehaviorRef.current = null;
+
+    if (typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => scrollToListTop(behavior));
+      });
+      return;
+    }
+
+    window.setTimeout(() => scrollToListTop(behavior), 0);
+  }, [currentPage, pageSize]);
 
   // 当文章列表加载完成后，恢复滚动位置
   useLayoutEffect(() => {
