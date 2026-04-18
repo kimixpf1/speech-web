@@ -85,28 +85,28 @@ function getInitialScrollPosition() {
 const PAGE_SIZE_OPTIONS = [20, 50, 100, 500] as const;
 
 function getVisiblePages(currentPage: number, totalPages: number) {
-  if (totalPages <= 7) {
+  if (totalPages <= 5) {
     return Array.from({ length: totalPages }, (_, index) => index + 1);
   }
 
-  const pages = new Set<number>([1, totalPages, currentPage]);
+  const pages = new Set<number>([currentPage]);
   for (let offset = -1; offset <= 1; offset += 1) {
     const page = currentPage + offset;
-    if (page > 1 && page < totalPages) {
+    if (page >= 1 && page <= totalPages) {
       pages.add(page);
     }
   }
 
-  if (currentPage <= 3) {
+  if (currentPage <= 2) {
+    pages.add(1);
     pages.add(2);
     pages.add(3);
-    pages.add(4);
   }
 
-  if (currentPage >= totalPages - 2) {
+  if (currentPage >= totalPages - 1) {
+    pages.add(totalPages);
     pages.add(totalPages - 1);
     pages.add(totalPages - 2);
-    pages.add(totalPages - 3);
   }
 
   return Array.from(pages)
@@ -405,24 +405,33 @@ function HomePage() {
             <ContentList speeches={pagedSpeeches} />
 
             <div className="mt-6 flex flex-col items-center gap-3">
-              <div className="flex flex-wrap items-center justify-center gap-2">
+              <div className="flex w-full flex-wrap items-center justify-center gap-1.5 sm:gap-2">
                 <button
-                  className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="h-9 rounded-md border border-gray-200 bg-white px-2.5 text-xs text-gray-600 disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 sm:text-sm"
+                  disabled={currentPage <= 1}
+                  onClick={() => handlePageChange(1)}
+                >
+                  首页
+                </button>
+                <button
+                  className="h-9 rounded-md border border-gray-200 bg-white px-2.5 text-xs text-gray-600 disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 sm:text-sm"
                   disabled={currentPage <= 1}
                   onClick={() => handlePageChange(currentPage - 1)}
                 >
                   上一页
                 </button>
 
+                {currentPage > 3 ? <span className="px-1 text-xs text-gray-400 sm:text-sm">...</span> : null}
+
                 {visiblePages.map((page, index) => {
                   const prevPage = visiblePages[index - 1];
                   const shouldShowEllipsis = prevPage && page - prevPage > 1;
 
                   return (
-                    <div key={page} className="flex items-center gap-2">
-                      {shouldShowEllipsis ? <span className="px-1 text-sm text-gray-400">...</span> : null}
+                    <div key={page} className="flex items-center gap-1.5 sm:gap-2">
+                      {shouldShowEllipsis ? <span className="px-1 text-xs text-gray-400 sm:text-sm">...</span> : null}
                       <button
-                        className={`h-9 min-w-9 rounded-md border px-3 text-sm ${page === currentPage
+                        className={`h-9 min-w-9 rounded-md border px-2.5 text-xs sm:px-3 sm:text-sm ${page === currentPage
                           ? 'border-red-600 bg-red-600 text-white'
                           : 'border-gray-200 bg-white text-gray-600'}`}
                         onClick={() => handlePageChange(page)}
@@ -433,15 +442,24 @@ function HomePage() {
                   );
                 })}
 
+                {currentPage < totalPages - 2 ? <span className="px-1 text-xs text-gray-400 sm:text-sm">...</span> : null}
+
                 <button
-                  className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="h-9 rounded-md border border-gray-200 bg-white px-2.5 text-xs text-gray-600 disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 sm:text-sm"
                   disabled={currentPage >= totalPages}
                   onClick={() => handlePageChange(currentPage + 1)}
                 >
                   下一页
                 </button>
+                <button
+                  className="h-9 rounded-md border border-gray-200 bg-white px-2.5 text-xs text-gray-600 disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 sm:text-sm"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => handlePageChange(totalPages)}
+                >
+                  末页
+                </button>
               </div>
-              <div className="text-sm text-gray-500">当前第 {currentPage} 页，共 {totalPages} 页</div>
+              <div className="text-center text-sm text-gray-500">当前第 {currentPage} 页，共 {totalPages} 页</div>
             </div>
           </>
         )}
