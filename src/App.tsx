@@ -178,6 +178,7 @@ function HomePage() {
     const parsed = saved ? parseInt(saved, 10) : 50;
     return PAGE_SIZE_OPTIONS.includes(parsed as (typeof PAGE_SIZE_OPTIONS)[number]) ? parsed : 50;
   });
+  const [pageJumpInput, setPageJumpInput] = useState('');
 
   // 使用 SWR 获取数据并处理缓存，替代手写的 useState 和 useEffect 获取逻辑
   const { data: articles = [], mutate, isLoading } = useSWR<Speech[]>('articles', getArticles, {
@@ -346,6 +347,18 @@ function HomePage() {
     setCurrentPage(page);
   };
 
+  const handlePageJumpSubmit = () => {
+    const targetPage = parseInt(pageJumpInput.trim(), 10);
+    if (!Number.isFinite(targetPage)) {
+      setPageJumpInput('');
+      return;
+    }
+
+    const nextPage = Math.min(Math.max(targetPage, 1), totalPages);
+    setPageJumpInput('');
+    handlePageChange(nextPage);
+  };
+
   useLayoutEffect(() => {
     if (pendingPageTargetRef.current !== currentPage) {
       return;
@@ -427,10 +440,64 @@ function HomePage() {
         ) : (
           <>
             <div className="mb-4 flex flex-col gap-3 rounded-lg border border-gray-100 bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="text-sm text-gray-500">
-                第 {currentPage} / {totalPages} 页，共 {filteredSpeeches.length} 条
+              <div className="flex flex-col gap-2">
+                <div className="text-sm text-gray-500">
+                  第 {currentPage} / {totalPages} 页，共 {filteredSpeeches.length} 条
+                </div>
+                {totalPages > 1 ? (
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    <button
+                      className="h-8 rounded-md border border-gray-200 bg-white px-2.5 text-xs text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={currentPage <= 1}
+                      onClick={() => handlePageChange(1)}
+                    >
+                      首页
+                    </button>
+                    <button
+                      className="h-8 rounded-md border border-gray-200 bg-white px-2.5 text-xs text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={currentPage <= 1}
+                      onClick={() => handlePageChange(currentPage - 1)}
+                    >
+                      上一页
+                    </button>
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      {visiblePages.map((page, index) => {
+                        const prevPage = visiblePages[index - 1];
+                        const shouldShowEllipsis = prevPage && page - prevPage > 1;
+
+                        return (
+                          <div key={`top-${page}`} className="flex items-center gap-1.5 sm:gap-2">
+                            {shouldShowEllipsis ? <span className="px-1 text-xs text-gray-400">...</span> : null}
+                            <button
+                              className={`h-8 min-w-8 rounded-md border px-2 text-xs ${page === currentPage
+                                ? 'border-red-600 bg-red-600 text-white'
+                                : 'border-gray-200 bg-white text-gray-600'}`}
+                              onClick={() => handlePageChange(page)}
+                            >
+                              {page}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <button
+                      className="h-8 rounded-md border border-gray-200 bg-white px-2.5 text-xs text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={currentPage >= totalPages}
+                      onClick={() => handlePageChange(currentPage + 1)}
+                    >
+                      下一页
+                    </button>
+                    <button
+                      className="h-8 rounded-md border border-gray-200 bg-white px-2.5 text-xs text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={currentPage >= totalPages}
+                      onClick={() => handlePageChange(totalPages)}
+                    >
+                      末页
+                    </button>
+                  </div>
+                ) : null}
               </div>
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
                 <span className="text-gray-500">每页</span>
                 <select
                   className="h-9 rounded-md border border-gray-200 bg-white px-2 text-sm"
@@ -449,6 +516,32 @@ function HomePage() {
                   ))}
                 </select>
                 <span className="text-gray-500">条</span>
+                {totalPages > 1 ? (
+                  <>
+                    <span className="ml-1 text-gray-300">|</span>
+                    <span className="text-gray-500">跳至</span>
+                    <input
+                      className="h-9 w-16 rounded-md border border-gray-200 bg-white px-2 text-center text-sm outline-none transition focus:border-red-300 focus:ring-2 focus:ring-red-100"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={pageJumpInput}
+                      onChange={(e) => setPageJumpInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handlePageJumpSubmit();
+                        }
+                      }}
+                      placeholder={`${currentPage}`}
+                    />
+                    <button
+                      className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={!pageJumpInput.trim()}
+                      onClick={handlePageJumpSubmit}
+                    >
+                      跳转
+                    </button>
+                  </>
+                ) : null}
               </div>
             </div>
 
