@@ -75,6 +75,16 @@ NON_ORIGINAL_TITLE_PATTERNS = [
     r'（[^）]*(回响|评论|述评|观察|解读|综述|侧记|特稿|通讯|纪实|报道|扫描|透视)[^）]*）',
     r'\([^)]*(回响|评论|述评|观察|解读|综述|侧记|特稿|通讯|纪实|报道|扫描|透视)[^)]*\)',
 ]
+NON_DIRECT_XI_KEYWORDS = [
+    '学习领会总书记', '领会总书记', '学习贯彻总书记', '贯彻落实总书记',
+    '作为习近平主席特别代表', '习近平主席特别代表', '习近平主席特使', '主席特别代表', '主席特使',
+    '受习近平主席委派', '受习近平主席指派'
+]
+NON_DIRECT_XI_PATTERNS = [
+    r'^领会总书记',
+    r'作为习近平主席特别代表',
+    r'习近平主席特使',
+]
 QSTHEORY_TITLE_PREFIXES = [
     '《求是》杂志发表习近平总书记重要文章',
     '《求是》杂志发表习近平总书记重要文章：',
@@ -90,6 +100,24 @@ def is_non_original_title(title: str) -> bool:
     if any(keyword in title for keyword in NON_ORIGINAL_TITLE_KEYWORDS):
         return True
     return any(re.search(pattern, title) for pattern in NON_ORIGINAL_TITLE_PATTERNS)
+
+
+def is_non_direct_xi_title(title: str) -> bool:
+    title = (title or '').strip()
+    if not title:
+        return True
+
+    if any(keyword in title for keyword in NON_DIRECT_XI_KEYWORDS):
+        return True
+
+    if any(re.search(pattern, title) for pattern in NON_DIRECT_XI_PATTERNS):
+        return True
+
+    lowered = title.replace(' ', '')
+    if ('习近平主席' in lowered or '总书记' in lowered) and ('特使' in lowered or '特别代表' in lowered):
+        return True
+
+    return False
 
 
 def normalize_article_title(title: str) -> str:
@@ -947,6 +975,7 @@ def merge_and_dedupe(baidu_articles: List[Dict], people_articles: List[Dict] = N
     duplicate_seen_title = []
     duplicate_seen_url = []
     validation_rejected = []
+    non_direct_rejected = []
     kept_articles = []
 
     if people_articles is None:
@@ -971,6 +1000,11 @@ def merge_and_dedupe(baidu_articles: List[Dict], people_articles: List[Dict] = N
     def add(article, source_tag):
         title, url = article.get('title', ''), article.get('url', '')
         if not title or not url:
+            return
+
+        if is_non_direct_xi_title(title):
+            non_direct_rejected.append({'title': title, 'url': url, 'source': source_tag})
+            print(f'[Filter] 跳过非总书记直接相关: {title[:50]}...')
             return
 
         if url in seen_urls:
@@ -1027,6 +1061,7 @@ def merge_and_dedupe(baidu_articles: List[Dict], people_articles: List[Dict] = N
             'duplicate_seen_title_count': len(duplicate_seen_title),
             'duplicate_seen_url_count': len(duplicate_seen_url),
             'validation_rejected_count': len(validation_rejected),
+            'non_direct_rejected_count': len(non_direct_rejected),
             'normalized_rejected_count': 0,
         },
         'merge_details': {
@@ -1034,13 +1069,14 @@ def merge_and_dedupe(baidu_articles: List[Dict], people_articles: List[Dict] = N
             'duplicate_seen_title': duplicate_seen_title,
             'duplicate_seen_url': duplicate_seen_url,
             'validation_rejected': validation_rejected,
+            'non_direct_rejected': non_direct_rejected,
             'normalized_rejected': [],
         },
     }
 
     print(f'[Merge] 输入: {sum(source_counts.values())}, 去重保留: {len(kept_articles)}, '
           f'本轮标题重复: {len(duplicate_seen_title)}, 本轮链接重复: {len(duplicate_seen_url)}, '
-          f'校验淘汰: {len(validation_rejected)}')
+          f'校验淘汰: {len(validation_rejected)}, 非直接相关淘汰: {len(non_direct_rejected)}')
 
     return all_articles, merge_info
 

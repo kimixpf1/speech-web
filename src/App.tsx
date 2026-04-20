@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useLayoutEffect, useRef, Suspense, lazy, memo } from 'react';
 import { HashRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { SearchX, RefreshCcw } from 'lucide-react';
 import { Header } from '@/components/Header';
 import { Hero } from '@/components/Hero';
 import { FilterBar } from '@/components/FilterBar';
@@ -83,6 +84,57 @@ function getInitialScrollPosition() {
 }
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100, 500] as const;
+
+const DOMAIN_LABELS: Record<string, string> = {
+  economy: '经济',
+  politics: '政治',
+  culture: '文化',
+  society: '社会',
+  ecology: '生态',
+  party: '党建',
+  defense: '国防',
+  diplomacy: '外交',
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  speech: '重要讲话',
+  article: '发表文章',
+  meeting: '重要会议',
+  inspection: '考察调研',
+  call: '致电',
+};
+
+function getActiveFilterLabels({
+  searchQuery,
+  selectedDomain,
+  selectedCategory,
+  selectedYear,
+}: {
+  searchQuery: string;
+  selectedDomain: string;
+  selectedCategory: string;
+  selectedYear: string;
+}) {
+  const labels: string[] = [];
+
+  if (searchQuery.trim()) {
+    labels.push(`搜索：${searchQuery.trim()}`);
+  }
+
+  if (selectedDomain !== 'all') {
+    labels.push(`领域：${DOMAIN_LABELS[selectedDomain] ?? selectedDomain}`);
+  }
+
+  if (selectedCategory !== 'all') {
+    labels.push(`类型：${CATEGORY_LABELS[selectedCategory] ?? selectedCategory}`);
+  }
+
+  if (selectedYear !== 'all') {
+    labels.push(`年份：${selectedYear}`);
+  }
+
+  return labels;
+}
 
 function getVisiblePages(currentPage: number, totalPages: number) {
   if (totalPages <= 5) {
@@ -337,6 +389,14 @@ function HomePage() {
   }, [filteredSpeeches, currentPage, pageSize]);
 
   const visiblePages = useMemo(() => getVisiblePages(currentPage, totalPages), [currentPage, totalPages]);
+  const activeFilterLabels = useMemo(() => getActiveFilterLabels({
+    searchQuery: debouncedSearchQuery,
+    selectedDomain,
+    selectedCategory,
+    selectedYear,
+  }), [debouncedSearchQuery, selectedDomain, selectedCategory, selectedYear]);
+  const hasSearchQuery = debouncedSearchQuery.trim().length > 0;
+  const hasActiveFilters = activeFilterLabels.length > 0;
 
   const handlePageChange = (page: number) => {
     if (page === currentPage || page < 1 || page > totalPages) {
@@ -357,6 +417,21 @@ function HomePage() {
     const nextPage = Math.min(Math.max(targetPage, 1), totalPages);
     setPageJumpInput('');
     handlePageChange(nextPage);
+  };
+
+  const handleResetSearch = () => {
+    setSearchQuery('');
+  };
+
+  const handleClearFilters = () => {
+    setSelectedDomain('all');
+    setSelectedCategory('all');
+    setSelectedYear('all');
+  };
+
+  const handleClearSearchAndFilters = () => {
+    handleResetSearch();
+    handleClearFilters();
   };
 
   useLayoutEffect(() => {
@@ -437,6 +512,53 @@ function HomePage() {
           <ArticleListSkeleton />
         ) : articles.length === 0 ? (
           <div className="text-center py-20 text-gray-400">暂无可显示的文章数据</div>
+        ) : filteredSpeeches.length === 0 ? (
+          <div className="mx-auto max-w-3xl rounded-2xl border border-gray-100 bg-white px-6 py-12 text-center shadow-sm sm:px-10">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-500">
+              <SearchX className="h-8 w-8" />
+            </div>
+            <h2 className="mt-5 text-2xl font-semibold text-gray-900">当前筛选下暂无结果</h2>
+            <p className="mt-3 text-sm leading-6 text-gray-500 sm:text-base">
+              可以尝试放宽搜索词、切换年份，或恢复为全部领域与全部类型后再查看。
+            </p>
+            {hasActiveFilters ? (
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                {activeFilterLabels.map((label) => (
+                  <span
+                    key={label}
+                    className="rounded-full border border-red-100 bg-red-50 px-3 py-1 text-xs font-medium text-red-600 sm:text-sm"
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-red-600 px-4 text-sm font-medium text-white transition hover:bg-red-700"
+                onClick={handleClearSearchAndFilters}
+              >
+                <RefreshCcw className="h-4 w-4" />
+                恢复全部筛选
+              </button>
+              {hasSearchQuery ? (
+                <button
+                  className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-4 text-sm font-medium text-gray-600 transition hover:border-red-200 hover:text-red-600"
+                  onClick={handleResetSearch}
+                >
+                  仅清空搜索词
+                </button>
+              ) : null}
+              {hasActiveFilters && !hasSearchQuery ? (
+                <button
+                  className="inline-flex h-10 items-center justify-center rounded-md border border-gray-200 bg-white px-4 text-sm font-medium text-gray-600 transition hover:border-red-200 hover:text-red-600"
+                  onClick={handleClearFilters}
+                >
+                  仅清空筛选条件
+                </button>
+              ) : null}
+            </div>
+          </div>
         ) : (
           <>
             <div className="mb-4 flex flex-col gap-3 rounded-lg border border-gray-100 bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
