@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 AI scheduled search script - Kimi API + Baidu search + People.cn direct crawl
 Morning 8:00: search yesterday's articles (catch up)
@@ -110,10 +110,21 @@ def simplify_title(t):
     return re.sub(r'[《》“”"「」『』【】\s：:·\-—（）()、，,\.．]', '', normalized)
 
 
+def get_beijing_now() -> datetime:
+    return datetime.utcnow() + timedelta(hours=8)
+
+
+def get_recent_valid_dates(days: int = 2) -> List[str]:
+    beijing_today = get_beijing_now().date()
+    return [
+        (beijing_today - timedelta(days=offset)).strftime('%Y-%m-%d')
+        for offset in range(days)
+    ]
+
+
 def get_search_query():
     """Generate multiple search queries based on time: morning searches yesterday, evening searches today"""
-    utc_now = datetime.utcnow()
-    beijing_now = utc_now + timedelta(hours=8)
+    beijing_now = get_beijing_now()
     beijing_hour = beijing_now.hour
 
     if beijing_hour < 12:
@@ -531,9 +542,8 @@ def search_people_jhsjk() -> List[Dict]:
         soup = BeautifulSoup(resp.text, 'html.parser')
         
         # 查找所有文章链接 - 国内和国际部分
-        today = (datetime.utcnow() + timedelta(hours=8)).date()
-        yesterday = today - timedelta(days=1)
-        valid_dates = [today.strftime('%Y-%m-%d'), yesterday.strftime('%Y-%m-%d')]
+        valid_dates = get_recent_valid_dates(2)
+        fallback_article_date = valid_dates[0]
         
         # 查找所有 li 元素中的链接
         for li in soup.select('li'):
@@ -561,8 +571,8 @@ def search_people_jhsjk() -> List[Dict]:
                     print(f'[People JHSJK] 跳过旧文章: {title[:30]}... ({article_date})')
                     continue
             else:
-                # 没有日期的默认今天
-                article_date = today.strftime('%Y-%m-%d')
+                # 没有日期时，使用北京时间当天作为兜底
+                article_date = fallback_article_date
             
             # 构建完整URL
             if href.startswith('/'):

@@ -122,8 +122,23 @@ function HomePage() {
   const hasRestoredScrollRef = useRef(false);
   const listTopRef = useRef<HTMLDivElement | null>(null);
   const pendingListScrollBehaviorRef = useRef<ScrollBehavior | null>(null);
+  const pendingPageTargetRef = useRef<number | null>(null);
 
   const scrollToListTop = (behavior: ScrollBehavior = 'smooth') => {
+    if (listTopRef.current) {
+      listTopRef.current.scrollIntoView({ behavior, block: 'start' });
+
+      if (typeof window.requestAnimationFrame === 'function') {
+        window.requestAnimationFrame(() => {
+          const targetTop = listTopRef.current
+            ? listTopRef.current.getBoundingClientRect().top + window.scrollY - 12
+            : 0;
+          window.scrollTo({ top: Math.max(0, targetTop), behavior: 'auto' });
+        });
+        return;
+      }
+    }
+
     const targetTop = listTopRef.current
       ? listTopRef.current.getBoundingClientRect().top + window.scrollY - 12
       : 0;
@@ -326,12 +341,24 @@ function HomePage() {
     if (page === currentPage || page < 1 || page > totalPages) {
       return;
     }
+    pendingPageTargetRef.current = page;
     queueListTopScroll();
     setCurrentPage(page);
   };
 
+  useLayoutEffect(() => {
+    if (pendingPageTargetRef.current !== currentPage) {
+      return;
+    }
+
+    const behavior = pendingListScrollBehaviorRef.current ?? 'smooth';
+    pendingPageTargetRef.current = null;
+    pendingListScrollBehaviorRef.current = null;
+    scrollToListTop(behavior);
+  }, [currentPage, pageSize]);
+
   useEffect(() => {
-    if (!pendingListScrollBehaviorRef.current) {
+    if (!pendingListScrollBehaviorRef.current || pendingPageTargetRef.current !== null) {
       return;
     }
 

@@ -1,5 +1,36 @@
 # 项目迭代记录
 
+## 2026-04-18 最高优先优化收尾（部署版本可视化 + 人民网讲话库时区修复 + 分页回顶继续修复）
+
+### 本次目标
+- 增加前台部署版本可视化，便于判断线上页面是否为最新包
+- 修复 `search_people_jhsjk()` 中 UTC/北京时间混用导致的日期判断偏差
+- 继续修复首页/末页点击后仍未稳定回到顶部的问题
+
+### 实际改动
+- vite.config.ts 构建阶段注入 `__APP_VERSION__`、`__APP_COMMIT_HASH__`、`__APP_BUILD_TIME__`
+- Footer.tsx 新增部署信息展示，前台可直接看到版本号、commit 短哈希和构建时间
+- env.d.ts 补充构建常量声明，保持 TypeScript 类型完整
+- ai_search.py 抽出 `get_beijing_now()` 与 `get_recent_valid_dates()`，统一人民网讲话库搜索中的北京时间基准
+- `search_people_jhsjk()` 改为复用统一日期函数，并修正无日期时的兜底值，避免 UTC 与北京时间跨日导致误判
+- App.tsx 新增 `pendingPageTargetRef`，将分页回顶和目标页绑定
+- `scrollToListTop()` 改为优先 `scrollIntoView()` 再做一次顶部对齐，增强首页/末页大跨度翻页的稳定性
+- 分页回顶 effect 改为 `useLayoutEffect`，确保在目标页渲染并完成布局后再执行回顶
+
+### 当前状态
+- ✅ npm run lint 通过
+- ✅ npm run build 通过
+- ✅ py_compile 通过
+- ✅ 前台已可直接识别当前部署版本
+- ✅ 分页回顶逻辑已进一步收紧到目标页切换完成后执行
+
+### 提交记录
+- 待推送
+
+### 遗留事项
+- 仍需在线上极端场景验证：首页滚到最底后点击首页/末页，是否 100% 回到列表顶部
+- jhsjk.people.cn 仍存在动态渲染抓取不完整的长期问题，需后续继续补强
+
 ## 2026-04-18 首页分页回顶修复（首页/末页）
 
 ### 本次目标

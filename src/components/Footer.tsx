@@ -1,5 +1,12 @@
 import { BookOpen, Heart, ExternalLink } from 'lucide-react';
 
+const deploymentVersion = `v${__APP_VERSION__}`;
+const deploymentCommit = __APP_COMMIT_HASH__;
+const deploymentTime = new Date(__APP_BUILD_TIME__).toLocaleString('zh-CN', {
+  hour12: false,
+  timeZone: 'Asia/Shanghai',
+});
+
 export function Footer() {
   const currentYear = new Date().getFullYear();
 
@@ -75,9 +82,14 @@ export function Footer() {
             <p>本平台内容来源于公开的官方媒体报道，仅做学习整理之用。部分摘要和解读由AI生成，仅供参考，不代表任何官方立场。如有侵权，请联系管理员删除。</p>
           </div>
           <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-            <p className="text-gray-500 text-sm text-center md:text-left">
-              &copy; {currentYear} 重要讲话学习平台 · 非盈利内部学习使用 · 文章版权归原发布平台所有
-            </p>
+            <div className="flex flex-col items-center gap-1 text-center md:items-start md:text-left">
+              <p className="text-gray-500 text-sm">
+                &copy; {currentYear} 重要讲话学习平台 · 非盈利内部学习使用 · 文章版权归原发布平台所有
+              </p>
+              <p className="text-xs text-gray-500">
+                当前部署：{deploymentVersion} · commit {deploymentCommit} · 构建时间 {deploymentTime}
+              </p>
+            </div>
             <p className="text-gray-500 text-sm flex items-center gap-1">
               用 <Heart className="w-4 h-4 text-red-500" /> 打造
             </p>
