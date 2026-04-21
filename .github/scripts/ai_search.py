@@ -68,12 +68,12 @@ DOMAIN_NAMES = {'economy': '经济', 'politics': '政治', 'culture': '文化', 
                 'ecology': '生态', 'party': '党建', 'defense': '国防', 'diplomacy': '外交'}
 
 NON_ORIGINAL_TITLE_KEYWORDS = [
-    '总书记的关切·落地的回响', '评论员', '评论', '本报评论员', '述评', '观察', '解读', '综述', '侧记', '特稿',
+    '总书记的关切·落地的回响', '总书记的人民情怀', '评论员', '评论', '本报评论员', '述评', '观察', '解读', '综述', '侧记', '特稿',
     '通讯', '纪实', '报道', '扫描', '透视', '述写', '随笔', '感言', '网评', '圆桌', '专访', '之一', '之二', '之三'
 ]
 NON_ORIGINAL_TITLE_PATTERNS = [
-    r'（[^）]*(回响|评论|述评|观察|解读|综述|侧记|特稿|通讯|纪实|报道|扫描|透视)[^）]*）',
-    r'\([^)]*(回响|评论|述评|观察|解读|综述|侧记|特稿|通讯|纪实|报道|扫描|透视)[^)]*\)',
+    r'（[^）]*(回响|人民情怀|评论|述评|观察|解读|综述|侧记|特稿|通讯|纪实|报道|扫描|透视)[^）]*）',
+    r'\([^)]*(回响|人民情怀|评论|述评|观察|解读|综述|侧记|特稿|通讯|纪实|报道|扫描|透视)[^)]*\)',
 ]
 NON_DIRECT_XI_KEYWORDS = [
     '学习领会总书记', '领会总书记', '学习贯彻总书记', '贯彻落实总书记',
@@ -84,6 +84,11 @@ NON_DIRECT_XI_PATTERNS = [
     r'^领会总书记',
     r'作为习近平主席特别代表',
     r'习近平主席特使',
+]
+DIRECT_XI_ACTIVITY_KEYWORDS = [
+    '习近平会见', '习近平同', '习近平出席', '习近平主持', '习近平在',
+    '总书记会见', '总书记主持', '总书记在', '习近平致电', '习近平回信',
+    '习近平致贺电', '习近平致贺信', '习近平发表', '习近平考察', '习近平调研'
 ]
 QSTHEORY_TITLE_PREFIXES = [
     '《求是》杂志发表习近平总书记重要文章',
@@ -107,14 +112,18 @@ def is_non_direct_xi_title(title: str) -> bool:
     if not title:
         return True
 
+    compact_title = title.replace(' ', '')
+
+    if any(keyword.replace(' ', '') in compact_title for keyword in DIRECT_XI_ACTIVITY_KEYWORDS):
+        return False
+
     if any(keyword in title for keyword in NON_DIRECT_XI_KEYWORDS):
         return True
 
     if any(re.search(pattern, title) for pattern in NON_DIRECT_XI_PATTERNS):
         return True
 
-    lowered = title.replace(' ', '')
-    if ('习近平主席' in lowered or '总书记' in lowered) and ('特使' in lowered or '特别代表' in lowered):
+    if ('习近平主席' in compact_title or '总书记' in compact_title) and ('特使' in compact_title or '特别代表' in compact_title):
         return True
 
     return False
