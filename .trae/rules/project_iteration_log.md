@@ -1,5 +1,48 @@
 # 项目迭代记录
 
+## 2026-04-21 AI 搜索过滤词可配置化改造
+
+### 本次目标
+- 把当前分散在代码中的过滤词改成可配置结构
+- 保持现有过滤行为不变，后续新增词只需改一处
+
+### 实际改动
+- 在 `.github/scripts/ai_search.py` 引入统一配置字典 `FILTER_RULES`，集中管理：
+  - `non_original_keywords`
+  - `non_original_parenthetical_tags`
+  - `non_direct_xi_keywords`
+  - `non_direct_xi_patterns`
+  - `direct_xi_activity_keywords`
+- 新增 `build_parenthetical_patterns(tags)`，根据 `non_original_parenthetical_tags` 自动构建中英文括号正则，替代手写长正则串
+- 现有判定逻辑继续使用同名变量，但变量值改为从 `FILTER_RULES` 派生，保证调用侧无需改动：
+  - `NON_ORIGINAL_TITLE_KEYWORDS`
+  - `NON_ORIGINAL_TITLE_PATTERNS`
+  - `NON_DIRECT_XI_KEYWORDS`
+  - `NON_DIRECT_XI_PATTERNS`
+  - `DIRECT_XI_ACTIVITY_KEYWORDS`
+
+### 当前状态
+- ✅ 过滤词可配置化改造完成
+- ✅ 现有判定函数保持兼容
+- ✅ 样例回归验证通过（误抓继续过滤、正常总书记活动继续保留）
+- ✅ `python -m py_compile .github/scripts/ai_search.py` 通过
+- ✅ `npm.cmd run lint` 通过
+- ✅ `npm.cmd run build` 通过
+- ⏳ 待提交并推送部署
+
+### 验证样例
+- “中国式现代化关键在科技现代化（总书记的人民情怀）” -> 过滤
+- “坚持以高质量发展推进中国式现代化（人民论坛）” -> 过滤
+- “习近平会见法国总统马克龙” -> 保留
+- “习近平主席特使、全国政协副主席邵鸿出席刚果（布）总统就职典礼” -> 过滤
+
+### 提交记录
+- 待本轮提交
+
+### 遗留事项
+- 后续新增栏目词时，优先只改 `FILTER_RULES`，不直接改判定函数
+- 持续观察线上搜索日志，按漏网样例小步补充词表
+
 ## 2026-04-21 继续补强人民日报栏目型误抓过滤
 
 ### 本次目标
@@ -36,40 +79,3 @@
 ### 遗留事项
 - 继续观察人民日报栏目词新变体（如系列栏目新命名）并小步补充
 - 线上确认新增栏目词过滤生效后，再根据实际日志微调
-
-## 2026-04-21 AI 搜索误抓继续修复（“总书记的人民情怀”栏目）
-
-### 本次目标
-- 修复人民日报标题“（总书记的人民情怀）”这类栏目型误抓
-- 在已有“非总书记直接相关”过滤上补充白名单兜底，避免误伤真实总书记活动标题
-
-### 实际改动
-- 在 `.github/scripts/ai_search.py` 中扩展 `NON_ORIGINAL_TITLE_KEYWORDS`，新增：`总书记的人民情怀`
-- 扩展 `NON_ORIGINAL_TITLE_PATTERNS`，将 `人民情怀` 纳入括号栏目识别
-- 新增 `DIRECT_XI_ACTIVITY_KEYWORDS` 白名单（会见/出席/主持/考察/调研/致电/回信等总书记本人活动模式）
-- 调整 `is_non_direct_xi_title()`：
-  1. 先命中白名单则直接保留
-  2. 再执行“非直接相关”关键词与正则判定
-  3. 最后执行“主席特使/特别代表”组合判定
-- 保持既有评论类过滤与历史去重逻辑不变
-
-### 当前状态
-- ✅ 误抓“总书记的人民情怀”已可过滤
-- ✅ 非直接相关过滤保留白名单兜底能力
-- ✅ `python -m py_compile .github/scripts/ai_search.py` 通过
-- ✅ `npm.cmd run lint` 通过
-- ✅ `npm.cmd run build` 通过
-- ⏳ 待提交并推送部署
-
-### 验证样例
-- “中国式现代化关键在科技现代化（总书记的人民情怀）” -> `is_non_original_title=True`（过滤）
-- “领会总书记对服务业发展的战略擘画” -> `is_non_direct_xi_title=True`（过滤）
-- “习近平主席特使、全国政协副主席邵鸿出席刚果（布）总统就职典礼” -> `is_non_direct_xi_title=True`（过滤）
-- “习近平会见法国总统马克龙” -> 非过滤（保留）
-
-### 提交记录
-- 待本轮提交
-
-### 遗留事项
-- 继续观察是否出现新的人民日报栏目变体（如“人民观察”“人民论坛”）需要补充
-- 推送后在线上搜索日志中确认 `non_direct_rejected` 与 `validation_rejected` 统计是否符合预期
