@@ -358,13 +358,17 @@ function HomePage() {
       return true;
     });
 
-    // 当显示"全部"领域时，经济领域文章置顶，其他按日期排序
+    // 全部领域按年月日倒序，保证最新文章稳定出现在第一页
     if (selectedDomain === 'all') {
       result.sort((a, b) => {
-        const aIsEcon = a.domain === 'economy' ? 0 : 1;
-        const bIsEcon = b.domain === 'economy' ? 0 : 1;
-        if (aIsEcon !== bIsEcon) return aIsEcon - bIsEcon;
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
+        if (a.year !== b.year) return b.year - a.year;
+        if (a.month !== b.month) return b.month - a.month;
+        if (a.day !== b.day) return b.day - a.day;
+
+        const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+        if (Number.isFinite(dateDiff) && dateDiff !== 0) return dateDiff;
+
+        return b.id.localeCompare(a.id);
       });
     }
 

@@ -399,7 +399,12 @@ export function useAdminArticleManagement({
         fullText: fetchedContent || '',
         analysis: fetchedAnalysis.trim() || '解读分析正在整理中...',
       };
-      await saveArticleDetail(detail);
+      const detailSaved = await saveArticleDetail(detail);
+      if (!detailSaved) {
+        await deleteArticle(articleId);
+        alert('添加失败：文章详情保存失败，已自动回滚主记录，请重试');
+        return;
+      }
 
       const wasApproval = !!pendingToApprove;
       if (pendingToApprove) {

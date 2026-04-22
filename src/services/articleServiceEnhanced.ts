@@ -154,7 +154,11 @@ async function fetchFromCloud(): Promise<Speech[]> {
       const { data, error } = await supabase
         .from(ARTICLES_TABLE)
         .select('*')
+        .order('year', { ascending: false })
+        .order('month', { ascending: false })
+        .order('day', { ascending: false })
         .order('date', { ascending: false })
+        .order('id', { ascending: false })
         .range(from, from + batchSize - 1);
 
       if (error) {
