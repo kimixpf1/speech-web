@@ -12,6 +12,40 @@ import { normalizeArticleUrl, normalizeSummaryText } from '@/lib/utils';
 // 表名
 const ARTICLES_TABLE = 'articles';
 
+const SUPABASE_PROJECT_REF = 'ejeiuqcmkznfbglvbkbe';
+const DEFAULT_SUPABASE_URL = `https://${SUPABASE_PROJECT_REF}.supabase.co`;
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqZWl1cWNta3puZmJnbHZia2JlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1ODU4NzIsImV4cCI6MjA4NzE2MTg3Mn0.NfmTSA9DhuP51XKF0qfTuPINtSc7i26u5yIbl69cdAg';
+
+function pickSupabaseUrl(): string {
+  const envUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  if (!envUrl) return DEFAULT_SUPABASE_URL;
+
+  try {
+    const parsed = new URL(envUrl);
+    if (parsed.hostname.startsWith(`${SUPABASE_PROJECT_REF}.`)) {
+      return envUrl;
+    }
+  } catch {
+  }
+
+  return DEFAULT_SUPABASE_URL;
+}
+
+function pickSupabaseAnonKey(): string {
+  const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+  if (!envKey) return DEFAULT_SUPABASE_ANON_KEY;
+
+  try {
+    const payload = JSON.parse(atob(envKey.split('.')[1] || '')) as { ref?: string; role?: string };
+    if (payload.ref === SUPABASE_PROJECT_REF && payload.role === 'anon') {
+      return envKey;
+    }
+  } catch {
+  }
+
+  return DEFAULT_SUPABASE_ANON_KEY;
+}
+
 // 本地缓存键
 const ARTICLES_CACHE_KEY = 'site_articles_cloud_cache';
 const SCHEMA_CACHE_KEY = 'articles_schema_cache';
@@ -143,6 +177,33 @@ function getLocalCache(): Speech[] {
   }
 }
 
+async function fetchFromCloudViaRest(from: number, batchSize: number): Promise<{ data: Record<string, unknown>[] | null; error: Error | null }> {
+  const baseUrl = pickSupabaseUrl();
+  const anonKey = pickSupabaseAnonKey();
+  const headers = {
+    apikey: anonKey,
+    Authorization: `Bearer ${anonKey}`,
+  };
+
+  const fetchWithOrder = async (order: string): Promise<{ data: Record<string, unknown>[] | null; error: Error | null }> => {
+    try {
+      const url = `${baseUrl}/rest/v1/${ARTICLES_TABLE}?select=*&order=${encodeURIComponent(order)}&offset=${from}&limit=${batchSize}`;
+      const response = await fetch(url, { headers });
+      if (!response.ok) {
+        return { data: null, error: new Error(`REST fetch failed: ${response.status}`) };
+      }
+      const json = (await response.json()) as Record<string, unknown>[];
+      return { data: json, error: null };
+    } catch (e) {
+      return { data: null, error: e instanceof Error ? e : new Error('REST fetch failed') };
+    }
+  };
+
+  const primary = await fetchWithOrder('year.desc,month.desc,day.desc,date.desc,id.desc');
+  if (!primary.error) return primary;
+  return fetchWithOrder('date.desc,id.desc');
+}
+
 // 从云端获取所有文章（分批获取，支持超过1000条）
 async function fetchFromCloud(): Promise<Speech[]> {
   try {
@@ -179,6 +240,12 @@ async function fetchFromCloud(): Promise<Speech[]> {
 
         data = fallback.data as Record<string, unknown>[] | null;
         error = fallback.error as Error | null;
+      }
+
+      if (error) {
+        const restFallback = await fetchFromCloudViaRest(from, batchSize);
+        data = restFallback.data;
+        error = restFallback.error;
       }
 
       if (error) {
