@@ -151,15 +151,35 @@ async function fetchFromCloud(): Promise<Speech[]> {
     let from = 0;
 
     while (true) {
-      const { data, error } = await supabase
-        .from(ARTICLES_TABLE)
-        .select('*')
-        .order('year', { ascending: false })
-        .order('month', { ascending: false })
-        .order('day', { ascending: false })
-        .order('date', { ascending: false })
-        .order('id', { ascending: false })
-        .range(from, from + batchSize - 1);
+      let data: Record<string, unknown>[] | null = null;
+      let error: Error | null = null;
+
+      {
+        const result = await supabase
+          .from(ARTICLES_TABLE)
+          .select('*')
+          .order('year', { ascending: false })
+          .order('month', { ascending: false })
+          .order('day', { ascending: false })
+          .order('date', { ascending: false })
+          .order('id', { ascending: false })
+          .range(from, from + batchSize - 1);
+
+        data = result.data as Record<string, unknown>[] | null;
+        error = result.error as Error | null;
+      }
+
+      if (error) {
+        const fallback = await supabase
+          .from(ARTICLES_TABLE)
+          .select('*')
+          .order('date', { ascending: false })
+          .order('id', { ascending: false })
+          .range(from, from + batchSize - 1);
+
+        data = fallback.data as Record<string, unknown>[] | null;
+        error = fallback.error as Error | null;
+      }
 
       if (error) {
         console.error('Supabase fetch error:', error);
