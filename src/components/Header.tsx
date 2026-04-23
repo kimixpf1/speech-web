@@ -3,6 +3,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { BookOpen, Menu, X, Mail, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+const deploymentVersion = `v${__APP_VERSION__}`;
+const deploymentCommit = __APP_COMMIT_HASH__.slice(0, 7);
+
 interface HeaderProps {
   currentView: 'home' | 'about';
   onViewChange: (view: 'home' | 'about') => void;
@@ -67,6 +70,9 @@ export function Header({ currentView, onViewChange }: HeaderProps) {
               </span>
               <span className="text-xs text-gray-500 hidden sm:inline">
                 习近平总书记重要讲话精神
+              </span>
+              <span className={`text-[10px] ${isScrolled ? 'text-gray-500' : 'text-white/80'}`}>
+                {deploymentVersion} · {deploymentCommit}
               </span>
             </div>
           </div>
