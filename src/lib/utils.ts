@@ -167,7 +167,8 @@ export function normalizeArticleUrl(url?: string): string {
     'https://politics.people.com.cn/',
     'https://opinion.people.com.cn/',
     'https://cpc.people.com.cn/',
-    'https://js.people.com.cn/'
+    'https://js.people.com.cn/',
+    'https://mrdx.cn/'
   ]
 
   const downgradeMatch = downgradePrefixes.find(prefix => trimmed.startsWith(prefix))
@@ -191,9 +192,18 @@ export function openExternalUrl(url?: string): void {
   }
 
   const openedWindow = window.open(normalizedUrl, '_blank', 'noopener,noreferrer')
-  if (!openedWindow) {
-    window.location.href = normalizedUrl
+  if (openedWindow) {
+    return
   }
+
+  const anchor = document.createElement('a')
+  anchor.href = normalizedUrl
+  anchor.target = '_blank'
+  anchor.rel = 'noopener noreferrer'
+  anchor.style.display = 'none'
+  document.body.appendChild(anchor)
+  anchor.click()
+  document.body.removeChild(anchor)
 }
 
 const SITE_URL = 'https://kimixpf1.github.io/speech-web'
