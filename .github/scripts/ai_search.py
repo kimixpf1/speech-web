@@ -73,7 +73,8 @@ FILTER_RULES = {
         '人民论坛', '人民观察', '人民时评', '人民要论', '人民观点',
         '仲音', '钟声', '和音', '任仲平',
         '评论员', '评论', '本报评论员', '述评', '观察', '解读', '综述', '侧记', '特稿',
-        '通讯', '纪实', '报道', '扫描', '透视', '述写', '随笔', '感言', '网评', '圆桌', '专访', '之一', '之二', '之三'
+        '通讯', '纪实', '报道', '扫描', '透视', '述写', '随笔', '感言', '网评', '圆桌', '专访', '之一', '之二', '之三',
+        '躬身示范'
     ],
     'non_original_parenthetical_tags': [
         '回响', '人民情怀', '人民论坛', '人民观察', '人民时评', '人民要论', '人民观点',
@@ -83,19 +84,31 @@ FILTER_RULES = {
     'non_direct_xi_keywords': [
         '学习领会总书记', '领会总书记', '学习贯彻总书记', '贯彻落实总书记',
         '作为习近平主席特别代表', '习近平主席特别代表', '习近平主席特使', '主席特别代表', '主席特使',
-        '受习近平主席委派', '受习近平主席指派'
+        '受习近平主席委派', '受习近平主席指派', '王沪宁主持', '专题宣介会举行'
     ],
     'non_direct_xi_patterns': [
         r'^领会总书记',
         r'作为习近平主席特别代表',
         r'习近平主席特使',
+        r'^[李强赵乐际王沪宁蔡奇丁薛祥李希韩正][^，。]*主持',
+        r'“[^”]*习近平新时代中国特色社会主义思想[^”]*”专题宣介会举行$',
+        r'^总书记为.+躬身示范$',
     ],
     'direct_xi_activity_keywords': [
         '习近平会见', '习近平同', '习近平出席', '习近平主持', '习近平在',
         '总书记会见', '总书记主持', '总书记在', '习近平致电', '习近平回信',
-        '习近平致贺电', '习近平致贺信', '习近平发表', '习近平考察', '习近平调研'
+        '习近平致贺电', '习近平致贺信', '习近平发表', '习近平考察', '习近平调研',
+        '习近平向', '习近平致', '习近平复信'
     ],
 }
+
+DIPLOMACY_TRIGGER_KEYWORDS = ['致电', '贺电', '贺信', '回信', '复信', '慰问电', '唁电']
+QSTHEORY_DUPLICATE_PREFIXES = [
+    '《求是》杂志发表习近平总书记重要文章',
+    '《求是》杂志发表习近平总书记重要文章：',
+    '《求是》杂志发表习近平总书记重要文章“',
+    '《求是》杂志发表习近平总书记重要文章《',
+]
 
 
 def build_parenthetical_patterns(tags: List[str]) -> List[str]:
@@ -111,12 +124,7 @@ NON_ORIGINAL_TITLE_PATTERNS = build_parenthetical_patterns(FILTER_RULES['non_ori
 NON_DIRECT_XI_KEYWORDS = FILTER_RULES['non_direct_xi_keywords']
 NON_DIRECT_XI_PATTERNS = FILTER_RULES['non_direct_xi_patterns']
 DIRECT_XI_ACTIVITY_KEYWORDS = FILTER_RULES['direct_xi_activity_keywords']
-QSTHEORY_TITLE_PREFIXES = [
-    '《求是》杂志发表习近平总书记重要文章',
-    '《求是》杂志发表习近平总书记重要文章：',
-    '《求是》杂志发表习近平总书记重要文章“',
-    '《求是》杂志发表习近平总书记重要文章《',
-]
+QSTHEORY_TITLE_PREFIXES = [*QSTHEORY_DUPLICATE_PREFIXES]
 
 
 def is_non_original_title(title: str) -> bool:
@@ -133,10 +141,12 @@ def is_non_direct_xi_title(title: str) -> bool:
     if not title:
         return True
 
-    compact_title = title.replace(' ', '')
+    compact_title = re.sub(r'\s+', '', title)
 
     if any(keyword.replace(' ', '') in compact_title for keyword in DIRECT_XI_ACTIVITY_KEYWORDS):
-        return False
+        blocked_host_keywords = ['王沪宁主持', '专题宣介会举行', '躬身示范']
+        if not any(keyword in title for keyword in blocked_host_keywords):
+            return False
 
     if any(keyword in title for keyword in NON_DIRECT_XI_KEYWORDS):
         return True
@@ -160,6 +170,9 @@ def normalize_article_title(title: str) -> str:
 
     title = re.sub(r'^习近平：', '', title).strip()
     title = re.sub(r'^习近平\s+', '', title).strip()
+    title = re.sub(r'^(新华社|新华网|人民网|人民日报)[:：]\s*', '', title).strip()
+    title = re.sub(r'^(习近平)(向|致)(.+?)(贺电|贺信|慰问电|唁电|回信|复信)', r'\3', title).strip()
+    title = re.sub(r'^(就|为|向)?(.+?)(致电|致贺电|致贺信|致慰问电|致唁电|回信|复信)$', r'\2', title).strip()
     return title
 
 
@@ -210,16 +223,20 @@ def get_search_query():
     return main_query, queries, search_date, target_date
 
 
-def detect_domain(title: str) -> str:
-    """检测文章领域，外交优先"""
-    diplomacy_keywords = ['外交', '出访', '峰会', '总统', '总理', '国际', '外国', '国事访问', '友好访问', '会见', '访问', '联合声明', '多边', '双边', '联合国', '一带一路', '合作', '签署', '致电', '贺电', '回信', '复信']
-    if any(kw in title for kw in diplomacy_keywords):
+def detect_domain(title: str, category: str = '') -> str:
+    """检测文章领域，优先识别外交致电/贺信类"""
+    normalized_title = normalize_article_title(title)
+    if category == 'call' or any(kw in title for kw in DIPLOMACY_TRIGGER_KEYWORDS):
+        return 'diplomacy'
+
+    diplomacy_keywords = ['外交', '出访', '峰会', '总统', '总理', '国际', '外国', '国事访问', '友好访问', '会见', '访问', '联合声明', '多边', '双边', '联合国', '一带一路', '合作', '签署']
+    if any(kw in normalized_title for kw in diplomacy_keywords):
         return 'diplomacy'
 
     for domain, keywords in DOMAIN_KEYWORDS.items():
         if domain == 'diplomacy':
             continue
-        if any(kw in title for kw in keywords):
+        if any(kw in normalized_title for kw in keywords):
             return domain
     return 'politics'
 
@@ -1055,8 +1072,8 @@ def merge_and_dedupe(baidu_articles: List[Dict], people_articles: List[Dict] = N
         seen_urls.add(url)
         seen_titles.add(simple)
 
-        domain = detect_domain(title)
         category = detect_category({'title': title, 'source': article.get('source', ''), 'url': url})
+        domain = detect_domain(title, category)
 
         all_articles.append({
             'id': str(uuid.uuid4()),
@@ -1066,6 +1083,8 @@ def merge_and_dedupe(baidu_articles: List[Dict], people_articles: List[Dict] = N
             'summary': article.get('summary', title),
             'category': category,
             'categoryname': CATEGORY_NAMES.get(category, '重要讲话'),
+            'domain': domain,
+            'domain_name': DOMAIN_NAMES.get(domain, '政治'),
             'status': 'pending',
             'discovered_by': f'ai_auto_{source_tag}',
             'fetched_at': datetime.now().isoformat(),

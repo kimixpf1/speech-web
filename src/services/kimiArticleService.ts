@@ -26,6 +26,26 @@ export interface ExtractedArticle {
   domainName?: string;
 }
 
+const VALID_CATEGORIES = new Set<NonNullable<ExtractedArticle['category']>>(['speech', 'article', 'meeting', 'inspection', 'call']);
+const VALID_DOMAINS = new Set<NonNullable<ExtractedArticle['domain']>>(['economy', 'politics', 'culture', 'society', 'ecology', 'party', 'defense', 'diplomacy']);
+const CATEGORY_NAME_MAP: Record<NonNullable<ExtractedArticle['category']>, string> = {
+  speech: '重要讲话',
+  article: '发表文章',
+  meeting: '重要会议',
+  inspection: '考察调研',
+  call: '致电',
+};
+const DOMAIN_NAME_MAP: Record<NonNullable<ExtractedArticle['domain']>, string> = {
+  economy: '经济',
+  politics: '政治',
+  culture: '文化',
+  society: '社会',
+  ecology: '生态',
+  party: '党建',
+  defense: '国防',
+  diplomacy: '外交',
+};
+
 /**
  * 保存Kimi API Key到本地存储
  */
@@ -328,15 +348,36 @@ function parseArticleJson(content: string): ExtractedArticle {
 
   let rawJson = jsonMatch[0];
 
+  const normalizeExtractedArticle = (article: ExtractedArticle): ExtractedArticle => {
+    const normalizedCategory = VALID_CATEGORIES.has(article.category as NonNullable<ExtractedArticle['category']>)
+      ? article.category
+      : article.title?.includes('致电')
+        ? 'call'
+        : 'speech';
+    const normalizedDomain = VALID_DOMAINS.has(article.domain as NonNullable<ExtractedArticle['domain']>)
+      ? article.domain
+      : article.title?.includes('致电') || article.title?.includes('贺电') || article.title?.includes('贺信') || article.title?.includes('回信') || article.title?.includes('复信')
+        ? 'diplomacy'
+        : 'politics';
+
+    return {
+      ...article,
+      category: normalizedCategory,
+      categoryName: article.categoryName || (normalizedCategory ? CATEGORY_NAME_MAP[normalizedCategory] : '重要讲话'),
+      domain: normalizedDomain,
+      domainName: article.domainName || (normalizedDomain ? DOMAIN_NAME_MAP[normalizedDomain] : '政治'),
+    };
+  };
+
   try {
-    return JSON.parse(rawJson);
+    return normalizeExtractedArticle(JSON.parse(rawJson) as ExtractedArticle);
   } catch {
     const sanitized = rawJson
       .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '')
       .replace(/,\s*([}\]])/g, '$1');
 
     try {
-      return JSON.parse(sanitized);
+      return normalizeExtractedArticle(JSON.parse(sanitized) as ExtractedArticle);
     } catch {
       const escaped = sanitized
         .replace(/\r\n/g, '\\n')
@@ -345,7 +386,7 @@ function parseArticleJson(content: string): ExtractedArticle {
         .replace(/\t/g, '\\t');
 
       try {
-        return JSON.parse(escaped);
+        return normalizeExtractedArticle(JSON.parse(escaped) as ExtractedArticle);
       } catch (e3) {
         throw new Error(`JSON解析失败: ${e3 instanceof Error ? e3.message : String(e3)}`);
       }
@@ -412,7 +453,7 @@ ${truncatedContent}
   "source": "来源，如：求是杂志、人民网、新华网等",
   "author": "作者（如果有）",
   "location": "地点（如果是考察调研类文章）",
-  "category": "分类，必须是以下之一：speech（重要讲话）、article（发表文章）、meeting（重要会议）、inspection（考察调研）",
+  "category": "分类，必须是以下之一：speech（重要讲话）、article（发表文章）、meeting（重要会议）、inspection（考察调研）、call（致电）",
   "categoryName": "分类中文名",
   "domain": "领域，必须是以下之一：diplomacy（外交）、defense（国防）、party（党建）、ecology（生态）、culture（文化）、society（社会）、economy（经济）、politics（政治）",
   "domainName": "领域中文名",
@@ -436,12 +477,13 @@ ${truncatedContent}
 三、历史贯通与实践（约150-200字）：联系习近平总书记历次相关重要讲话，分析一脉相承的思想脉络，指出对推动中国式现代化的实践指导意义。
 
 分类判断（按优先级）：
-1. 标题含"会见"+"外国/总统/总理" → meeting
-2. 标题含"出访/峰会" → meeting
-3. 标题含"讲话/发表重要讲话/致辞" → speech
-4. 标题含"《求是》/发表文章" → article
-5. 标题含"考察/调研/视察" → inspection
-6. 标题含"会议/座谈会/全会" → meeting
+1. 标题含"致电/贺电/贺信/慰问电/唁电" → call
+2. 标题含"会见"+"外国/总统/总理" → meeting
+3. 标题含"出访/峰会" → meeting
+4. 标题含"讲话/发表重要讲话/致辞" → speech
+5. 标题含"《求是》/发表文章" → article
+6. 标题含"考察/调研/视察" → inspection
+7. 标题含"会议/座谈会/全会" → meeting
 
 【领域判断原则】必须根据文章的**核心主题和主要内容**判断领域，而非简单匹配标题关键词。
 
@@ -576,7 +618,7 @@ ${truncatedContent}
   "source": "来源，如：求是杂志、人民网、新华网等",
   "author": "作者（如果有）",
   "location": "地点（如果是考察调研类文章）",
-  "category": "分类，必须是以下之一：speech（重要讲话）、article（发表文章）、meeting（重要会议）、inspection（考察调研）",
+  "category": "分类，必须是以下之一：speech（重要讲话）、article（发表文章）、meeting（重要会议）、inspection（考察调研）、call（致电）",
   "categoryName": "分类中文名",
   "domain": "领域，必须是以下之一：diplomacy（外交）、defense（国防）、party（党建）、ecology（生态）、culture（文化）、society（社会）、economy（经济）、politics（政治）",
   "domainName": "领域中文名",
@@ -613,12 +655,13 @@ ${truncatedContent}
 4. 正文结束于最后一段实际内容，不要包含后续的网页杂项
 
 分类判断（按优先级）：
-1. 标题含"会见"+"外国/总统/总理" → meeting（外交会见）
-2. 标题含"出访/峰会" → meeting
-3. 标题含"讲话/发表重要讲话/致辞" → speech
-4. 标题含"《求是》/发表文章" → article
-5. 标题含"考察/调研/视察" → inspection
-6. 标题含"会议/座谈会/全会" → meeting
+1. 标题含"致电/贺电/贺信/慰问电/唁电" → call
+2. 标题含"会见"+"外国/总统/总理" → meeting（外交会见）
+3. 标题含"出访/峰会" → meeting
+4. 标题含"讲话/发表重要讲话/致辞" → speech
+5. 标题含"《求是》/发表文章" → article
+6. 标题含"考察/调研/视察" → inspection
+7. 标题含"会议/座谈会/全会" → meeting
 
 【领域判断原则】必须根据文章的**核心主题和主要内容**判断领域，而非简单匹配标题关键词。
 
