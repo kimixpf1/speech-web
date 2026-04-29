@@ -2,9 +2,9 @@ name: AI Auto Search (Scheduled)
 
 on:
   schedule:
-    # 每天北京时间 8:00 (UTC 0:00) 和 20:00 (UTC 12:00)
-    - cron: '0 0 * * *'
-    - cron: '0 12 * * *'
+    # 每天北京时间 08:17 (UTC 00:17) 和 20:17 (UTC 12:17)，避开 GitHub Actions 整点高峰
+    - cron: '17 0 * * *'
+    - cron: '17 12 * * *'
   workflow_dispatch:  # 允许手动触发
     inputs:
       triggered_from:
