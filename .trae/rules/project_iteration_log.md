@@ -1,5 +1,63 @@
 # 项目迭代记录
 
+## 2026-05-01 前端性能优化（7项）
+
+### 本次目标
+- 消除首页滚动卡顿
+- 消除列表渲染抖动
+- 优化构建分包，减少首屏 JS 体积
+- 优化详情页加载速度
+
+### 实际改动
+
+#### 1. Header scroll 监听 rAF 节流
+- 文件：`src/components/Header.tsx`
+- 改动：scroll 事件处理从同步 setState 改为 `requestAnimationFrame` + `passive: true`
+- 效果：滚动时不再每帧触发 React 重渲染，主线程压力降低
+
+#### 2. ContentList 排序逻辑优化
+- 文件：`src/components/ContentList.tsx`
+- 改动：移除 `[...speeches].sort()` 中的 `new Date()` 解析（App.tsx 已排好序）；月份 padStart 确保字符串排序正确；用 `localeCompare` 替代正则解析
+- 效果：列表分组渲染减少一次 O(n log n) 排序 + N 次 Date 解析
+
+#### 3. SpeechCard + ContentList 事件处理器稳定化
+- 文件：`src/components/SpeechCard.tsx`、`src/components/ContentList.tsx`
+- 改动：`handleClick` 改用 `useCallback`；`onSaveScroll` 提取为稳定的 `useCallback`
+- 效果：SpeechCard 的 `memo` 不再因内联函数引用变化而失效
+
+#### 4. App.tsx 滚动监听 rAF 节流
+- 文件：`src/App.tsx`
+- 改动：scroll 事件中的 `sessionStorage.setItem` 从同步改为 rAF 节流
+- 效果：滚动时不再每帧同步写 sessionStorage，主线程更流畅
+
+#### 5. Vite 构建分包优化
+- 文件：`vite.config.ts`
+- 改动：新增 `vendor-radix`、`vendor-export`（docx+file-saver）、`vendor-tts`（onnxruntime+piper-tts）三个独立 chunk
+- 效果：首屏不再加载导出 Word 和 TTS 语音的重型库，JS 体积显著减小
+
+#### 6. App.tsx filteredSpeeches 排序优化
+- 文件：`src/App.tsx`
+- 改动：排序时移除 `new Date(b.date).getTime()` 解析，仅用 year/month/day 数字字段
+- 效果：每次筛选变化时的排序减少 N 次 Date 构造
+
+#### 7. useArticleDetail 详情页单条查询
+- 文件：`src/hooks/useArticleDetail.ts`
+- 改动：当本地找不到文章时，改用 Supabase 单条 `.eq('id', id).limit(1)` 查询，替代全量 `getArticles()` + `getZhengjiguanArticles()`
+- 效果：详情页首次加载（本地无缓存时）从全量拉取优化为单条查询，速度提升显著
+
+### 当前状态
+- ✅ 全部 7 项优化完成
+- ✅ lint 通过
+- ✅ build 通过
+- ✅ 推送部署，线上版本 `0cdeb9b`
+
+### 提交记录
+- `0cdeb9b` perf: 7项前端性能优化 - 消除滚动卡顿/排序开销/渲染抖动/首屏体积
+
+### 遗留事项
+- 线上验证各项优化效果
+- 可继续考虑虚拟列表（当数据量超过 500 条时）
+
 ## 2026-05-01 ECC 项目学习与集成
 
 ### 本次目标

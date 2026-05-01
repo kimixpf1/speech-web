@@ -184,6 +184,44 @@ export function normalizeArticleUrl(url?: string): string {
   return trimmed
 }
 
+export function isArticleUrl(url?: string): boolean {
+  if (!url) return false
+  const trimmed = url.trim()
+  if (!trimmed) return false
+  try {
+    const parsed = new URL(trimmed)
+    const path = parsed.pathname.replace(/\/$/, '')
+    if (!path || path === '/') return false
+    const segments = path.split('/').filter(s => s.length > 0)
+    if (segments.length < 2) return false
+    const homepageHosts = ['www.gov.cn', 'www.news.cn', 'www.qstheory.cn', 'www.people.com.cn', 'paper.people.com.cn']
+    if (homepageHosts.includes(parsed.hostname) && segments.length < 3) return false
+    return true
+  } catch {
+    return false
+  }
+}
+
+export function inferSourceFromUrl(url?: string, currentSource?: string): string {
+  if (!url) return currentSource || ''
+  const u = url.toLowerCase()
+  if (u.includes('paper.people.com.cn')) return '人民日报'
+  if (u.includes('cpc.people.com.cn') || u.includes('politics.people.com.cn') || u.includes('opinion.people.com.cn') || u.includes('js.people.com.cn') || u.includes('lianghui.people.com.cn') || u.includes('jhsjk.people.cn')) {
+    if (currentSource?.includes('求是')) return currentSource
+    return '人民网'
+  }
+  if (u.includes('news.cn') || u.includes('xinhuanet.com')) return '新华网'
+  if (u.includes('qstheory.cn')) return '求是网'
+  if (u.includes('gov.cn')) return '中国政府网'
+  if (u.includes('cctv.com') || u.includes('cctv.cn')) return '央视新闻'
+  if (u.includes('spp.gov.cn')) return '最高人民检察院'
+  if (u.includes('jcrb.com')) return '检察日报'
+  if (u.includes('chinanews.com.cn')) return '中国新闻网'
+  if (u.includes('cppcc.gov.cn')) return '人民政协报'
+  if (u.includes('mrdx.cn')) return '农民日报'
+  return currentSource || ''
+}
+
 export function openExternalUrl(url?: string): void {
   const normalizedUrl = normalizeArticleUrl(url)
 

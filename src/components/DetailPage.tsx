@@ -14,6 +14,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { categoryConfig, domainConfig, LOCAL_VOICE_PACK_SIZE_MB } from '@/config/constants';
 import { isMobileDevice, isWeChatBrowser } from '@/utils/deviceDetect';
+import { isArticleUrl, inferSourceFromUrl } from '@/lib/utils';
 import { useArticleDetail } from '@/hooks/useArticleDetail';
 import { useTTS } from '@/hooks/useTTS';
 
@@ -50,6 +51,8 @@ export function DetailPage() {
 
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const displaySource = speech ? inferSourceFromUrl(normalizedSpeechUrl, speech.source) : '';
 
   const getTtsText = () => {
     if (!speech) return '';
@@ -128,7 +131,7 @@ export function DetailPage() {
           new Paragraph({
             children: [
               new TextRun({
-                text: `来源：${speech.source}`,
+                text: `来源：${displaySource}`,
                 size: 24,
               }),
             ],
@@ -367,10 +370,10 @@ export function DetailPage() {
 
             <div className="flex items-center gap-2 text-xl text-gray-600 mb-4">
               <span className="font-medium">来源：</span>
-              <span>{speech.source}</span>
+              <span>{displaySource}</span>
             </div>
 
-            {normalizedSpeechUrl && normalizedSpeechUrl !== 'https://www.news.cn/' && normalizedSpeechUrl !== 'https://www.qstheory.cn/' ? (
+            {isArticleUrl(normalizedSpeechUrl) ? (
               <div className="flex items-center gap-2 text-xl mb-5">
                 <span className="font-medium text-gray-600">原文链接：</span>
                 <a
@@ -449,7 +452,7 @@ export function DetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              {normalizedSpeechUrl && normalizedSpeechUrl !== 'https://www.news.cn/' && normalizedSpeechUrl !== 'https://www.qstheory.cn/' ? (
+              {isArticleUrl(normalizedSpeechUrl) ? (
                 <div className="bg-gray-50 rounded-lg p-6 text-center">
                   <BookOpen className="w-10 h-10 mx-auto mb-3 text-blue-500" />
                   <p className="text-gray-600 mb-4">点击下方按钮在新窗口中阅读官方原文</p>
@@ -462,7 +465,7 @@ export function DetailPage() {
                     <ExternalLink className="w-5 h-5" />
                     新窗口打开原文
                   </a>
-                  <p className="text-xs text-gray-400 mt-3">{speech.source}</p>
+                  <p className="text-xs text-gray-400 mt-3">{displaySource}</p>
                 </div>
               ) : (
                 <div className="bg-gray-50 rounded-lg p-6 text-center text-gray-500">
@@ -521,7 +524,7 @@ export function DetailPage() {
             <div className="bg-gray-50 rounded-lg p-4 mb-6">
               <p className="text-sm text-gray-500 mb-1">当前文章</p>
               <p className="font-medium text-gray-900 line-clamp-2">{speech.title}</p>
-              <p className="text-xs text-gray-400 mt-1">{speech.date} · {speech.source}</p>
+              <p className="text-xs text-gray-400 mt-1">{speech.date} · {displaySource}</p>
             </div>
             <div className="grid grid-cols-2 gap-4 mb-6">
               <Button

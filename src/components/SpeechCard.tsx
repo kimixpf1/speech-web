@@ -3,7 +3,7 @@ import { Calendar, MapPin, ExternalLink, ChevronDown, ChevronUp, BookOpen } from
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { Speech } from '@/data/speeches';
-import { normalizeArticleUrl, openExternalUrl } from '@/lib/utils';
+import { normalizeArticleUrl, openExternalUrl, inferSourceFromUrl } from '@/lib/utils';
 import { categoryConfig, domainConfig, levelConfig } from '@/config/constants';
 
 interface SpeechCardProps {
@@ -79,7 +79,7 @@ export const SpeechCard = memo(function SpeechCard({
                   {speech.location}
                 </span>
               )}
-              <span className="text-gray-400">{speech.source}</span>
+              <span className="text-gray-400">{inferSourceFromUrl(normalizeArticleUrl(speech.url), speech.source)}</span>
             </div>
 
             <div className={`text-gray-600 text-base leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
