@@ -367,7 +367,7 @@ export function useAdminArticleManagement({
       if (newArticle.month && !Number.isNaN(newArticle.month)) month = newArticle.month;
       if (newArticle.day && !Number.isNaN(newArticle.day)) day = newArticle.day;
 
-      const articleId = generateArticleId(year);
+      const articleId = await generateArticleId(year);
       const article: Speech = {
         id: articleId,
         title: newArticle.title,
@@ -503,7 +503,7 @@ export function useAdminArticleManagement({
       category: (pending.category as Speech['category']) || 'speech',
       categoryName: pending.categoryName || (pending.category === 'call' ? '致电' : '重要讲话'),
       domain: (pending.domain as Speech['domain']) || 'politics',
-      domainName: '政治',
+      domainName: pending.domainName || '政治',
       source: pending.source || '',
       summary: pending.summary || '',
       url: pending.url || '',

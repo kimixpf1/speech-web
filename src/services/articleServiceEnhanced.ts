@@ -586,9 +586,26 @@ export async function deleteArticle(id: string): Promise<boolean> {
 }
 
 // 生成文章ID
-export function generateArticleId(year: number): string {
+export async function generateArticleId(year: number): Promise<string> {
   const allArticles = getLocalArticlesSync();
-  const yearArticles = allArticles.filter(a => a.year === year);
+  let yearArticles = allArticles.filter(a => a.year === year);
+
+  if (navigator.onLine) {
+    try {
+      const cloudArticles = await fetchFromCloud();
+      const cloudYearArticles = cloudArticles.filter(a => a.year === year);
+      const localIds = new Set(yearArticles.map(a => a.id));
+      for (const a of cloudYearArticles) {
+        if (!localIds.has(a.id)) {
+          yearArticles.push(a);
+          localIds.add(a.id);
+        }
+      }
+    } catch (e) {
+      console.error('generateArticleId: cloud fetch failed, using local only:', e);
+    }
+  }
+
   const maxNum = yearArticles.reduce((max, a) => {
     const match = a.id.match(new RegExp(`^${year}-(\\d+)$`));
     const num = match ? parseInt(match[1]) : 0;
