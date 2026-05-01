@@ -26,9 +26,10 @@ import { normalizeAnalysisText, normalizeSummaryText } from '@/lib/utils';
 
 interface UseAdminArticleManagementOptions {
   articles: Speech[];
-  loadData: () => Promise<void>;
+  loadData: (options?: { skipArticlesRefresh?: boolean }) => Promise<void>;
   onSuccess: (message: string, duration?: number) => void;
   setActiveTab: (tab: string) => void;
+  setArticles: React.Dispatch<React.SetStateAction<Speech[]>>;
 }
 
 function createDefaultNewArticle(): Partial<Speech> {
@@ -116,6 +117,7 @@ export function useAdminArticleManagement({
   loadData,
   onSuccess,
   setActiveTab,
+  setArticles,
 }: UseAdminArticleManagementOptions) {
   const [searchTerm, setSearchTerm] = useState('');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -415,7 +417,16 @@ export function useAdminArticleManagement({
       setAddDialogOpen(false);
       setNewArticle(createDefaultNewArticle());
       resetAddDialogAuxState();
-      await loadData();
+
+      setArticles(prev => {
+        const exists = prev.some(a => a.id === article.id);
+        if (exists) return prev;
+        const next = [article, ...prev];
+        next.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        return next;
+      });
+
+      await loadData({ skipArticlesRefresh: true });
 
       if (result.error) {
         onSuccess(`添加成功（警告：${result.error}）`, 5000);

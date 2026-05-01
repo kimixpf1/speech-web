@@ -197,14 +197,14 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     };
   }, [navigate]);
 
-  const loadData = async () => {
+  const loadData = async (options?: { skipArticlesRefresh?: boolean }) => {
     const tasks = await Promise.allSettled([
       isSupabaseConfigured()
         ? Promise.all([getSupabaseStats(), getSupabaseRecentVisits(100)])
         : Promise.resolve(null),
       getSuggestions(),
       getUnreadCount(),
-      getArticles(),
+      options?.skipArticlesRefresh ? Promise.resolve(articles) : getArticles(),
       getPendingArticles(),
       getSearchLogs(5),
       getTodaySearchStats(),
@@ -320,6 +320,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
     loadData,
     onSuccess: showTemporarySuccessMessage,
     setActiveTab,
+    setArticles,
   });
   
   // 手动刷新
