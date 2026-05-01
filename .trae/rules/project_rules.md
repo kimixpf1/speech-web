@@ -71,3 +71,45 @@
 1. push 后不能只看 exit code，必须再验证远端状态。
 2. 若 push 后仍显示 ahead，说明未成功，必须重试并再次验证。
 3. 用户反馈“还是不行”时，先确认远端是否已经收到最新提交。
+
+## 智能体自动编排规则（2026-05-01 永久写入）
+
+> 目标：让已安装的智能体像团队一样主动协作，不需要用户提醒。
+
+### 自动调度触发规则
+以下场景**必须主动**按智能体方法论执行，不需要用户明确要求：
+
+1. **新功能开发**：先用 Planner 方法论拆解步骤（TodoWrite）→ 编码 → 写完自动按 Code Reviewer 清单自查 → 构建验证
+2. **Bug 修复**：先用 Code Explorer 方法论追踪调用链 → 定位根因 → 按 TDD Guide 方法论先写失败测试 → 修复 → 验证测试通过
+3. **代码修改后**：自动按 Code Reviewer 清单自查（安全/类型/异步/错误处理）→ 发现问题立即修复
+4. **构建失败**：自动按 Build Resolver 方法论（最小修复/不重构/逐个修复逐个验证）
+5. **涉及用户输入/API/认证**：自动按 Security Reviewer 方法论扫描（OWASP/注入/XSS/密钥）
+6. **代码难读/嵌套深**：自动按 Code Simplifier 方法论简化（早返回/去嵌套/async-await）
+7. **清理代码**：自动按 Refactor Cleaner 方法论（检测→验证→安全删除→每批测试→每批提交）
+8. **上线前**：完整验证循环——构建 → 类型检查 → lint → 测试 → 安全扫描 → diff 审查
+9. **性能问题**：自动按 Performance Expert 方法论（Bundle/渲染/缓存/懒加载）
+10. **新项目/新模块**：自动按 Code Explorer 方法论分析现有架构 → 按项目惯例开发
+
+### 执行纪律
+- **必须通过 Task/Skill 工具实际调用已安装的智能体和技能**，不能只在脑子里默念方法论。这是硬性要求，违反即为未完成任务。
+- 每条原则对应的方法论已写入 universal_template.md，必须遵守
+- 不需要说"我用XX智能体"——直接按方法论执行即可
+- 完成改动后必须做验证（原则 51：构建→类型检查→lint→测试→安全扫描→diff审查）
+- 复杂任务必须用 TodoWrite 规划，实时更新进度
+
+### 智能体实际调用对照表（2026-05-02 永久写入）
+
+> 本项目已安装 17 个智能体和 182 个技能。以下场景**必须通过 Task 工具调用对应智能体**，不是可选建议，是硬性执行要求。
+
+| 场景 | 必须调用的智能体/技能 | 调用方式 |
+|------|----------------------|----------|
+| 复杂功能规划 | planner 智能体 | Task(subagent_type="planner") |
+| 重构任务 | refactor-cleaner 智能体 | Task(subagent_type="refactor-cleaner") |
+| 代码改动后自查 | security-reviewer 智能体 | Task(subagent_type="security-reviewer") |
+| 构建失败 | build-resolver 智能体 | Task(subagent_type="build-resolver") |
+| 新功能开发 | code-explorer → planner → tdd-guide | 依次调用 |
+| 接手新模块 | code-explorer 智能体 | Task(subagent_type="code-explorer") |
+| 代码复杂难读 | code-simplifier 智能体 | Task(subagent_type="code-simplifier") |
+| 安全相关改动 | security-review 智能体 | Task(subagent_type="security-reviewer") |
+
+**核心原则：不要只是"在心里过一遍方法论"，必须实际调用 Task/Skill 工具让智能体参与工作。智能体是团队成员，不是装饰品。**

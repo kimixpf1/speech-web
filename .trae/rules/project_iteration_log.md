@@ -1,5 +1,102 @@
 # 项目迭代记录
 
+## 2026-05-02 后台文章管理 Hook 拆分重构
+
+### 本次目标
+- 将 `useAdminArticleManagement`（590 行单体 Hook，23 个状态，40+ 返回项）拆分为 4 个领域子 Hook + 1 个发布编排服务
+- 解决职责堆叠、返回面过宽、待审核发布时序耦合问题
+
+### 实际改动
+
+#### 1. 新建发布编排服务
+- 文件：`src/services/adminArticleWorkflowService.ts`
+- 封装 `publishAdminArticle` 纯函数：生成文章→保存详情→失败回滚→待审核转正式
+- 提取 `buildArticleFromDraft` 草稿转 Speech 组装逻辑
+
+#### 2. 新建 4 个领域子 Hook
+- `src/hooks/admin/useArticleFilter.ts`：搜索词与筛选结果
+- `src/hooks/admin/useArticleEditor.ts`：编辑、详情加载、删除确认
+- `src/hooks/admin/useArticleCreationFlow.ts`：新增草稿、AI 提取、手动补录、待审核发布（含 phase 状态机：idle→prefill→extracting→ready→manual→publishing）
+- `src/hooks/admin/useExtractionCredentialPrompt.ts`：Kimi Key 提示与校验弹窗
+
+#### 3. 重写门面 Hook
+- 文件：`src/hooks/useAdminArticleManagement.ts`
+- 从 590 行 → 44 行，组合 4 个子 Hook
+- 返回分组对象 `{ filter, editor, creation, configPrompt }`
+
+#### 4. 更新调用方
+- 文件：`src/components/AdminDashboard.tsx`
+- 从扁平解构 40+ 字段改为分组解构 `articleFilter / articleEditor / articleCreation / articleConfigPrompt`
+
+#### 5. 消除 setTimeout 时序耦合
+- 待审核发布从 `setTimeout(300ms)` 改为 `await` 串行执行预填与提取
+- 提取失败直接进入 `manual` 阶段，不再依赖渲染时机
+
+### 当前状态
+- ✅ `npm run build` 通过
+- ✅ `npm run lint` 通过
+- ✅ VS Code Diagnostics 全部 0 错误
+- ✅ 推送部署成功，线上版本 `f186ac3`
+
+### 提交记录
+- `f186ac3` refactor: 后台文章管理Hook拆分 - 从590行单体拆为4个领域子Hook+发布编排服务
+
+### 线上测试指引
+1. 打开后台 → 搜索文章 → 确认筛选正常
+2. 编辑一篇文章 → 修改摘要 → 保存成功
+3. 新增文章 → 粘贴 URL 提取 → 保存成功
+4. 删除一篇文章 → 确认删除正常
+5. 从待审核列表发布一篇文章 → 确认自动提取和发布正常
+6. 配置 Kimi API Key → 确认校验和保存正常
+
+### 遗留事项
+- 待真人模拟测试确认运行时行为一致
+
+## 2026-05-01 修复定时搜索未运行 + 兜底机制
+
+### 问题
+- 今天早上 08:17/08:23/08:33 北京时间的自动搜索全部未运行
+- 排查发现：GitHub Actions cron 未触发（GitHub 对仓库可能跳过 schedule）
+- 前端兜底调度器 `autoSearchScheduler.ts` 是死代码——`initAutoSearchScheduler()` 从未被调用
+- 北京时间计算有 bug：用 `getHours()` 而非 `getUTCHours()`，导致多加 8 小时
+
+### 修复
+
+#### 1. 激活前端兜底调度器
+- 文件：`src/App.tsx`
+- 在 `initAnalytics()` 旁添加 `initAutoSearchScheduler()`
+- 用户打开网站时自动初始化，每 5 分钟检查是否需要搜索
+
+#### 2. 修复北京时间计算 bug
+- 文件：`src/services/autoSearchScheduler.ts`
+- `getCurrentSlot()`、`getNextSearchTimeDesc()`、`initAutoSearchScheduler()` 三处全部修复
+- 从 `getHours()` 改为 `getUTCHours() + 8`
+
+#### 3. 优化 cron 触发点
+- 文件：`.github/workflows/ai-auto-search.yml`
+- 从 6 个 cron 增加到 8 个：0:00/0:17/0:33/0:50 + 12:00/12:17/12:33/12:50 UTC
+- 对应北京时间：8:00/8:17/8:33/8:50 + 20:00/20:17/20:33/20:50
+
+#### 4. 添加 concurrency 控制
+- 文件：`.github/workflows/ai-auto-search.yml`
+- 新增 `concurrency: group=ai-auto-search, cancel-in-progress=false`
+- 防止多个搜索实例并行，排队等待而非互相取消
+
+### 当前状态
+- ✅ 前端兜底调度器已激活（需 API Key 才能执行搜索）
+- ✅ 北京时间计算已修复
+- ✅ cron 触发点从 6 个增加到 8 个
+- ✅ concurrency 防并行已添加
+- ✅ 推送部署，线上版本 `851c2c4`
+
+### 提交记录
+- `851c2c4` fix: 修复定时搜索未运行 - 前端调度器激活 + cron增加触发点 + concurrency控制
+
+### 遗留事项
+- 前端兜底搜索仍依赖 API Key（Kimi/DeepSeek），无 Key 时无法执行
+- 如果用户未配置 API Key，仍只能依赖 GitHub Actions cron
+- 建议：后续可考虑前端兜底搜索改为直接爬取官方网站（不依赖 AI API）
+
 ## 2026-05-01 数据质量全面检查与修复
 
 ### 本次目标
