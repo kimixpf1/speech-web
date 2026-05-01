@@ -46,6 +46,26 @@ const DOMAIN_NAME_MAP: Record<NonNullable<ExtractedArticle['domain']>, string> =
   diplomacy: '外交',
 };
 
+const URL_SOURCE_MAP: Array<{ patterns: string[]; source: string }> = [
+  { patterns: ['qstheory.cn'], source: '求是网' },
+  { patterns: ['paper.people.com.cn', 'people.com.cn', 'jhsjk.people.cn'], source: '人民日报' },
+  { patterns: ['mrdx.cn'], source: '新华每日电讯' },
+  { patterns: ['xinhuanet.com', 'news.cn'], source: '新华社' },
+  { patterns: ['gov.cn'], source: '中国政府网' },
+  { patterns: ['cctv.com', 'cntv.cn'], source: '央视网' },
+];
+
+function fixSourceFromUrl(url: string | undefined, fallback: string): string {
+  if (!url) return fallback;
+  const lower = url.toLowerCase();
+  for (const mapping of URL_SOURCE_MAP) {
+    if (mapping.patterns.some(p => lower.includes(p))) {
+      return mapping.source;
+    }
+  }
+  return fallback;
+}
+
 /**
  * 保存Kimi API Key到本地存储
  */
@@ -349,6 +369,8 @@ function parseArticleJson(content: string): ExtractedArticle {
   let rawJson = jsonMatch[0];
 
   const normalizeExtractedArticle = (article: ExtractedArticle): ExtractedArticle => {
+    const correctedSource = fixSourceFromUrl(article.url, article.source || '官方媒体');
+
     const normalizedCategory = VALID_CATEGORIES.has(article.category as NonNullable<ExtractedArticle['category']>)
       ? article.category
       : article.title?.includes('致电')
@@ -362,6 +384,7 @@ function parseArticleJson(content: string): ExtractedArticle {
 
     return {
       ...article,
+      source: correctedSource,
       category: normalizedCategory,
       categoryName: article.categoryName || (normalizedCategory ? CATEGORY_NAME_MAP[normalizedCategory] : '重要讲话'),
       domain: normalizedDomain,
