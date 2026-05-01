@@ -8,8 +8,13 @@ import { supabase } from '@/lib/supabase';
 const GITHUB_REPO = 'kimixpf1/speech-web';
 const WORKFLOW_FILE = 'ai-auto-search.yml';
 
-// 本地存储键
 const GITHUB_TOKEN_KEY = 'github_workflow_token';
+
+function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
 
 export interface WorkflowTriggerResult {
   success: boolean;
@@ -43,12 +48,12 @@ export function clearGitHubToken(): void {
  */
 export async function validateGitHubToken(token: string): Promise<{ valid: boolean; username?: string; error?: string }> {
   try {
-    const response = await fetch('https://api.github.com/user', {
+    const response = await fetchWithTimeout('https://api.github.com/user', {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/vnd.github.v3+json',
       },
-    });
+    }, 15000);
 
     if (response.ok) {
       const user = await response.json();
@@ -79,7 +84,7 @@ export async function triggerSearchWorkflow(): Promise<WorkflowTriggerResult> {
   try {
     console.log('触发 GitHub Actions 工作流...');
     
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/${WORKFLOW_FILE}/dispatches`,
       {
         method: 'POST',
@@ -94,7 +99,8 @@ export async function triggerSearchWorkflow(): Promise<WorkflowTriggerResult> {
             triggered_from: 'frontend',
           },
         }),
-      }
+      },
+      15000
     );
 
     if (response.status === 204) {
@@ -155,14 +161,15 @@ export async function getWorkflowStatus(): Promise<{
   const token = getGitHubToken();
   
   try {
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/${WORKFLOW_FILE}/runs?per_page=1`,
       {
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
           'Accept': 'application/vnd.github.v3+json',
         },
-      }
+      },
+      15000
     );
 
     if (!response.ok) {
@@ -190,51 +197,48 @@ export async function getWorkflowStatus(): Promise<{
 }
 
 /**
- * 轮询等待工作流完成（最多等待 3 分钟）
+ * 轮询等待工作流完成（最多等待 8 分钟）
  */
 export async function waitForWorkflowCompletion(
   onProgress?: (message: string) => void,
-  maxWaitMs: number = 180000
-): Promise<{ success: boolean; newCount: number }> {
+  maxWaitMs: number = 480000
+): Promise<{ success: boolean; newCount: number; timedOut?: boolean }> {
   const startTime = Date.now();
-  const pollInterval = 10000; // 10 秒轮询一次
-  
+  const pollInterval = 10000;
+
   const { count: beforeCount } = await supabase
     .from('pending_articles')
     .select('id', { count: 'exact', head: true });
-  
+
   onProgress?.('等待后台搜索完成...');
-  
+
   while (Date.now() - startTime < maxWaitMs) {
     const status = await getWorkflowStatus();
-    
+
     if (status.status === 'completed') {
       onProgress?.('搜索完成，正在获取结果...');
-      
-      // 等待一下让数据库同步
+
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // 获取新的待审核文章数量
+
       const { count: afterCount } = await supabase
         .from('pending_articles')
         .select('id', { count: 'exact', head: true });
-      
+
       return {
         success: status.conclusion === 'success',
-        newCount: Math.max(0, afterCount - beforeCount),
+        newCount: Math.max(0, (afterCount ?? 0) - (beforeCount ?? 0)),
       };
     }
-    
+
     if (status.status === 'failed') {
-      return { success: false, newCount: 0 };
+      return { success: false, newCount: 0, timedOut: false };
     }
-    
-    // 等待下一次轮询
+
     await new Promise(resolve => setTimeout(resolve, pollInterval));
     onProgress?.(`后台搜索进行中... (${Math.floor((Date.now() - startTime) / 1000)}秒)`);
   }
-  
-  return { success: false, newCount: 0 };
+
+  return { success: false, newCount: 0, timedOut: true };
 }
 
 /**
