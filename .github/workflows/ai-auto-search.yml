@@ -2,15 +2,21 @@ name: AI Auto Search (Scheduled)
 
 on:
   schedule:
-    # 每天北京时间 08:17 (UTC 00:17) 和 20:17 (UTC 12:17)，避开 GitHub Actions 整点高峰
     - cron: '17 0 * * *'
     - cron: '17 12 * * *'
-  workflow_dispatch:  # 允许手动触发
+    - cron: '23 12 * * *'
+    - cron: '33 12 * * *'
+    - cron: '43 12 * * *'
+  workflow_dispatch:
     inputs:
       triggered_from:
         description: '触发来源'
         required: false
         default: 'manual'
+      force_run:
+        description: '强制运行（忽略今日已运行检查）'
+        required: false
+        default: 'false'
 
 env:
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
