@@ -35,16 +35,13 @@ export interface AutoSearchStatus {
  * 获取当前北京时间时段
  */
 function getCurrentSlot(): SearchSlot {
-  const now = new Date();
-  const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-  const hour = beijingTime.getHours();
+  const hour = new Date().getUTCHours() + 8;
+  const bjHour = hour >= 24 ? hour - 24 : hour;
   
-  // 早间时段: 7:00 - 10:00 (覆盖8点前后)
-  if (hour >= 7 && hour < 10) {
+  if (bjHour >= 7 && bjHour < 10) {
     return 'morning';
   }
-  // 晚间时段: 19:00 - 22:00 (覆盖20点前后)
-  if (hour >= 19 && hour < 22) {
+  if (bjHour >= 19 && bjHour < 22) {
     return 'evening';
   }
   return null;
@@ -70,16 +67,14 @@ function setLastSearchSlot(slot: SearchSlot): void {
  * 获取下次搜索时间描述
  */
 function getNextSearchTimeDesc(): string {
-  const now = new Date();
-  const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
-  const hour = beijingTime.getHours();
+  const bjHour = (new Date().getUTCHours() + 8) % 24;
   
-  if (hour < 7) {
-    return `今天早8点 (约${7 - hour}小时后)`;
-  } else if (hour < 19) {
-    return `今天晚8点 (约${19 - hour}小时后)`;
+  if (bjHour < 7) {
+    return `今天早8点 (约${7 - bjHour}小时后)`;
+  } else if (bjHour < 19) {
+    return `今天晚8点 (约${19 - bjHour}小时后)`;
   } else {
-    return `明天早8点 (约${31 - hour}小时后)`;
+    return `明天早8点 (约${31 - bjHour}小时后)`;
   }
 }
 
@@ -225,22 +220,19 @@ export function getAutoSearchStatus(): AutoSearchStatus {
  * 每5分钟检查一次是否需要搜索
  */
 export function initAutoSearchScheduler(): void {
-  const now = new Date();
-  const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+  const bjHour = (new Date().getUTCHours() + 8) % 24;
   
   console.log('[自动搜索] 调度器初始化');
-  console.log(`[自动搜索] 北京时间: ${beijingTime.toLocaleString('zh-CN')}`);
+  console.log(`[自动搜索] 北京时间: ${bjHour}点`);
   console.log(`[自动搜索] 当前时段: ${getCurrentSlot() || '非搜索时段'}`);
   console.log(`[自动搜索] 搜索计划: 早8点(搜昨日) / 晚8点(搜今日)`);
 
-  // 延迟5秒后首次检查
   setTimeout(() => {
     if (shouldRunAutoSearch()) {
       runAutoSearch().catch(e => console.error('[自动搜索] 执行失败:', e));
     }
   }, 5000);
 
-  // 每5分钟检查一次
   setInterval(() => {
     if (shouldRunAutoSearch()) {
       runAutoSearch().catch(e => console.error('[自动搜索] 定时执行失败:', e));

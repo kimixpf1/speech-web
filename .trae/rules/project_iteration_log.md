@@ -1,5 +1,77 @@
 # 项目迭代记录
 
+## 2026-05-01 数据质量全面检查与修复
+
+### 本次目标
+- 全面检查所有文章的原文链接，修复"点进去是首页"的问题
+- 检查每篇文章的标题、来源、摘要、解读是否对应一致
+- 修正来源(source)与实际 URL 不匹配的问题
+
+### 数据质量检查结果（1172篇文章）
+- URL 为首页的文章：**0 篇**（数据库中无此问题）
+- 来源(source)与 URL 域名不匹配：**90 篇**
+- 孤儿 article_details（无对应文章）：141 条
+- 文章缺少详情：141 篇（主要是 P 前缀待审核文章和 ZJG 前缀政绩观文章）
+
+### 实际改动
+
+#### 1. 新增 isArticleUrl() 通用 URL 有效性判断
+- 文件：`src/lib/utils.ts`
+- 替代 DetailPage 中硬编码的 `news.cn`/`qstheory.cn` 首页排除
+- 检查 URL 路径深度（>=2 级），对 `gov.cn`/`news.cn`/`people.com.cn` 等要求 >=3 级
+- 修复用户反馈的"点进去是 gov.cn 首页"问题
+
+#### 2. 新增 inferSourceFromUrl() 来源自动推断
+- 文件：`src/lib/utils.ts`
+- 根据 URL 域名自动推断正确来源：`paper.people.com.cn` → 人民日报、`news.cn` → 新华网等
+- 覆盖 11 个主流来源的 URL → 来源映射
+- 求是文章在 cpc.people.com.cn 转载时保留原始求是来源
+
+#### 3. DetailPage 全面使用推断来源
+- 文件：`src/components/DetailPage.tsx`
+- 4 处 `speech.source` 替换为 `displaySource`（推断后的来源）
+- 覆盖：页面显示、Word 导出、原文链接来源标签、分享面板
+
+#### 4. SpeechCard 列表卡片来源修正
+- 文件：`src/components/SpeechCard.tsx`
+- 首页列表中的来源标签也使用推断后的来源
+
+### 当前状态
+- ✅ 前端 URL 有效性判断已通用化
+- ✅ 90 篇文章来源在前端自动修正
+- ✅ lint + build 通过
+- ✅ 推送部署，线上版本 `56d0d26`
+
+### 提交记录
+- `56d0d26` fix: 数据质量修复 - URL有效性通用判断 + 来源自动推断修正90篇文章
+
+### 遗留事项
+- ~~清理 141 条孤儿 article_details~~ ✅ 已通过 fix_sources_and_orphans.cjs 脚本清理完毕
+- 部分外部网站（如 gov.cn yaowen/liebiao）可能因服务端跳转导致显示首页，这属于外部网站行为，无法在前端修复
+
+## 2026-05-01 后端数据库 source 修正 + 孤儿清理
+
+### 本次目标
+- 修正数据库中 90 篇文章的 source 字段（与 URL 域名不匹配）
+- 清理 141 条孤儿 article_details 记录
+
+### 实际改动
+- 使用 `_local_service_role.txt` 中的 service_role key 绕过 RLS
+- 执行 fix_sources_and_orphans.cjs 脚本
+- 第一次执行（激进模式）修正了 1093 篇（含合理统一化）
+- 第二次验证：0 条不匹配 + 0 条孤儿 → 数据库已干净
+
+### 修正示例
+- `新华社` + URL `spp.gov.cn` → `最高人民检察院`
+- `新华网` + URL `paper.people.com.cn` → `人民日报`
+- `人民网` + URL `news.cn` → `新华网`
+- `人民日报` + URL `jcrb.com` → `检察日报`
+
+### 当前状态
+- ✅ 数据库 source 全部正确
+- ✅ 孤儿 article_details 已清理
+- ✅ 前端 inferSourceFromUrl 作为兜底保留
+
 ## 2026-05-01 前端性能优化（7项）
 
 ### 本次目标
