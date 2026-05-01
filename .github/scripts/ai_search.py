@@ -1285,31 +1285,47 @@ def save_log(baidu_count, people_count, qstheory_count, xinhua_count, rmrb_count
         print(f'[Log] Exception: {e}')
 
 
-def check_today_already_ran() -> bool:
+def check_window_already_ran() -> bool:
     if not SUPABASE_URL:
         return False
     try:
         beijing_now = get_beijing_now()
         today_str = beijing_now.strftime('%Y-%m-%d')
+        beijing_hour = beijing_now.hour
+        is_morning_window = beijing_hour < 12
+
         headers = {'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'}
         resp = requests.get(
-            f'{SUPABASE_URL}/rest/v1/{LOG_TABLE}?select=id,executed_at,status&order=executed_at.desc&limit=10',
+            f'{SUPABASE_URL}/rest/v1/{LOG_TABLE}?select=id,executed_at,status&order=executed_at.desc&limit=20',
             headers=headers, timeout=10
         )
         if resp.status_code != 200:
-            print(f'[CheckToday] Failed to fetch logs: HTTP {resp.status_code}')
+            print(f'[CheckWindow] Failed to fetch logs: HTTP {resp.status_code}')
             return False
         logs = resp.json()
         for log in logs:
             executed_at = log.get('executed_at', '')
             status = log.get('status', '')
-            if today_str in executed_at and status == 'success':
-                print(f'[CheckToday] Today already has a successful run at {executed_at}')
+            if today_str not in executed_at:
+                continue
+            if status != 'success':
+                continue
+            try:
+                log_hour = int(executed_at.split('T')[1].split(':')[0])
+                log_beijing_hour = (log_hour + 8) % 24
+            except (IndexError, ValueError):
+                continue
+            if is_morning_window and log_beijing_hour < 12:
+                print(f'[CheckWindow] Morning window already ran at {executed_at} (Beijing hour {log_beijing_hour})')
                 return True
-        print(f'[CheckToday] No successful run found for {today_str}')
+            if not is_morning_window and log_beijing_hour >= 12:
+                print(f'[CheckWindow] Evening window already ran at {executed_at} (Beijing hour {log_beijing_hour})')
+                return True
+        window_name = 'morning' if is_morning_window else 'evening'
+        print(f'[CheckWindow] No successful run found for {today_str} {window_name} window')
         return False
     except Exception as e:
-        print(f'[CheckToday] Error: {e}')
+        print(f'[CheckWindow] Error: {e}')
         return False
 
 
@@ -1319,9 +1335,9 @@ def main():
     force_run = os.environ.get('FORCE_RUN', '').lower() in ('true', '1', 'yes')
     is_manual = os.environ.get('GITHUB_EVENT_NAME', '') == 'workflow_dispatch'
 
-    if not force_run and not is_manual and check_today_already_ran():
-        print('[Main] Today already has a successful run. Skipping.')
-        print('=== Done (skipped - already ran today) ===')
+    if not force_run and not is_manual and check_window_already_ran():
+        print('[Main] Current window already has a successful run. Skipping.')
+        print('=== Done (skipped - already ran this window) ===')
         return
 
     main_query, queries, search_date, target_date = get_search_query()
