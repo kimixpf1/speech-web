@@ -1243,7 +1243,7 @@ def save_log(baidu_count, people_count, qstheory_count, xinhua_count, rmrb_count
         pipeline_label = get_search_pipeline_label(search_type)
         total = baidu_count + people_count + qstheory_count + xinhua_count + rmrb_count
         log_data = {
-            'executed_at': beijing_now.isoformat(),
+            'executed_at': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S+00:00'),
             'crawl_count': total,
             'search_count': total,
             'new_count': new_count,
@@ -1296,7 +1296,7 @@ def check_window_already_ran() -> bool:
 
         headers = {'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'}
         resp = requests.get(
-            f'{SUPABASE_URL}/rest/v1/{LOG_TABLE}?select=id,executed_at,status&order=executed_at.desc&limit=20',
+            f'{SUPABASE_URL}/rest/v1/{LOG_TABLE}?select=id,executed_at,status,details&order=executed_at.desc&limit=20',
             headers=headers, timeout=10
         )
         if resp.status_code != 200:
@@ -1306,14 +1306,21 @@ def check_window_already_ran() -> bool:
         for log in logs:
             executed_at = log.get('executed_at', '')
             status = log.get('status', '')
-            if today_str not in executed_at:
+            details = log.get('details') or {}
+            search_type = details.get('search_type', '')
+            if search_type != 'auto':
                 continue
             if status != 'success':
                 continue
             try:
                 log_hour = int(executed_at.split('T')[1].split(':')[0])
                 log_beijing_hour = (log_hour + 8) % 24
+                log_date_utc = executed_at.split('T')[0]
+                log_dt_utc = datetime.strptime(log_date_utc, '%Y-%m-%d')
+                log_beijing_date = (log_dt_utc + timedelta(hours=8)).strftime('%Y-%m-%d')
             except (IndexError, ValueError):
+                continue
+            if log_beijing_date != today_str:
                 continue
             if is_morning_window and log_beijing_hour < 12:
                 print(f'[CheckWindow] Morning window already ran at {executed_at} (Beijing hour {log_beijing_hour})')
