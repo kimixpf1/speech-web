@@ -59,7 +59,12 @@
 - src/config/constants.ts：分类、领域、级别、本地语音包等前台配置集中定义
 - src/components/admin/AdminAddArticleDialog.tsx：新增文章弹窗
 - src/components/admin/AdminApiConfigDialog.tsx：后台 API 配置弹窗
-- src/hooks/useAdminArticleManagement.ts：后台文章新增/删除/提取主逻辑
+- src/hooks/useAdminArticleManagement.ts：后台文章管理门面 Hook，组合四个子 Hook（filter/editor/creation/configPrompt）
+- src/hooks/admin/useArticleFilter.ts：文章搜索与筛选
+- src/hooks/admin/useArticleEditor.ts：文章编辑、详情加载、删除确认
+- src/hooks/admin/useArticleCreationFlow.ts：新增草稿、AI 提取、手动补录、待审核发布
+- src/hooks/admin/useExtractionCredentialPrompt.ts：Kimi Key 提示与校验弹窗
+- src/services/adminArticleWorkflowService.ts：发布编排纯函数（生成文章、保存详情、失败回滚、待审核转正式）
 - src/lib/utils.ts：共享工具函数，统一承载解读格式规范化与摘要长度压缩
 - src/services/kimiArticleService.ts：文章提取与提取结果格式清洗
 - src/services/analytics.ts：前台访问统计与埋点表解析
