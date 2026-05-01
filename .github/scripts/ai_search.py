@@ -47,10 +47,10 @@ BAIDU_SITES = ['people.com.cn', 'xinhuanet.com', 'news.cn', 'mrdx.cn', 'qstheory
 DOMAIN_KEYWORDS = {
     'diplomacy': ['外交', '出访', '峰会', '总统', '总理', '国际', '外国', '国事访问', '友好访问', '会见', '访问', '联合声明', '多边', '双边', '联合国', '一带一路', '合作', '签署'],
     'defense': ['军队', '国防', '军事', '军委', '强军', '部队', '战士', '武装', '退役', '军人', '战区', '阅兵'],
-    'party': ['党建', '从严治党', '纪检', '巡视', '党校', '党员', '党组织', '主题教育', '群众路线', '党纪', '干部', '反腐'],
+    'party': ['党建', '从严治党', '纪检', '巡视', '党校', '党员', '党组织', '主题教育', '群众路线', '党纪', '干部', '反腐', '学习贯彻', '研讨班', '领导干部', '全会精神', '组织工作', '统战', '组织生活会', '民主生活会', '政治局', '中央委员', '从严治吏', '政治生态'],
     'ecology': ['生态', '环境', '绿色', '碳达峰', '碳中和', '环保', '污染', '长江', '黄河', '植树', '绿化', '新能源', '气候'],
     'culture': ['文化', '文明', '文艺', '体育', '艺术', '文学', '阅读', '读书', '书香', '出版', '图书', '教育', '非遗', '传统文化', '文化遗产', '博物馆', '新闻', '舆论', '宣传', '思想'],
-    'society': ['民生', '扶贫', '乡村振兴', '医疗', '就业', '养老', '住房', '健康', '卫生', '疫情防控', '人口', '生育', '社保', '脱贫', '助残', '少年儿童'],
+    'society': ['民生', '扶贫', '乡村振兴', '医疗', '就业', '养老', '住房', '健康', '卫生', '疫情防控', '人口', '生育', '社保', '脱贫', '助残', '少年儿童', '劳动', '劳动者', '劳动节', '工会', '职工', '工人', '劳模', '工匠精神', '敬业', '权益', '群众', '残疾人', '妇女', '青年', '老龄', '社区', '基层', '志愿服务', '共同富裕', '脱贫攻坚'],
     'economy': ['经济', '金融', '科技', '创新', '高质量发展', '产业', '企业', '服务业', '制造业', '数字经济', '改革开放', '自贸', '投资', '消费', '贸易', '农业', '粮食'],
     'politics': ['政治', '人大', '政协', '全会', '两会', '法治', '立法', '宪法', '监察', '司法', '统一', '民族', '宗教', '港澳', '台湾'],
 }
@@ -1085,12 +1085,13 @@ def merge_and_dedupe(baidu_articles: List[Dict], people_articles: List[Dict] = N
 
         category = detect_category({'title': title, 'source': article.get('source', ''), 'url': url})
         domain = detect_domain(title, category)
+        corrected_source = fix_source_from_url(url, article.get('source', '官方媒体'))
 
         all_articles.append({
             'id': str(uuid.uuid4()),
             'title': title, 'url': url,
             'date': article.get('date', (datetime.utcnow() + timedelta(hours=8)).date().isoformat()),
-            'source': article.get('source', '官方媒体'),
+            'source': corrected_source,
             'summary': article.get('summary', title),
             'category': category,
             'categoryname': CATEGORY_NAMES.get(category, '重要讲话'),
