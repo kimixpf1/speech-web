@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { FileText } from 'lucide-react';
 import type { Speech } from '@/data/speeches';
 import { SpeechCard } from '@/components/SpeechCard';
@@ -21,31 +21,21 @@ export function ContentList({ speeches }: ContentListProps) {
   }
 
   const { grouped, sortedKeys } = useMemo(() => {
-    const sortedSpeeches = [...speeches].sort((a, b) => {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    });
-
-    const grouped = sortedSpeeches.reduce((acc, speech) => {
-      const key = `${speech.year}年${speech.month}月`;
+    const grouped = speeches.reduce((acc, speech) => {
+      const key = `${speech.year}年${String(speech.month).padStart(2, '0')}月`;
       if (!acc[key]) acc[key] = [];
       acc[key].push(speech);
       return acc;
     }, {} as Record<string, Speech[]>);
 
-    const sortedKeys = Object.keys(grouped).sort((a, b) => {
-      const matchA = a.match(/(\d+)年(\d+)月/);
-      const matchB = b.match(/(\d+)年(\d+)月/);
-      if (!matchA || !matchB) return 0;
-      const yearA = parseInt(matchA[1]);
-      const yearB = parseInt(matchB[1]);
-      const monthA = parseInt(matchA[2]);
-      const monthB = parseInt(matchB[2]);
-      if (yearA !== yearB) return yearB - yearA;
-      return monthB - monthA;
-    });
+    const sortedKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
 
     return { grouped, sortedKeys };
   }, [speeches]);
+
+  const handleSaveScroll = useCallback(() => {
+    sessionStorage.setItem('lastScrollY', window.scrollY.toString());
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -64,7 +54,7 @@ export function ContentList({ speeches }: ContentListProps) {
                 key={speech.id}
                 speech={speech}
                 detailUrl={`#/detail/${speech.id}`}
-                onSaveScroll={() => sessionStorage.setItem('lastScrollY', window.scrollY.toString())}
+                onSaveScroll={handleSaveScroll}
                 showDomain
               />
             ))}

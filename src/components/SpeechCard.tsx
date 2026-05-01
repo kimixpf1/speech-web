@@ -1,4 +1,4 @@
-import { useState, memo } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { Calendar, MapPin, ExternalLink, ChevronDown, ChevronUp, BookOpen } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,11 +28,11 @@ export const SpeechCard = memo(function SpeechCard({
   const Icon = config.icon;
   const originalUrl = normalizeArticleUrl(speech.url);
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     onSaveScroll?.();
     window.location.hash = detailUrl.replace(/^[^#]*#/, '');
-  };
+  }, [detailUrl, onSaveScroll]);
 
   return (
     <Card

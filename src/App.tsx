@@ -203,9 +203,16 @@ function HomePage() {
 
   // 记录滚动位置
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      safeSetStorageItem('session', 'lastScrollY', window.scrollY.toString());
-      hasRestoredScrollRef.current = false;
+      if (!ticking) {
+        ticking = true;
+        window.requestAnimationFrame(() => {
+          safeSetStorageItem('session', 'lastScrollY', window.scrollY.toString());
+          hasRestoredScrollRef.current = false;
+          ticking = false;
+        });
+      }
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
@@ -365,10 +372,6 @@ function HomePage() {
         if (a.year !== b.year) return b.year - a.year;
         if (a.month !== b.month) return b.month - a.month;
         if (a.day !== b.day) return b.day - a.day;
-
-        const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
-        if (Number.isFinite(dateDiff) && dateDiff !== 0) return dateDiff;
-
         return b.id.localeCompare(a.id);
       });
     }
