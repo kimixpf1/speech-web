@@ -228,6 +228,46 @@ export async function getWorkflowStatus(sinceIso?: string): Promise<{
 }
 
 /**
+ * 获取失败 run 的 job 详情（失败步骤名称等）
+ */
+async function getFailedJobDetails(runHtmlUrl?: string): Promise<string> {
+  const token = getGitHubToken();
+  if (!token || !runHtmlUrl) return '';
+  
+  try {
+    const runIdMatch = runHtmlUrl.match(/\/runs\/(\d+)/);
+    if (!runIdMatch) return '';
+    const runId = runIdMatch[1];
+
+    const jobsResp = await fetchWithTimeout(
+      `https://api.github.com/repos/${GITHUB_REPO}/actions/runs/${runId}/jobs`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+        },
+      },
+      15000
+    );
+
+    if (!jobsResp.ok) return '';
+    const jobsData = await jobsResp.json();
+    const jobs = jobsData.jobs || [];
+    
+    for (const job of jobs) {
+      const failedSteps = (job.steps || []).filter((s: any) => s.conclusion === 'failure');
+      if (failedSteps.length > 0) {
+        const stepNames = failedSteps.map((s: any) => `"${s.name}"`).join(', ');
+        return `失败步骤: ${stepNames}`;
+      }
+    }
+    return '';
+  } catch {
+    return '';
+  }
+}
+
+/**
  * 轮询等待工作流完成（最多等待 8 分钟）
  * 只关注触发之后创建的 run，避免把旧 failure 误判为本次结果
  */
@@ -257,17 +297,29 @@ export async function waitForWorkflowCompletion(
         .from('pending_articles')
         .select('id', { count: 'exact', head: true });
 
+      if (status.conclusion === 'success') {
+        return {
+          success: true,
+          newCount: Math.max(0, (afterCount ?? 0) - (beforeCount ?? 0)),
+        };
+      }
+
+      const jobDetail = await getFailedJobDetails(status.htmlUrl);
       return {
-        success: status.conclusion === 'success',
+        success: false,
         newCount: Math.max(0, (afterCount ?? 0) - (beforeCount ?? 0)),
-        message: status.conclusion === 'success'
-          ? undefined
-          : `工作流执行结束，结论: ${status.conclusion}`,
+        message: `工作流执行结束，结论: ${status.conclusion}${jobDetail ? '，' + jobDetail : ''}`,
       };
     }
 
     if (status.status === 'failed') {
-      return { success: false, newCount: 0, timedOut: false, message: '工作流执行失败' };
+      const jobDetail = await getFailedJobDetails(status.htmlUrl);
+      return {
+        success: false,
+        newCount: 0,
+        timedOut: false,
+        message: `工作流执行失败${jobDetail ? '，' + jobDetail : ''}`,
+      };
     }
 
     await new Promise(resolve => setTimeout(resolve, pollInterval));
