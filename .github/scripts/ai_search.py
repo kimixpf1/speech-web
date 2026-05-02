@@ -225,6 +225,19 @@ def fix_source_from_url(url, fallback='官方媒体'):
     return fallback
 
 
+def normalize_url_for_dedup(url):
+    if not url:
+        return url
+    u = url.strip().lower()
+    u = u.replace('https://', 'http://')
+    if u.endswith('/'):
+        u = u.rstrip('/')
+    u = u.replace('www.', '')
+    u = u.replace('//mrdx.cn/', '//www.mrdx.cn/')
+    u = u.replace('//news.cn/', '//www.news.cn/')
+    return u
+
+
 def get_search_query():
     """Generate multiple search queries based on time: morning searches yesterday, evening searches today"""
     beijing_now = get_beijing_now()
@@ -879,6 +892,9 @@ def search_xinhua_mrdx() -> List[Dict]:
         if is_non_original_title(clean_title):
             print(f'[Xinhua] 跳过评论/解读类: {clean_title[:50]}...')
             return
+        if 'articel02' in full_url.lower() or 'articel03' in full_url.lower() or 'articel04' in full_url.lower():
+            print(f'[Xinhua] 跳过非头版文章(02/03/04版): {clean_title[:50]}...')
+            return
 
         normalized_url = full_url.lower()
         is_xinhua_article_url = (
@@ -1190,6 +1206,9 @@ def get_existing_articles() -> Dict[str, Dict]:
                 title = row.get('title')
                 if url:
                     existing_urls.add(url)
+                    norm = normalize_url_for_dedup(url)
+                    if norm != url:
+                        existing_urls.add(norm)
                 if title:
                     simple = simplify_title(title)
                     if simple and simple not in existing_titles:
@@ -1226,16 +1245,26 @@ def titles_look_duplicate(title: str, existing_simple_map: Dict[str, str]) -> st
 
 def save_articles(articles: List[Dict]) -> int:
     if not articles or not SUPABASE_URL:
+        print(f'[Save] No articles to save or no Supabase URL')
         return 0
     try:
+        print(f'[Save] Saving {len(articles)} articles to {TABLE}...')
+        for a in articles:
+            print(f'  - {a.get("title", "?")[:60]} | {a.get("url", "?")}')
         resp = requests.post(
             f'{SUPABASE_URL}/rest/v1/{TABLE}',
             headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}',
                      'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
             json=articles, timeout=30
         )
-        return len(articles) if resp.status_code in (200, 201) else 0
-    except:
+        if resp.status_code in (200, 201):
+            print(f'[Save] Successfully saved {len(articles)} articles')
+            return len(articles)
+        else:
+            print(f'[Save] FAILED: HTTP {resp.status_code} - {resp.text[:500]}')
+            return 0
+    except Exception as e:
+        print(f'[Save] Exception: {type(e).__name__}: {e}')
         return 0
 
 
@@ -1389,7 +1418,9 @@ def main():
 
     new_articles = []
     for a in merged:
-        if a['url'] in existing_urls:
+        url_raw = a['url']
+        url_norm = normalize_url_for_dedup(url_raw)
+        if url_raw in existing_urls or url_norm in existing_urls:
             existing_url_filtered.append({'title': a['title'], 'url': a['url']})
             continue
 
