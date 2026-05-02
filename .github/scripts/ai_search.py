@@ -1278,7 +1278,7 @@ def get_search_type():
 def get_search_pipeline_label(search_type):
     beijing_hour = (datetime.utcnow() + timedelta(hours=8)).hour
     if search_type == 'auto':
-        time_slot = '8:00 搜昨日' if beijing_hour < 12 else '20:00 搜今日'
+        time_slot = '早间搜昨日' if beijing_hour < 12 else '晚间搜今日'
         return f'自动定时搜索（{time_slot}）'
     return '手动触发搜索'
 
