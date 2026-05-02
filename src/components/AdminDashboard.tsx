@@ -747,7 +747,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         setSearchMessage('后台搜索等待超时（已等待8分钟），搜索可能仍在后台运行，请稍后在待审核列表查看结果');
       } else {
         setSearchStage('failed');
-        setSearchMessage('后台搜索失败，请稍后重试或在待审核列表查看结果');
+        setSearchMessage(result.message || '后台搜索失败，请稍后重试或在待审核列表查看结果');
       }
     } catch (error) {
       console.error('后台搜索出错:', error);

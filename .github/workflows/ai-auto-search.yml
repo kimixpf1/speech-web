@@ -2,11 +2,9 @@ name: AI Auto Search (Scheduled)
 
 on:
   schedule:
-    - cron: '0 0 * * *'
     - cron: '17 0 * * *'
     - cron: '33 0 * * *'
     - cron: '50 0 * * *'
-    - cron: '0 12 * * *'
     - cron: '17 12 * * *'
     - cron: '33 12 * * *'
     - cron: '50 12 * * *'

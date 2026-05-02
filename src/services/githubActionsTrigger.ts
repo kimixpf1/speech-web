@@ -150,8 +150,9 @@ export async function triggerSearchWorkflow(): Promise<WorkflowTriggerResult> {
 
 /**
  * 获取最近的工作流运行状态
+ * @param sinceIso 只返回创建时间在此之后的 run（ISO 字符串），避免误判旧 run
  */
-export async function getWorkflowStatus(): Promise<{
+export async function getWorkflowStatus(sinceIso?: string): Promise<{
   status: 'running' | 'completed' | 'failed' | 'unknown';
   conclusion?: string;
   startedAt?: string;
@@ -162,7 +163,7 @@ export async function getWorkflowStatus(): Promise<{
   
   try {
     const response = await fetchWithTimeout(
-      `https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/${WORKFLOW_FILE}/runs?per_page=1`,
+      `https://api.github.com/repos/${GITHUB_REPO}/actions/workflows/${WORKFLOW_FILE}/runs?per_page=5`,
       {
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
@@ -177,14 +178,44 @@ export async function getWorkflowStatus(): Promise<{
     }
 
     const data = await response.json();
-    const run = data.workflow_runs?.[0];
+    const runs = data.workflow_runs || [];
+    
+    let run = runs[0];
+    if (sinceIso && runs.length > 0) {
+      const newerRuns = runs.filter((r: any) => r.created_at > sinceIso);
+      if (newerRuns.length > 0) {
+        run = newerRuns[0];
+      } else {
+        return { status: 'unknown' };
+      }
+    }
     
     if (!run) {
       return { status: 'unknown' };
     }
 
+    if (run.status === 'completed') {
+      return {
+        status: 'completed',
+        conclusion: run.conclusion,
+        startedAt: run.created_at,
+        completedAt: run.updated_at,
+        htmlUrl: run.html_url,
+      };
+    }
+    if (run.conclusion === 'failure') {
+      return {
+        status: 'failed',
+        conclusion: run.conclusion,
+        startedAt: run.created_at,
+        completedAt: run.updated_at,
+        htmlUrl: run.html_url,
+      };
+    }
     return {
-      status: run.status === 'completed' ? 'completed' : run.status === 'in_progress' ? 'running' : 'unknown',
+      status: run.status === 'in_progress' || run.status === 'queued' || run.status === 'waiting' || run.status === 'pending'
+        ? 'running'
+        : 'unknown',
       conclusion: run.conclusion,
       startedAt: run.created_at,
       completedAt: run.updated_at,
@@ -198,13 +229,15 @@ export async function getWorkflowStatus(): Promise<{
 
 /**
  * 轮询等待工作流完成（最多等待 8 分钟）
+ * 只关注触发之后创建的 run，避免把旧 failure 误判为本次结果
  */
 export async function waitForWorkflowCompletion(
   onProgress?: (message: string) => void,
   maxWaitMs: number = 480000
-): Promise<{ success: boolean; newCount: number; timedOut?: boolean }> {
+): Promise<{ success: boolean; newCount: number; timedOut?: boolean; message?: string }> {
   const startTime = Date.now();
   const pollInterval = 10000;
+  const triggerTime = new Date().toISOString();
 
   const { count: beforeCount } = await supabase
     .from('pending_articles')
@@ -213,7 +246,7 @@ export async function waitForWorkflowCompletion(
   onProgress?.('等待后台搜索完成...');
 
   while (Date.now() - startTime < maxWaitMs) {
-    const status = await getWorkflowStatus();
+    const status = await getWorkflowStatus(triggerTime);
 
     if (status.status === 'completed') {
       onProgress?.('搜索完成，正在获取结果...');
@@ -227,11 +260,14 @@ export async function waitForWorkflowCompletion(
       return {
         success: status.conclusion === 'success',
         newCount: Math.max(0, (afterCount ?? 0) - (beforeCount ?? 0)),
+        message: status.conclusion === 'success'
+          ? undefined
+          : `工作流执行结束，结论: ${status.conclusion}`,
       };
     }
 
     if (status.status === 'failed') {
-      return { success: false, newCount: 0, timedOut: false };
+      return { success: false, newCount: 0, timedOut: false, message: '工作流执行失败' };
     }
 
     await new Promise(resolve => setTimeout(resolve, pollInterval));
