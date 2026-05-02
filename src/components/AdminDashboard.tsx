@@ -740,8 +740,6 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
               ? `后台搜索完成！新增 ${result.newCount} 篇待审核文章`
               : '后台搜索完成！暂无新文章（可能已存在或工作流未找到）')
         );
-        
-        await loadData();
       } else if (result.timedOut) {
         setSearchStage('failed');
         setSearchMessage('后台搜索等待超时（已等待8分钟），搜索可能仍在后台运行，请稍后在待审核列表查看结果');
@@ -749,6 +747,7 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
         setSearchStage('failed');
         setSearchMessage(result.message || '后台搜索失败，请稍后重试或在待审核列表查看结果');
       }
+      await loadData();
     } catch (error) {
       console.error('后台搜索出错:', error);
       setSearchStage('failed');

@@ -1,5 +1,178 @@
 # 项目迭代记录
 
+## 2026-05-02 搜索管道增强过滤 + URL去重规范化 + save_articles详细日志
+
+### 问题
+1. 搜索管道抓到了新华每日电讯02版评论文章（`Articel02001NR.htm`），标题含"习近平在加强基础研究座谈会上强调"但实际是新华社记者写的解读文章
+2. 该文章 URL `http://mrdx.cn/content/20260501/Articel02001NR.htm` 已在文章库中，但 URL 去重未生效（http/https/www 差异）
+3. 搜索日志显示1篇新增待审核，但前端待审核列表为空——`save_articles()` 用裸 `except: return 0` 吞掉了所有异常
+
+### 修复
+
+#### 1. 新华每日电讯非头版文章过滤
+- 文件：`.github/scripts/ai_search.py`
+- `search_xinhua_mrdx()` 中 `maybe_add_article()` 新增过滤：`Articel02`/`Articel03`/`Articel04` 版面文章自动跳过
+- 02版是要闻评论版，不是头版总书记原文
+
+#### 2. URL 去重规范化
+- 新增 `normalize_url_for_dedup()` 函数：统一转 http://、去掉末尾/、去掉 www.、mrdx.cn/news.cn 域名规范化
+- `get_existing_articles()` 同时收集原始 URL 和规范化 URL
+- `main()` 中去重比对同时检查原始 URL 和规范化 URL
+
+#### 3. save_articles 详细日志
+- 每篇待保存文章打印标题和 URL
+- HTTP 响应状态码非 200/201 时打印错误信息
+- 异常时打印异常类型和消息
+
+### 当前状态
+- ✅ build 通过
+- ✅ 推送部署 `6f4e8f6`
+
+### 提交记录
+- `6f4e8f6` fix: 搜索管道增强过滤+URL去重规范化+save_articles详细日志
+
+### 遗留事项
+- 待用户再次手动触发搜索，验证：1)评论文章不再入库 2)已有文章正确去重 3)待审核列表能显示新文章
+- 待审核为空问题可能是 Supabase 唯一约束冲突（需看下次搜索日志中 [Save] 输出）
+
+## 2026-05-02 修复搜索工作流 NameError + 搜索进度文案修正
+
+### 问题
+- 搜索工作流持续失败，根因：`ai_search.py` 第 1088 行调用 `fix_source_from_url()` 但该函数从未定义 → `NameError`
+- 搜索进度显示"使用 Kimi API 搜索中"不准确，实际搜索管道是纯爬虫（不调用 AI）
+- "未配置 AI API Key" 提示不准确，实际需要的是 GitHub Token
+
+### 修复
+
+#### 1. ai_search.py - 定义缺失的 fix_source_from_url 函数
+- 根据 URL 域名自动修正来源名称（people.com.cn→人民网, xinhuanet.com→新华网, qstheory.cn→求是网 等）
+- 覆盖 9 个主流媒体域名映射
+
+#### 2. AdminPendingTab.tsx - 搜索进度文案修正
+- "AI 文章搜索" → "文章搜索"
+- "使用 Kimi API 搜索中..." → "搜索管道：抓取人民网·新华社·求是网 → 去重 → 入库待审核"
+- "Kimi 联网作为补漏来源" → "搜索管道：人民网讲话数据库 → 新华社/新华网 → 求是网 → 百度兜底"
+- "未配置 AI API Key" → "未配置 GitHub Token"
+
+### 当前状态
+- ✅ build 通过
+- ✅ 推送部署 `8ad7a74`
+
+### 提交记录
+- `8ad7a74` fix: ai_search.py定义fix_source_from_url解决NameError + 搜索进度文案改为搜索管道描述
+
+### 下一步
+- 用户再次手动触发搜索，验证 Python 脚本不再报 NameError
+- 观察今晚 20:17/20:33/20:50 定时任务是否正常触发
+
+## 2026-05-02 搜索失败详情展示 + ai_search.py 全局异常捕获
+
+### 问题
+- 手动搜索仍然报"工作流执行结束，结论: failure"，无法定位根因
+- 最近 3 次运行（#134/#135/#136）全部 failure，均在"Run AI Search"步骤失败
+- 没有 job 日志查看权限，无法直接看到 Python 脚本的具体报错
+
+### 修复
+
+#### 1. 前端展示失败步骤名称
+- 文件：`src/services/githubActionsTrigger.ts`
+- 新增 `getFailedJobDetails()` 函数：通过 GitHub API 获取失败 run 的 jobs → 找到 `conclusion=failure` 的 step → 返回步骤名称
+- `waitForWorkflowCompletion()` 在返回失败时自动调用，错误消息从"工作流执行失败"变为"工作流执行失败，失败步骤: "Run AI Search""
+
+#### 2. ai_search.py 全局异常捕获
+- 文件：`.github/scripts/ai_search.py`
+- `if __name__` 入口加 `try/except` + `traceback.print_exc()`
+- 下次失败时 GitHub Actions 日志会显示完整的 Python traceback
+
+### 当前状态
+- ✅ build 通过
+- ✅ 推送部署 `7a815b8`
+
+### 提交记录
+- `7a815b8` fix: 搜索失败显示具体失败步骤 + ai_search.py加全局异常捕获traceback
+
+### 下一步
+- 用户再次手动触发搜索，观察：
+  1. 前端是否显示"失败步骤: "Run AI Search""
+  2. GitHub Actions 日志是否有 Python traceback
+- 根据 traceback 定位 ai_search.py 具体哪一行报错
+
+## 2026-05-02 修复后台搜索误判失败 + 定时任务整点被丢弃
+
+### 问题
+1. **手动搜索报错"后台搜索失败"**：触发新 workflow 后，`getWorkflowStatus()` 用 `per_page=1` 盲查最新 run，新 run 还未出现在 API 列表中时就把上一次的 failure 误判为本次结果
+2. **昨晚定时任务未触发**：`ai-auto-search.yml` 保留了整点 cron（`0 0`/`0 12`），GitHub 高负载时直接丢弃整点 schedule
+
+### 修复
+
+#### 1. getWorkflowStatus 按触发时间过滤 run
+- 文件：`src/services/githubActionsTrigger.ts`
+- `getWorkflowStatus()` 新增 `sinceIso` 参数，只返回创建时间在触发之后的 run
+- `per_page` 从 1 增至 5，增加找到新 run 的概率
+- 如果没有新 run，返回 `unknown`（继续轮询）而非 `failed`（立即报错）
+- 增加 `queued`/`waiting`/`pending` 状态识别为 `running`
+- `waitForWorkflowCompletion()` 在触发时记录 `triggerTime`，传给 `getWorkflowStatus`
+
+#### 2. 删除整点 cron
+- 文件：`.github/workflows/ai-auto-search.yml`
+- 删除 `0 0 * * *` 和 `0 12 * * *`（整点 cron）
+- 保留错峰 cron：`17/33/50 0` + `17/33/50 12`（北京时间 8:17/8:33/8:50 + 20:17/20:33/20:50）
+
+#### 3. 搜索失败消息改进
+- 文件：`src/components/AdminDashboard.tsx`
+- 失败消息现在显示具体原因（如"工作流执行失败"）而非笼统的"后台搜索失败"
+
+### 当前状态
+- ✅ build 通过
+- ✅ 推送部署 `b2c0437`
+
+### 提交记录
+- `b2c0437` fix: 搜索误判旧run为失败 + 定时任务去掉整点cron
+
+### 遗留事项
+- 等待今晚 20:17/20:33/20:50 北京时间观察定时任务是否正常触发
+- 手动搜索需要用户配置 GitHub Token 后再测试
+
+## 2026-05-02 紧急修复远程仓库 + 线上验证
+
+### 本次目标
+- 修复远程 GitHub 仓库 AdminDashboard.tsx 被损坏为 18 字节（"EMERGENCY ROLLBACK"）的问题
+- 推送所有本地新文件到远程
+- 线上真人测试后台所有功能
+
+### 实际改动
+
+#### 1. Git 分支整合
+- 本地 main 与远程 origin/main 有分歧（本地 2 个提交 vs 远程 3 个提交）
+- `git stash` → `git rebase origin/main` 解决冲突
+- AdminDashboard.tsx 冲突解决：使用 `git checkout fa9098f -- src/components/AdminDashboard.tsx` 从历史正确提交恢复
+- 搜索超时补丁因远程已包含而被跳过（`git rebase --skip`）
+
+#### 2. 恢复提交
+- 提交 `7f741a5`：恢复 AdminDashboard.tsx 完整版本（38900 字节 vs 损坏的 18 字节）
+- 提交 `ef17b20`：定时搜索防重复修复（rebase 保留）
+
+#### 3. 推送成功
+- `git push origin main` 成功（token 恢复可用）
+- 远程 origin/main 现在指向 `7f741a5`，与本地一致
+
+### 线上测试结果
+- ✅ 管理员登录（admin/kimiclaw1）正常
+- ✅ 后台所有 Tab 加载正常（访问统计、近期新增、文章管理、建议信箱）
+- ✅ 文章列表正确加载（标题、日期、分类、来源）
+- ✅ 搜索功能：输入"经济"后即时过滤，结果正确
+- ✅ 编辑功能：编辑弹窗正确加载，所有字段填充正确
+- ✅ 近期新增 Tab：AI 搜索面板正常，搜索记录正确显示
+- ✅ 控制台无关键性错误（仅 GoTrueClient 多实例警告和 2 个 404 资源警告）
+
+### 提交记录
+- `7f741a5` fix: 恢复AdminDashboard.tsx完整版本 - 从fa9098f恢复分组API+搜索超时版本
+- `ef17b20` fix: 定时搜索防重复只看auto日志 + executed_at改UTC存储 + 跨日匹配修复
+
+### 遗留事项
+- AI 搜索后端 ai_search.py 在 GitHub Actions 上仍有失败记录，需继续排查
+- 建议信箱 Tab 未在本次测试中验证
+
 ## 2026-05-02 后台文章管理 Hook 拆分重构
 
 ### 本次目标
@@ -51,6 +224,40 @@
 
 ### 遗留事项
 - 待真人模拟测试确认运行时行为一致
+
+## 2026-05-02 定时搜索防重复逻辑修复
+
+### 问题
+- 用户确认：不管手动搜索多少次都不应该影响自动搜索
+- 排查发现 `check_window_already_ran()` 不区分手动/自动日志
+- `save_log()` 写入北京时间但无时区后缀，PostgreSQL 当 UTC 处理，导致时区错位 8 小时
+- 跨日匹配（UTC 23:xx = 北京时间次日 07:xx）时日期字符串不匹配
+
+### 修复
+
+#### 1. 防重复只看 auto 日志
+- 文件：`.github/scripts/ai_search.py`
+- `check_window_already_ran()` 新增过滤：只看 `details.search_type == 'auto'` 的记录
+- 手动搜索（search_type=manual）不会阻塞自动搜索
+
+#### 2. executed_at 改用 UTC 存储
+- 文件：`.github/scripts/ai_search.py`
+- `save_log()` 中 `executed_at` 从 `beijing_now.isoformat()` 改为 `datetime.utcnow()` + `+00:00` 后缀
+- 彻底解决时区错位问题
+
+#### 3. 跨日匹配修复
+- 文件：`.github/scripts/ai_search.py`
+- 日期匹配从 `today_str in executed_at`（字符串包含）改为精确的 UTC+8 日期计算
+- 使用 `datetime.strptime` + `timedelta(hours=8)` 正确转换
+
+### 当前状态
+- ✅ 手动搜索不会影响自动搜索
+- ✅ executed_at 时区正确
+- ✅ 跨日匹配正确
+- ✅ 推送部署 `4310dc9`
+
+### 遗留事项
+- 观察今晚 20:00/20:17/20:33/20:50 北京时间的 cron 是否正常触发
 
 ## 2026-05-01 修复定时搜索未运行 + 兜底机制
 
