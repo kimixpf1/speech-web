@@ -148,7 +148,7 @@ export function AdminPendingTab({
       )}
 
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-900">AI 文章搜索</h2>
+        <h2 className="text-xl font-bold text-gray-900">文章搜索</h2>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={onOpenApiConfig} title="配置 AI API Key">
             <Settings className="w-4 h-4 mr-1" />
@@ -188,7 +188,7 @@ export function AdminPendingTab({
               <div className="flex-1">
                 <p className="text-blue-800 font-medium mb-1">{searchMessage}</p>
                 <div className="flex items-center gap-2 text-sm text-blue-600">
-                  <span>使用 {preferredApi === 'kimi' ? 'Kimi' : 'DeepSeek'} API 搜索中...</span>
+                  <span>搜索管道：抓取人民网·新华社·求是网 → 去重 → 入库待审核</span>
                 </div>
               </div>
             </div>
@@ -222,9 +222,8 @@ export function AdminPendingTab({
           </div>
           <div className="text-xs text-green-700 space-y-1">
             <p>• <strong>GitHub Actions</strong> 每日 8:00 搜昨日、20:00 搜今日</p>
-            <p>• <strong>直抓来源</strong> 人民网讲话数据库、新华社/新华网、求是网</p>
-            <p>• <strong>Kimi 联网</strong> 作为补漏来源，统一去重后再与文章库比对</p>
-            <p>• 最终仅把真正新增的总书记原文放入待审核</p>
+            <p>• <strong>搜索管道</strong> 人民网讲话数据库 → 新华社/新华网 → 求是网 → 百度兜底</p>
+            <p>• 自动去重后仅保留真正新增的总书记原文放入待审核</p>
           </div>
         </CardContent>
       </Card>
@@ -502,7 +501,7 @@ export function AdminPendingTab({
         <Card className="border-yellow-200 bg-yellow-50">
           <CardContent className="p-4">
             <p className="text-yellow-700 text-sm">
-              未配置 AI API Key，点击"API配置"按钮设置 Kimi 或 DeepSeek API Key 以使用 AI 搜索功能。
+              未配置 GitHub Token，点击"API配置"按钮设置 GitHub Token 以触发搜索工作流。
             </p>
             <Button size="sm" className="mt-2" onClick={onOpenApiConfig}>
               <Settings className="w-4 h-4 mr-1" />
@@ -543,7 +542,7 @@ export function AdminPendingTab({
           <CardContent className="p-8 text-center">
             <Sparkles className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500">暂无新发现的文章</p>
-            <p className="text-gray-400 text-sm mt-1">点击"立即搜索"使用 AI 搜索最新文章</p>
+            <p className="text-gray-400 text-sm mt-1">点击"AI搜索"触发搜索管道抓取最新文章</p>
           </CardContent>
         </Card>
       ) : (

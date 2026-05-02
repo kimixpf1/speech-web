@@ -202,6 +202,29 @@ def get_recent_valid_dates(days: int = 2) -> List[str]:
     ]
 
 
+def fix_source_from_url(url, fallback='官方媒体'):
+    if not url:
+        return fallback
+    url_lower = url.lower()
+    if 'qstheory.cn' in url_lower:
+        return '求是网'
+    if 'xinhuanet.com' in url_lower or 'news.cn' in url_lower or 'mrdx.cn' in url_lower:
+        return '新华网'
+    if 'people.com.cn' in url_lower or 'jhsjk.people.cn' in url_lower:
+        return '人民网'
+    if 'gov.cn' in url_lower:
+        return '中国政府网'
+    if 'cctv.com' in url_lower or 'cntv.cn' in url_lower:
+        return '央视网'
+    if 'ce.cn' in url_lower:
+        return '经济日报'
+    if 'farmer.com.cn' in url_lower:
+        return '农民日报'
+    if 'paper.people.com.cn' in url_lower:
+        return '人民日报'
+    return fallback
+
+
 def get_search_query():
     """Generate multiple search queries based on time: morning searches yesterday, evening searches today"""
     beijing_now = get_beijing_now()
