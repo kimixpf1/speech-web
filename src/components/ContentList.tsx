@@ -1,13 +1,19 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { FileText } from 'lucide-react';
 import type { Speech } from '@/data/speeches';
 import { SpeechCard } from '@/components/SpeechCard';
+
+const INITIAL_GROUPS = 3;
+const LOAD_MORE_GROUPS = 3;
 
 interface ContentListProps {
   speeches: Speech[];
 }
 
 export function ContentList({ speeches }: ContentListProps) {
+  const [visibleCount, setVisibleCount] = useState(INITIAL_GROUPS);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
   if (speeches.length === 0) {
     return (
       <div className="text-center py-16">
@@ -33,13 +39,37 @@ export function ContentList({ speeches }: ContentListProps) {
     return { grouped, sortedKeys };
   }, [speeches]);
 
+  useEffect(() => {
+    setVisibleCount(INITIAL_GROUPS);
+  }, [speeches]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + LOAD_MORE_GROUPS, sortedKeys.length));
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [sortedKeys.length]);
+
   const handleSaveScroll = useCallback(() => {
     sessionStorage.setItem('lastScrollY', window.scrollY.toString());
   }, []);
 
+  const visibleKeys = sortedKeys.slice(0, visibleCount);
+  const hasMore = visibleCount < sortedKeys.length;
+
   return (
     <div className="space-y-6">
-      {sortedKeys.map((key) => (
+      {visibleKeys.map((key) => (
         <div key={key}>
           <div className="flex items-center gap-3 mb-4">
             <h2 className="text-xl font-bold text-gray-900">{key}</h2>
@@ -61,6 +91,11 @@ export function ContentList({ speeches }: ContentListProps) {
           </div>
         </div>
       ))}
+      {hasMore && (
+        <div ref={sentinelRef} className="flex justify-center py-6">
+          <span className="text-sm text-gray-400">加载更多...</span>
+        </div>
+      )}
     </div>
   );
 }

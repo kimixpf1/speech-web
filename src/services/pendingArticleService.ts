@@ -1,3 +1,4 @@
+import { supabase } from '@/lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 import { normalizeSummaryText } from '@/lib/utils';
 
@@ -44,7 +45,7 @@ export interface SearchLog {
 }
 
 export async function getPendingArticles(): Promise<PendingArticle[]> {
-  const { data, error } = await publicSupabase
+  const { data, error } = await supabase
     .from('pending_articles')
     .select('*')
     .eq('status', 'pending')
@@ -64,7 +65,7 @@ export async function getPendingArticles(): Promise<PendingArticle[]> {
 }
 
 export async function approveArticle(id: string): Promise<boolean> {
-  const { error } = await publicSupabase
+  const { error } = await supabase
     .from('pending_articles')
     .update({ status: 'approved' })
     .eq('id', id);
@@ -72,7 +73,7 @@ export async function approveArticle(id: string): Promise<boolean> {
 }
 
 export async function rejectArticle(id: string): Promise<boolean> {
-  const { error } = await publicSupabase
+  const { error } = await supabase
     .from('pending_articles')
     .update({ status: 'rejected' })
     .eq('id', id);
@@ -80,7 +81,7 @@ export async function rejectArticle(id: string): Promise<boolean> {
 }
 
 export async function deletePendingArticle(id: string): Promise<boolean> {
-  const { error } = await publicSupabase
+  const { error } = await supabase
     .from('pending_articles')
     .delete()
     .eq('id', id);
