@@ -45,7 +45,7 @@ export interface SearchLog {
 }
 
 export async function getPendingArticles(): Promise<PendingArticle[]> {
-  const { data, error } = await supabase
+  const { data, error } = await publicSupabase
     .from('pending_articles')
     .select('*')
     .eq('status', 'pending')

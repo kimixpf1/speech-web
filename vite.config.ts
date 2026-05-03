@@ -45,6 +45,7 @@ export default defineConfig({
         clientsClaim: true,
         navigateFallback: '/speech-web/index.html',
         navigateFallbackDenylist: [/^\/api\//],
+        globIgnores: ['**/*.wasm'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
@@ -52,6 +53,14 @@ export default defineConfig({
             options: {
               cacheName: 'google-fonts-cache',
               expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 }
+            }
+          },
+          {
+            urlPattern: /\/assets\/.*\.wasm$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'wasm-cache',
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 30 }
             }
           }
         ]

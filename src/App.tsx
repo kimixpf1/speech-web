@@ -817,13 +817,25 @@ function MainLayout() {
   };
 
   useEffect(() => {
+    const isNoisyError = (msg: string) =>
+      msg.includes('supabase') ||
+      msg.includes('AuthSessionMissingError') ||
+      msg.includes('Failed to fetch') ||
+      msg.includes('NetworkError') ||
+      msg.includes('Network request failed') ||
+      msg.includes('abort');
     const handleError = (event: ErrorEvent) => {
+      const msg = event.message || '';
+      if (isNoisyError(msg)) { console.warn('[Global Error] suppressed:', msg); return; }
       console.error('[Global Error]', event.error);
-      ErrorBoundary.notifyAsyncError(event.error || new Error(event.message));
+      ErrorBoundary.notifyAsyncError(event.error || new Error(msg));
     };
     const handleRejection = (event: PromiseRejectionEvent) => {
-      console.error('[Unhandled Rejection]', event.reason);
-      const error = event.reason instanceof Error ? event.reason : new Error(String(event.reason));
+      const reason = event.reason;
+      const msg = reason?.message || String(reason || '');
+      if (isNoisyError(msg)) { console.warn('[Unhandled Rejection] suppressed:', msg); return; }
+      console.error('[Unhandled Rejection]', reason);
+      const error = reason instanceof Error ? reason : new Error(msg);
       ErrorBoundary.notifyAsyncError(error);
     };
     window.addEventListener('error', handleError);
