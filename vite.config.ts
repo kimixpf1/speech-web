@@ -3,6 +3,7 @@ import { execSync } from "node:child_process"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 import { inspectAttr } from 'kimi-plugin-inspect-react'
+import { VitePWA } from 'vite-plugin-pwa'
 
 const appVersion = process.env.npm_package_version ?? '0.0.0'
 const appCommitHash = (() => {
@@ -16,7 +17,47 @@ const appBuildTime = new Date().toISOString()
 
 export default defineConfig({
   base: '/speech-web/',
-  plugins: [inspectAttr(), react()],
+  plugins: [
+    inspectAttr(),
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      base: '/speech-web/',
+      scope: '/speech-web/',
+      includeAssets: ['robots.txt', 'share-cover.svg'],
+      manifest: {
+        name: '重要讲话学习平台',
+        short_name: '重要讲话',
+        description: '习近平总书记重要讲话与文章',
+        theme_color: '#1e40af',
+        background_color: '#ffffff',
+        display: 'standalone',
+        scope: '/speech-web/',
+        start_url: '/speech-web/',
+        icons: [
+          { src: 'share-cover.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }
+        ]
+      },
+      workbox: {
+        maximumFileSizeToCacheInBytes: 30 * 1024 * 1024,
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
+        navigateFallback: '/speech-web/index.html',
+        navigateFallbackDenylist: [/^\/api\//],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 }
+            }
+          }
+        ]
+      }
+    })
+  ],
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
     __APP_COMMIT_HASH__: JSON.stringify(appCommitHash),

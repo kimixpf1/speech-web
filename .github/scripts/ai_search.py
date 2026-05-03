@@ -11,6 +11,7 @@ import uuid
 import time
 import requests
 from datetime import date, datetime, timedelta
+from difflib import SequenceMatcher
 from typing import Dict, List
 from urllib.parse import quote
 
@@ -230,11 +231,20 @@ def normalize_url_for_dedup(url):
         return url
     u = url.strip().lower()
     u = u.replace('https://', 'http://')
+    # 去掉查询参数和锚点
+    u = u.split('?')[0]
+    u = u.split('#')[0]
     if u.endswith('/'):
         u = u.rstrip('/')
     u = u.replace('www.', '')
     u = u.replace('//mrdx.cn/', '//www.mrdx.cn/')
     u = u.replace('//news.cn/', '//www.news.cn/')
+    # 补充更多域名 www 映射
+    u = u.replace('//people.com.cn/', '//www.people.com.cn/')
+    u = u.replace('//xinhuanet.com/', '//www.xinhuanet.com/')
+    u = u.replace('//cctv.com/', '//www.cctv.com/')
+    u = u.replace('//qstheory.cn/', '//www.qstheory.cn/')
+    u = u.replace('//gov.cn/', '//www.gov.cn/')
     return u
 
 
@@ -1104,7 +1114,8 @@ def merge_and_dedupe(baidu_articles: List[Dict], people_articles: List[Dict] = N
             print(f'[Filter] 跳过非总书记直接相关: {title[:50]}...')
             return
 
-        if url in seen_urls:
+        url_norm = normalize_url_for_dedup(url)
+        if url_norm in seen_urls:
             duplicate_seen_url.append({'title': title, 'url': url, 'source': source_tag})
             return
 
@@ -1119,7 +1130,7 @@ def merge_and_dedupe(baidu_articles: List[Dict], people_articles: List[Dict] = N
             print(f'[Validate] 拒绝: {title[:30]}... - {validation["reasons"]}')
             return
 
-        seen_urls.add(url)
+        seen_urls.add(url_norm)
         seen_titles.add(simple)
 
         category = detect_category({'title': title, 'source': article.get('source', ''), 'url': url})
@@ -1193,7 +1204,7 @@ def get_existing_articles() -> Dict[str, Dict]:
     for table_name in targets:
         try:
             resp = requests.get(
-                f'{SUPABASE_URL}/rest/v1/{table_name}?select=url,title&limit=1000',
+                f'{SUPABASE_URL}/rest/v1/{table_name}?select=url,title&limit=5000',
                 headers=headers,
                 timeout=10
             )
@@ -1237,7 +1248,7 @@ def titles_look_duplicate(title: str, existing_simple_map: Dict[str, str]) -> st
     for existing_simple, existing_title in existing_simple_map.items():
         if len(existing_simple) < 8:
             continue
-        if simple in existing_simple or existing_simple in simple:
+        if SequenceMatcher(None, simple, existing_simple).ratio() >= 0.85:
             return existing_title
 
     return ''
@@ -1254,7 +1265,7 @@ def save_articles(articles: List[Dict]) -> int:
         resp = requests.post(
             f'{SUPABASE_URL}/rest/v1/{TABLE}',
             headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}',
-                     'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
+                     'Content-Type': 'application/json', 'Prefer': 'return=minimal,resolution=merge-duplicates'},
             json=articles, timeout=30
         )
         if resp.status_code in (200, 201):

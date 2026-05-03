@@ -816,6 +816,24 @@ function MainLayout() {
     }
   };
 
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error('[Global Error]', event.error);
+      ErrorBoundary.notifyAsyncError(event.error || new Error(event.message));
+    };
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      console.error('[Unhandled Rejection]', event.reason);
+      const error = event.reason instanceof Error ? event.reason : new Error(String(event.reason));
+      ErrorBoundary.notifyAsyncError(error);
+    };
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleRejection);
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleRejection);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {!hideHeaderFooter && <Header currentView={currentView} onViewChange={handleViewChange} />}
@@ -826,7 +844,11 @@ function MainLayout() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/suggestion" element={<SuggestionWrapper />} />
             <Route path="/admin/login" element={<AdminLoginWrapper />} />
-            <Route path="/admin/dashboard" element={<AdminDashboardWrapper />} />
+            <Route path="/admin/dashboard" element={
+              <ErrorBoundary>
+                <AdminDashboardWrapper />
+              </ErrorBoundary>
+            } />
             <Route path="/detail/:id" element={<DetailPage />} />
             <Route path="/zhengjiguan" element={<ZhengjiguanPage />} />
             <Route path="/zhengjiguan/:id" element={<DetailPage />} />
