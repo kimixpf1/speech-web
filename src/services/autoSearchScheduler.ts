@@ -1,6 +1,6 @@
 /**
  * 自动搜索调度器 - 嵌入式定时搜索服务
- * 早8点搜索昨日内容，晚8点搜索今日内容
+ * 早9点搜索昨日内容，晚9点搜索今日内容
  */
 
 import { searchArticles, setLastSearchTime } from './aiSearchService';
@@ -38,10 +38,10 @@ function getCurrentSlot(): SearchSlot {
   const hour = new Date().getUTCHours() + 8;
   const bjHour = hour >= 24 ? hour - 24 : hour;
   
-  if (bjHour >= 7 && bjHour < 10) {
+  if (bjHour >= 8 && bjHour < 11) {
     return 'morning';
   }
-  if (bjHour >= 19 && bjHour < 22) {
+  if (bjHour >= 20 && bjHour < 23) {
     return 'evening';
   }
   return null;
@@ -69,12 +69,12 @@ function setLastSearchSlot(slot: SearchSlot): void {
 function getNextSearchTimeDesc(): string {
   const bjHour = (new Date().getUTCHours() + 8) % 24;
   
-  if (bjHour < 7) {
-    return `今天早8点 (约${7 - bjHour}小时后)`;
-  } else if (bjHour < 19) {
-    return `今天晚8点 (约${19 - bjHour}小时后)`;
+  if (bjHour < 8) {
+    return `今天早9点 (约${9 - bjHour}小时后)`;
+  } else if (bjHour < 20) {
+    return `今天晚9点 (约${21 - bjHour}小时后)`;
   } else {
-    return `明天早8点 (约${31 - bjHour}小时后)`;
+    return `明天早9点 (约${33 - bjHour}小时后)`;
   }
 }
 
