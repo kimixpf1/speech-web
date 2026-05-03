@@ -9,8 +9,8 @@ import {
 } from '@/services/articleDetailService';
 import { normalizeArticleUrl, normalizeSummaryText } from '@/lib/utils';
 
-// 表名
 const ARTICLES_TABLE = 'articles';
+const ARTICLE_FIELDS = 'id,title,date,year,month,day,category,categoryname,domain,domain_name,is_zhengjiguan,zhengjiguan_level,source,location,summary,url';
 
 const SUPABASE_PROJECT_REF = 'ejeiuqcmkznfbglvbkbe';
 const DEFAULT_SUPABASE_URL = `https://${SUPABASE_PROJECT_REF}.supabase.co`;
@@ -187,7 +187,7 @@ async function fetchFromCloudViaRest(from: number, batchSize: number): Promise<{
 
   const fetchWithOrder = async (order: string): Promise<{ data: Record<string, unknown>[] | null; error: Error | null }> => {
     try {
-      const url = `${baseUrl}/rest/v1/${ARTICLES_TABLE}?select=*&order=${encodeURIComponent(order)}&offset=${from}&limit=${batchSize}`;
+      const url = `${baseUrl}/rest/v1/${ARTICLES_TABLE}?select=${encodeURIComponent(ARTICLE_FIELDS)}&order=${encodeURIComponent(order)}&offset=${from}&limit=${batchSize}`;
       const response = await fetch(url, { headers });
       if (!response.ok) {
         return { data: null, error: new Error(`REST fetch failed: ${response.status}`) };
@@ -218,7 +218,7 @@ async function fetchFromCloud(): Promise<Speech[]> {
       {
         const result = await supabase
           .from(ARTICLES_TABLE)
-          .select('*')
+          .select(ARTICLE_FIELDS)
           .order('year', { ascending: false })
           .order('month', { ascending: false })
           .order('day', { ascending: false })
@@ -233,7 +233,7 @@ async function fetchFromCloud(): Promise<Speech[]> {
       if (error) {
         const fallback = await supabase
           .from(ARTICLES_TABLE)
-          .select('*')
+          .select(ARTICLE_FIELDS)
           .order('date', { ascending: false })
           .order('id', { ascending: false })
           .range(from, from + batchSize - 1);
@@ -342,7 +342,7 @@ export async function getZhengjiguanArticles(): Promise<Speech[]> {
     if (navigator.onLine) {
       const { data, error } = await supabase
         .from(ARTICLES_TABLE)
-        .select('*')
+        .select(ARTICLE_FIELDS)
         .eq('is_zhengjiguan', true)
         .order('date', { ascending: false });
 
@@ -358,7 +358,7 @@ export async function getZhengjiguanArticles(): Promise<Speech[]> {
         // 重新获取
         const { data: newData } = await supabase
           .from(ARTICLES_TABLE)
-          .select('*')
+          .select(ARTICLE_FIELDS)
           .eq('is_zhengjiguan', true)
           .order('date', { ascending: false });
         if (newData && newData.length > 0) {

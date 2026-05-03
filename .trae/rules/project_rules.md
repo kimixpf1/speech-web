@@ -113,3 +113,11 @@
 | 安全相关改动 | security-review 智能体 | Task(subagent_type="security-reviewer") |
 
 **核心原则：不要只是"在心里过一遍方法论"，必须实际调用 Task/Skill 工具让智能体参与工作。智能体是团队成员，不是装饰品。**
+
+## GLM 用量自动查询（跨项目通用规则）
+
+- 每次会话结束前，如果本次会话使用了 GLM 模型（Bigmodel Plan / GLM-5.1 / GLM-4.5-Air 等智谱模型），必须自动运行 python "c:\Users\42151\.glm-tools\glm_usage.py" --all 查询并报告两个 Key 的用量
+- 报告格式：直接展示脚本原始输出，不做任何格式化、不加工成表格、不添加额外说明
+- 如果用户说"查 GLM 用量"或"查用量"，也要立即执行查询
+- 如果用户后续说只需要查 key2，则改为 python "c:\Users\42151\.glm-tools\glm_usage.py" key2
+- 此规则对所有项目生效，不得删除
