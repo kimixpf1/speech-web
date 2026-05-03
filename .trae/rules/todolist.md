@@ -18,13 +18,15 @@
 - 每轮结束前执行真人模拟测试与推送部署
 
 ## 当前待办
+- **[高优先]** 添加数据库关键索引（articles 排序、date、url、search_logs、pending_articles status）——需在 Supabase Dashboard SQL Editor 手动执行
+- **[高优先]** pending_articles INSERT RLS 加固——需在 Supabase Dashboard SQL Editor 手动执行
 - **[高优先]** 手动触发搜索验证：评论文章不再入库 + 已有文章正确去重 + 待审核列表显示新文章
 - **[高优先]** 排查待审核为空问题（等下次搜索日志中 [Save] 输出确认是否 Supabase 返回 409/403）
 - **[中优先]** 观察今晚 20:17/20:33/20:50 定时任务是否正常触发
-- **[中优先]** 继续观察自动搜索日志，确认误抓样例不再入库
 - **[低优先]** 改进 jhsjk.people.cn 动态渲染抓取
 
 ## 最近已完成
+- [x] 2026-05-03 高优优化：管理员认证加固 + 移除34个未用依赖 + 删除死代码 + 查询字段精简（`3c55e90`）
 - [x] 2026-05-02 搜索管道增强：新华每日电讯02版评论过滤 + URL去重规范化 + save_articles详细日志（`6f4e8f6`）
 - [x] 2026-05-02 修复搜索工作流 NameError（fix_source_from_url未定义）+ 搜索进度文案修正（`8ad7a74`）
 - [x] 2026-05-02 搜索失败详情展示 + ai_search.py全局异常捕获（`7a815b8`）

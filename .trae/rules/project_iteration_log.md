@@ -1,5 +1,59 @@
 # 项目迭代记录
 
+## 2026-05-03 高优先级优化（4项）
+
+### 本次目标
+- 从三智能体审计的39个优化点中，执行高优先级的前4项
+- 原则：不影响线上所有功能正常使用
+
+### 实际改动
+
+#### 1. 管理员前端认证加固
+- 文件：`src/services/adminAuth.ts`
+- 新增 `isSessionExpired()` 会话过期检查（24小时有效期）
+- 新增 `clearAuthState()` 统一清理函数
+- `isAdminLoggedInSync()` 加入过期校验，过期自动清理
+- `isAdminLoggedIn()` 先查过期再查 Supabase session，不再依赖 localStorage boolean
+- `logoutAdmin()` 清理 AUTH_TIMESTAMP_KEY（之前遗漏）
+- 修复前：`localStorage.setItem('admin_authenticated','true')` 可绕过认证
+- 修复后：必须同时有有效时间戳 + Supabase session
+
+#### 2. 移除34个未使用的依赖包
+- 文件：`package.json`、`package-lock.json`
+- 通过代码探索智能体精确验证：6个 radix 包实际使用（dialog/progress/select/slot/tabs + slot在badge中）
+- 安全移除：22个未用 radix-ui 包 + 12个未用非 radix 包
+- dependencies 从 42 个精简到 18 个
+- 减小 node_modules 体积和 bundle 构建时间
+
+#### 3. 删除死代码文件
+- 删除：`src/data/peopleArticles.ts`（~100篇，未在任何活跃代码中导入）
+- 删除：`src/data/migratedArticles.ts`（~30篇，未在任何活跃代码中导入）
+- 数据已在 Supabase 云端有副本，静态文件仅是冗余兜底
+- 减少 2101 行代码进入 bundle
+
+#### 4. fetchFromCloud 查询字段精简
+- 文件：`src/services/articleServiceEnhanced.ts`
+- 新增 `ARTICLE_FIELDS` 常量（显式列出16个必要列）
+- `fetchFromCloud()` 3条查询路径全部从 `select('*')` 改为 `select(ARTICLE_FIELDS)`
+- `getZhengjiguanArticles()` 2条查询路径同样精简
+- REST API fallback 路径也使用显式字段列表
+- 防止未来 articles 表新增列时列表页拉取不必要的数据
+
+### 当前状态
+- ✅ VS Code Diagnostics 零错误
+- ✅ lint 通过
+- ✅ build 通过
+- ✅ 本地模拟测试通过（首页1172篇/领域筛选/类型筛选/搜索/详情页/管理员登录全部正常）
+- ✅ 控制台零错误
+- ✅ 推送部署 `3c55e90`
+
+### 提交记录
+- `3c55e90` perf: 高优优化 - 管理员认证加固+移除34个未用依赖+删除死代码+查询字段精简
+
+### 遗留事项
+- **高优5**：添加数据库关键索引（需在 Supabase Dashboard SQL Editor 手动执行）
+- **高优6**：pending_articles INSERT RLS 加固（需在 Supabase Dashboard SQL Editor 手动执行）
+
 ## 2026-05-02 搜索管道增强过滤 + URL去重规范化 + save_articles详细日志
 
 ### 问题
