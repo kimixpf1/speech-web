@@ -253,7 +253,7 @@ def get_search_query():
     beijing_now = get_beijing_now()
     beijing_hour = beijing_now.hour
 
-    if beijing_hour < 12:
+    if beijing_hour < 13:
         target_dt = beijing_now - timedelta(days=1)
         date_keyword = '昨日'
         search_date = 'yesterday'
@@ -1289,7 +1289,7 @@ def get_search_type():
 def get_search_pipeline_label(search_type):
     beijing_hour = (datetime.utcnow() + timedelta(hours=8)).hour
     if search_type == 'auto':
-        time_slot = '早间搜昨日' if beijing_hour < 12 else '晚间搜今日'
+        time_slot = '早间搜昨日' if beijing_hour < 13 else '晚间搜今日'
         return f'自动定时搜索（{time_slot}）'
     return '手动触发搜索'
 
@@ -1355,7 +1355,7 @@ def check_window_already_ran() -> bool:
         beijing_now = get_beijing_now()
         today_str = beijing_now.strftime('%Y-%m-%d')
         beijing_hour = beijing_now.hour
-        is_morning_window = beijing_hour < 12
+        is_morning_window = beijing_hour < 13
 
         headers = {'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'}
         resp = requests.get(
@@ -1385,10 +1385,10 @@ def check_window_already_ran() -> bool:
                 continue
             if log_beijing_date != today_str:
                 continue
-            if is_morning_window and log_beijing_hour < 12:
+            if is_morning_window and log_beijing_hour < 13:
                 print(f'[CheckWindow] Morning window already ran at {executed_at} (Beijing hour {log_beijing_hour})')
                 return True
-            if not is_morning_window and log_beijing_hour >= 12:
+            if not is_morning_window and log_beijing_hour >= 13:
                 print(f'[CheckWindow] Evening window already ran at {executed_at} (Beijing hour {log_beijing_hour})')
                 return True
         window_name = 'morning' if is_morning_window else 'evening'
