@@ -9,7 +9,7 @@ export const categoryConfig = {
   article: { icon: FileText, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-100', label: '发表文章' },
   meeting: { icon: Users, color: 'text-purple-600', bgColor: 'bg-purple-50', borderColor: 'border-purple-100', label: '重要会议' },
   inspection: { icon: MapPinIcon, color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-100', label: '考察调研' },
-  call: { icon: Globe, color: 'text-cyan-600', bgColor: 'bg-cyan-50', borderColor: 'border-cyan-100', label: '致电' },
+  call: { icon: Globe, color: 'text-cyan-600', bgColor: 'bg-cyan-50', borderColor: 'border-cyan-100', label: '致电回信' },
 } as const;
 
 export const domainConfig = {

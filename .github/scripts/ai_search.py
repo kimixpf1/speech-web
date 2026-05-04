@@ -67,7 +67,7 @@ FILTER_RULES = {
         '仲音', '钟声', '和音', '任仲平',
         '评论员', '评论', '本报评论员', '述评', '观察', '解读', '综述', '侧记', '特稿',
         '通讯', '纪实', '报道', '扫描', '透视', '述写', '随笔', '感言', '网评', '圆桌', '专访', '之一', '之二', '之三',
-        '躬身示范'
+        '躬身示范', '寄语', '题词', '题字', '号召', '倡议'
     ],
     'non_original_parenthetical_tags': [
         '回响', '人民情怀', '人民论坛', '人民观察', '人民时评', '人民要论', '人民观点',
@@ -95,6 +95,7 @@ FILTER_RULES = {
         r'^总书记为.+躬身示范$',
         r'《习近平谈治国理政》.{0,10}(读者会|发布会|研讨会)',
         r'(韩正|王毅).{0,10}会见',
+        r'总书记.{0,4}(寄语|题词|题字|号召)',
     ],
     'direct_xi_activity_keywords': [
         '习近平会见', '习近平同', '习近平出席', '习近平主持', '习近平在',
@@ -196,15 +197,20 @@ def get_recent_valid_dates(days: int = 2) -> List[str]:
 
 
 def fix_source_from_url(url, fallback='官方媒体'):
+    """根据URL识别新闻来源，注意子域名需在父域名之前判断"""
     if not url:
         return fallback
     url_lower = url.lower()
     if 'qstheory.cn' in url_lower:
         return '求是网'
-    if 'xinhuanet.com' in url_lower or 'news.cn' in url_lower or 'mrdx.cn' in url_lower:
-        return '新华网'
+    # paper.people.com.cn 必须在 people.com.cn 之前判断，否则人民日报电子版会被误判为人民网
+    if 'paper.people.com.cn' in url_lower:
+        return '人民日报'
     if 'people.com.cn' in url_lower or 'jhsjk.people.cn' in url_lower:
         return '人民网'
+    # mrdx.cn 是新华每日电讯，属于新华社旗下报纸，归为"新华社"
+    if 'xinhuanet.com' in url_lower or 'news.cn' in url_lower or 'mrdx.cn' in url_lower:
+        return '新华社'
     if 'gov.cn' in url_lower:
         return '中国政府网'
     if 'cctv.com' in url_lower or 'cntv.cn' in url_lower:
@@ -213,8 +219,6 @@ def fix_source_from_url(url, fallback='官方媒体'):
         return '经济日报'
     if 'farmer.com.cn' in url_lower:
         return '农民日报'
-    if 'paper.people.com.cn' in url_lower:
-        return '人民日报'
     return fallback
 
 
@@ -452,7 +456,7 @@ def search_with_baidu(queries: List[str]) -> List[Dict]:
                 articles.append({
                     'title': title,
                     'url': title_elem.get('href', ''),
-                    'source': site.split('.')[0],
+                    'source': '',  # 留空，由后续 fix_source_from_url 统一修正
                     'date': (datetime.utcnow() + timedelta(hours=8)).date().isoformat(),
                     'summary': title,
                 })

@@ -45,7 +45,8 @@ export interface SearchLog {
 }
 
 export async function getPendingArticles(): Promise<PendingArticle[]> {
-  const { data, error } = await publicSupabase
+  // 使用带 session 的 supabase 客户端，避免 RLS 策略导致 anon 无法读取
+  const { data, error } = await supabase
     .from('pending_articles')
     .select('*')
     .eq('status', 'pending')

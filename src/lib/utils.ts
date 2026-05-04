@@ -210,6 +210,8 @@ export function inferSourceFromUrl(url?: string, currentSource?: string): string
     if (currentSource?.includes('求是')) return currentSource
     return '人民网'
   }
+  // people.com.cn 兜底：其他所有 people.com.cn 子域名也归为人民网
+  if (u.includes('people.com.cn')) return '人民网'
   if (u.includes('news.cn') || u.includes('xinhuanet.com')) return '新华网'
   if (u.includes('qstheory.cn')) return '求是网'
   if (u.includes('gov.cn')) return '中国政府网'
@@ -218,7 +220,8 @@ export function inferSourceFromUrl(url?: string, currentSource?: string): string
   if (u.includes('jcrb.com')) return '检察日报'
   if (u.includes('chinanews.com.cn')) return '中国新闻网'
   if (u.includes('cppcc.gov.cn')) return '人民政协报'
-  if (u.includes('mrdx.cn')) return '农民日报'
+  // mrdx.cn 是新华每日电讯，属于新华社旗下报纸
+  if (u.includes('mrdx.cn')) return '新华社'
   return currentSource || ''
 }
 

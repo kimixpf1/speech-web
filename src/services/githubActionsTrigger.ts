@@ -268,22 +268,36 @@ async function getFailedJobDetails(runHtmlUrl?: string): Promise<string> {
 }
 
 /**
- * 轮询等待工作流完成（最多等待 8 分钟）
+ * 轮询等待工作流完成（最多等待 10 分钟）
  * 只关注触发之后创建的 run，避免把旧 failure 误判为本次结果
+ *
+ * 修复策略：
+ * 1. 初始 30 秒等待让 GitHub API 创建 run 记录
+ * 2. unknown 状态用 15 秒间隔减少 API 压力，超 2 分钟 unknown 给明确提示
+ * 3. completed 后等 5 秒让 Supabase 同步
+ * 4. 超时后查 Supabase 实际新增数，有新增则报成功
  */
 export async function waitForWorkflowCompletion(
   onProgress?: (message: string) => void,
-  maxWaitMs: number = 480000
+  maxWaitMs: number = 600000
 ): Promise<{ success: boolean; newCount: number; timedOut?: boolean; message?: string }> {
   const startTime = Date.now();
-  const pollInterval = 10000;
+  const pollIntervalRunning = 10000;   // running 状态每 10 秒轮询
+  const pollIntervalUnknown = 15000;   // unknown 状态每 15 秒轮询，减少 API 请求频率
+  const unknownWarningMs = 120000;     // 连续 unknown 超 2 分钟给出明确提示
   const triggerTime = new Date().toISOString();
 
   const { count: beforeCount } = await supabase
     .from('pending_articles')
     .select('id', { count: 'exact', head: true });
 
-  onProgress?.('等待后台搜索完成...');
+  // 初始等待 30 秒，让 GitHub API 有时间创建新的 run 记录
+  onProgress?.('已触发工作流，等待 GitHub API 创建运行记录...');
+  await new Promise(resolve => setTimeout(resolve, 30000));
+
+  let hasSeenRun = false;       // 是否已经看到过非 unknown 的 run
+  let unknownSinceStart = true; // 是否从开始到现在一直是 unknown
+  onProgress?.('开始轮询工作流状态...');
 
   while (Date.now() - startTime < maxWaitMs) {
     const status = await getWorkflowStatus(triggerTime);
@@ -291,7 +305,8 @@ export async function waitForWorkflowCompletion(
     if (status.status === 'completed') {
       onProgress?.('搜索完成，正在获取结果...');
 
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // 等待 5 秒让 Supabase 数据库同步完成
+      await new Promise(resolve => setTimeout(resolve, 5000));
 
       const { count: afterCount } = await supabase
         .from('pending_articles')
@@ -322,8 +337,50 @@ export async function waitForWorkflowCompletion(
       };
     }
 
-    await new Promise(resolve => setTimeout(resolve, pollInterval));
-    onProgress?.(`后台搜索进行中... (${Math.floor((Date.now() - startTime) / 1000)}秒)`);
+    // 根据状态选择不同的轮询间隔
+    const currentInterval = status.status === 'unknown'
+      ? pollIntervalUnknown
+      : pollIntervalRunning;
+
+    // 检测到 run 已出现（非 unknown 状态）
+    if (status.status !== 'unknown') {
+      hasSeenRun = true;
+      unknownSinceStart = false;
+    }
+
+    const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
+
+    // 如果前 2 分钟一直 unknown，给出明确提示
+    if (unknownSinceStart && elapsedSec > unknownWarningMs / 1000) {
+      onProgress?.(
+        `已等待 ${elapsedSec} 秒仍未检测到工作流运行记录。` +
+        '工作流可能尚未启动或 GitHub API 存在延迟，继续等待...'
+      );
+      // 只提示一次
+      unknownSinceStart = false;
+    } else {
+      onProgress?.(`后台搜索进行中... (${elapsedSec}秒)`);
+    }
+
+    await new Promise(resolve => setTimeout(resolve, currentInterval));
+  }
+
+  // 超时后不要直接报失败，去 Supabase 查询实际新增文章数
+  onProgress?.('轮询超时，正在检查实际结果...');
+  const { count: afterCountTimeout } = await supabase
+    .from('pending_articles')
+    .select('id', { count: 'exact', head: true });
+
+  const actualNewCount = Math.max(0, (afterCountTimeout ?? 0) - (beforeCount ?? 0));
+
+  if (actualNewCount > 0) {
+    // 超时但有实际新增文章，说明工作流已成功完成
+    return {
+      success: true,
+      newCount: actualNewCount,
+      timedOut: true,
+      message: `轮询超时但检测到 ${actualNewCount} 篇新增文章，工作流可能已成功完成`,
+    };
   }
 
   return { success: false, newCount: 0, timedOut: true };
