@@ -1140,7 +1140,7 @@ async function savePendingArticles(articles: SearchedArticle[]): Promise<void> {
       month,
       day,
       category: article.category || 'speech',
-      categoryname: article.categoryName || (article.category === 'call' ? '致电' : '重要讲话'),
+      categoryname: article.categoryName || (article.category === 'call' ? '致电回信' : '重要讲话'),
       source: article.source || '官方媒体',
       url: article.url,
       summary: article.summary || article.title,

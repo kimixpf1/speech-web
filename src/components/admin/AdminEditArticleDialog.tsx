@@ -87,7 +87,7 @@ export function AdminEditArticleDialog({
                   <option value="article">发表文章</option>
                   <option value="meeting">重要会议</option>
                   <option value="inspection">考察调研</option>
-                  <option value="call">致电</option>
+                  <option value="call">致电回信</option>
                 </select>
               </div>
               <div className="space-y-2">

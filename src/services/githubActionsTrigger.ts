@@ -158,6 +158,7 @@ export async function getWorkflowStatus(sinceIso?: string): Promise<{
   startedAt?: string;
   completedAt?: string;
   htmlUrl?: string;
+  runId?: number;
 }> {
   const token = getGitHubToken();
   
@@ -201,6 +202,7 @@ export async function getWorkflowStatus(sinceIso?: string): Promise<{
         startedAt: run.created_at,
         completedAt: run.updated_at,
         htmlUrl: run.html_url,
+        runId: run.id,
       };
     }
     if (run.conclusion === 'failure') {
@@ -210,6 +212,7 @@ export async function getWorkflowStatus(sinceIso?: string): Promise<{
         startedAt: run.created_at,
         completedAt: run.updated_at,
         htmlUrl: run.html_url,
+        runId: run.id,
       };
     }
     return {
@@ -220,9 +223,49 @@ export async function getWorkflowStatus(sinceIso?: string): Promise<{
       startedAt: run.created_at,
       completedAt: run.updated_at,
       htmlUrl: run.html_url,
+      runId: run.id,
     };
   } catch (error) {
     console.error('获取工作流状态失败:', error);
+    return { status: 'unknown' };
+  }
+}
+
+async function getWorkflowStatusById(runId: number): Promise<{
+  status: 'running' | 'completed' | 'failed' | 'unknown';
+  conclusion?: string;
+  htmlUrl?: string;
+  runId?: number;
+}> {
+  const token = getGitHubToken();
+  if (!token) return { status: 'unknown' };
+  try {
+    const response = await fetchWithTimeout(
+      `https://api.github.com/repos/${GITHUB_REPO}/actions/runs/${runId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+        },
+      },
+      15000
+    );
+    if (!response.ok) return { status: 'unknown' };
+    const run = await response.json();
+    if (run.status === 'completed') {
+      return {
+        status: run.conclusion === 'failure' ? 'failed' : 'completed',
+        conclusion: run.conclusion,
+        htmlUrl: run.html_url,
+        runId: run.id,
+      };
+    }
+    return {
+      status: (run.status === 'in_progress' || run.status === 'queued' || run.status === 'waiting' || run.status === 'pending')
+        ? 'running' : 'unknown',
+      runId: run.id,
+    };
+  } catch {
     return { status: 'unknown' };
   }
 }
@@ -285,22 +328,31 @@ export async function waitForWorkflowCompletion(
   const pollIntervalRunning = 10000;   // running 状态每 10 秒轮询
   const pollIntervalUnknown = 15000;   // unknown 状态每 15 秒轮询，减少 API 请求频率
   const unknownWarningMs = 120000;     // 连续 unknown 超 2 分钟给出明确提示
-  const triggerTime = new Date().toISOString();
+  // 提前 60 秒作为缓冲，避免时钟偏差或 GitHub 延迟导致 created_at < triggerTime 匹配不到
+  const triggerTime = new Date(Date.now() - 60000).toISOString();
 
   const { count: beforeCount } = await supabase
     .from('pending_articles')
     .select('id', { count: 'exact', head: true });
 
-  // 初始等待 30 秒，让 GitHub API 有时间创建新的 run 记录
+  // 初始等待 15 秒，让 GitHub API 有时间创建新的 run 记录
   onProgress?.('已触发工作流，等待 GitHub API 创建运行记录...');
-  await new Promise(resolve => setTimeout(resolve, 30000));
+  await new Promise(resolve => setTimeout(resolve, 15000));
 
   let hasSeenRun = false;       // 是否已经看到过非 unknown 的 run
   let unknownSinceStart = true; // 是否从开始到现在一直是 unknown
+  let lockedRunId: number | null = null; // 锁定跟踪的 run ID
   onProgress?.('开始轮询工作流状态...');
 
   while (Date.now() - startTime < maxWaitMs) {
-    const status = await getWorkflowStatus(triggerTime);
+    const status = lockedRunId
+      ? await getWorkflowStatusById(lockedRunId)
+      : await getWorkflowStatus(triggerTime);
+
+    // 如果按时间过滤没找到，但按 ID 跟踪到了，就用 ID 跟踪
+    if (!lockedRunId && status.runId && status.status !== 'unknown') {
+      lockedRunId = status.runId;
+    }
 
     if (status.status === 'completed') {
       onProgress?.('搜索完成，正在获取结果...');

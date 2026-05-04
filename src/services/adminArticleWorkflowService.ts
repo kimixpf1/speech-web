@@ -54,7 +54,7 @@ export function buildArticleFromDraft(
     category: (draft.category as Speech['category']) || 'speech',
     categoryName:
       draft.categoryName ||
-      (draft.category === 'call' ? '致电' : '重要讲话'),
+      (draft.category === 'call' ? '致电回信' : '重要讲话'),
     domain: draft.domain || 'economy',
     domainName: draft.domainName || '经济',
     isZhengjiguan: draft.isZhengjiguan || false,

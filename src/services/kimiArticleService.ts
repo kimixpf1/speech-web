@@ -33,7 +33,7 @@ const CATEGORY_NAME_MAP: Record<NonNullable<ExtractedArticle['category']>, strin
   article: '发表文章',
   meeting: '重要会议',
   inspection: '考察调研',
-  call: '致电',
+  call: '致电回信',
 };
 const DOMAIN_NAME_MAP: Record<NonNullable<ExtractedArticle['domain']>, string> = {
   economy: '经济',

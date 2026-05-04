@@ -96,7 +96,7 @@ function toDbFormat(article: Speech): Record<string, unknown> {
 // 将数据库格式转换为 Speech 对象
 function fromDbFormat(dbArticle: Record<string, unknown>): Speech {
   const category = (dbArticle.category || 'speech') as 'speech' | 'article' | 'meeting' | 'inspection' | 'call';
-  const categoryName = (dbArticle.categoryname || dbArticle.categoryName || (category === 'call' ? '致电' : '重要讲话')) as string;
+  const categoryName = (dbArticle.categoryname || dbArticle.categoryName || (category === 'call' ? '致电回信' : '重要讲话')) as string;
   const domain = (dbArticle.domain || 'economy') as 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy';
 
   return {
