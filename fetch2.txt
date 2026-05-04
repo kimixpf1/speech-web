@@ -1,0 +1,9 @@
+﻿git : From https://github.com/kimixpf1/speech-web
+所在位置 行:1 字符: 1
++ git -C "e:\ccswitch\AI编程工作目录\讲话网站\app" fetch origin 2>&1 | Out-File " ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (From https://gi...xpf1/speech-web 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+   d01c11d..6f2571d  main       -> origin/main

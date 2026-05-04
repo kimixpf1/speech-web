@@ -1,0 +1,45 @@
+﻿On branch main
+Your branch is ahead of 'origin/main' by 2 commits.
+  (use "git push" to publish your local commits)
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git checkout -- <file>..." to discard changes in working directory)
+
+	modified:   .trae/rules/project_iteration_log.md
+	modified:   .trae/rules/universal_template.md
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+
+	.agents/
+	.git_fetch_log.txt
+	.git_local_hash.txt
+	.git_push_log.txt
+	.git_remote_hash.txt
+	.git_status_log.txt
+	.github/scripts/ai_search_from_16b15b3.py
+	.github/scripts/ai_search_from_8e524cd.py
+	.tmp_actions_check.txt
+	.tmp_issue.html
+	.tmp_page1.html
+	.tmp_paper.html
+	_git_060b95b_raw.py
+	_git_45bd004_raw.py
+	_git_head_raw.py
+	_tmp_45bd004_ai_search.py
+	_tmp_bundle_keycheck.txt
+	_tmp_counts.txt
+	_tmp_head_ai_search.py
+	_tmp_mrdx_articles.json
+	_tmp_mrdx_pending.json
+	_tmp_online_bundle.js
+	_tmp_online_headers.txt
+	_tmp_online_index.html
+	_tmp_online_index_latest.html
+	_tmp_supabase_test.txt
+	eiIc{}WtuTStnl,
+	git_status.txt
+	push_output.txt
+	"{W-uu\357\200\242Sfmlset ."
+
+no changes added to commit (use "git add" and/or "git commit -a")

@@ -1,0 +1,22 @@
+﻿: keep-alive
+: *
+: max-age=31556952
+: MISS
+: A2A4:14B069:512D1A:537130:69E8B91C
+: 0
+: cache-nrt-rjaa8190054-NRT
+: MISS
+: 0
+: S1776859420.413315,VS0,VE180
+: Accept-Encoding
+: 97816c36f9692df4d8161451858a7848d88e63a2
+: bytes
+: 3851
+: max-age=600
+: text/html; charset=utf-8
+: Wed, 22 Apr 2026 12:03:40 GMT
+: Wed, 22 Apr 2026 12:13:40 GMT
+: "69e8a575-f0b"
+: Wed, 22 Apr 2026 10:39:49 GMT
+: GitHub.com
+: 1.1 varnish

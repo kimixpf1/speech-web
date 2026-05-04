@@ -1,0 +1,9 @@
+﻿git : fatal: unable to access 'https://kimixpf1@github.com/kimixpf1/speech-web.
+git/': Failed to connect to github.com port 443: Timed out
+所在位置 行:1 字符: 1
++ git -C "e:\ccswitch\AI编程工作目录\讲话网站\app" fetch origin 2>&1 | Out-File " ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (fatal: unable t... 443: Timed out 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 

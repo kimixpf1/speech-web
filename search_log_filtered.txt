@@ -1,0 +1,10 @@
+﻿2026-05-02T14:01:00.0876936Z Complete job name: ai-search
+2026-05-02T14:01:04.7644584Z ##[group]Run python .github/scripts/ai_search.py
+2026-05-02T14:01:04.7644932Z [36;1mpython .github/scripts/ai_search.py[0m
+2026-05-02T14:01:06.2501680Z === AI Scheduled Search 2026-05-02 14:01:05.363285 ===
+2026-05-02T14:01:06.2502096Z [CheckWindow] Evening window already ran at 2026-05-02T11:02:37+00:00 (Beijing hour 19)
+2026-05-02T14:01:06.2502557Z [Main] Current window already has a successful run. Skipping.
+2026-05-02T14:01:06.2502902Z === Done (skipped - already ran this window) ===
+2026-05-02T14:01:06.2736546Z ##[group]Run echo "AI Search completed at $(TZ='Asia/Shanghai' date)"
+2026-05-02T14:01:06.2737000Z [36;1mecho "AI Search completed at $(TZ='Asia/Shanghai' date)"[0m
+2026-05-02T14:01:06.2802534Z AI Search completed at Sat May  2 22:01:06 CST 2026
