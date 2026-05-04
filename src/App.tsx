@@ -12,7 +12,7 @@ import useSWR from 'swr';
 import { getArticles, getLocalArticlesSync, getZhengjiguanArticles, setupRealtimeSubscription, type Speech } from '@/services/articleServiceEnhanced';
 import { initAnalytics } from '@/services/analytics';
 import { isAdminLoggedInSync, isAdminLoggedIn } from '@/services/adminAuth';
-import { initAutoSearchScheduler } from '@/services/autoSearchScheduler';
+// autoSearchScheduler 已废弃，改用 GitHub Actions 定时搜索
 import { useDebounce } from '@/hooks/useDebounce';
 import { NotFoundPage } from '@/components/NotFoundPage';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -297,7 +297,7 @@ function HomePage() {
   // 初始化访问统计并设置实时订阅
   useEffect(() => {
     initAnalytics();
-    initAutoSearchScheduler();
+    // initAutoSearchScheduler() 已废弃，改用 GitHub Actions 定时搜索
 
     // 设置实时订阅，通过 SWR 的 mutate 方法更新本地缓存
     const unsubscribe = setupRealtimeSubscription(

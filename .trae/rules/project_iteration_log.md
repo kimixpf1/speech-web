@@ -1,5 +1,108 @@
 # 项目迭代记录
 
+## 2026-05-03 v2026.5.8 ErrorBoundary完善+搜索去重增强+PWA离线缓存
+
+### 本次目标
+- 完善 ErrorBoundary 组件（错误上报 + 重试按钮 + 更友好的降级 UI）
+- 增强搜索去重逻辑
+- 集成 PWA 离线缓存能力（Service Worker + manifest.webmanifest）
+
+### 实际改动
+
+#### 1. ErrorBoundary 组件完善
+- 文件：`src/components/ErrorBoundary.tsx`
+- 增强错误边界处理，提供更友好的降级 UI 和重试机制
+- 改进错误上报能力，便于线上问题排查
+
+#### 2. 搜索去重增强
+- 文件：`.github/scripts/ai_search.py`
+- 增强搜索管道的去重逻辑，减少重复文章入库
+
+#### 3. PWA 离线缓存集成
+- 文件：`vite.config.ts`、`src/App.tsx`
+- 集成 vite-plugin-pwa，支持 Service Worker 离线缓存
+- 配置 manifest.webmanifest，支持安装到桌面
+- 线上验证：manifest.webmanifest 链接已上线，sw.js Service Worker 已生效
+
+#### 4. 版本号更新
+- 文件：`package.json`、`package-lock.json`
+- 版本号从 v2026.5.7 升级到 v2026.5.8
+
+### 当前状态
+- ✅ 构建通过
+- ✅ 推送成功（13ff2dd）
+- ✅ Deploy #387 success（耗时 40 秒）
+- ✅ 线上版本 v2026.5.8 已生效
+- ✅ manifest.webmanifest 链接已在线上 HTML 中确认
+- ✅ sw.js Service Worker 已可访问
+- ✅ GitHub API 确认 package.json 版本为 2026.5.8
+
+### 提交记录
+- `13ff2dd` perf: v2026.5.8 - ErrorBoundary完善+搜索去重增强+PWA离线缓存
+
+### 遗留事项
+- 继续观察搜索管道去重效果
+- PWA 缓存策略可能需要根据实际使用情况微调
+
+## 2026-05-03 v2026.5.7 高优优化（2项）
+
+### 本次目标
+- 修复搜索待审核列表为空问题
+- 首页滚动懒加载优化
+
+### 根因分析
+- 待审核为空：前端 pendingArticleService.ts 使用 publicSupabase（anon key + 无session），但 RLS SELECT 策略要求 auth.role() = 'authenticated'，anon 被静默拒绝返回空集
+- 修复：改用 lib/supabase.ts 的 supabase 客户端（带session），管理员登录后以 authenticated 身份读取
+
+### 修改文件
+- src/services/pendingArticleService.ts：pending_articles CRUD 改用带session的supabase客户端
+- src/components/ContentList.tsx：IntersectionObserver 分组懒加载（初始3组，滚动加载更多）
+- package.json：版本号 v2026.5.6 → v2026.5.7
+
+### 当前状态
+- ✅ 构建通过
+- ✅ 推送成功（451de76）
+- ✅ Deploy #385 success
+- ✅ 线上版本 v2026.5.7 已生效
+
+### 遗留事项
+- 需用户在 Supabase SQL Editor 执行：pending_articles SELECT 策略改为 USING(true)
+
+### 提交记录
+- `451de76` perf: v2026.5.7 - 修复待审核RLS读取+滚动懒加载
+
+## 2026-05-03 修复部署失败
+
+### 问题
+- Deploy workflow #382/#383 连续失败，Build 步骤 6 秒就挂
+- 线上版本停在 `7244f52`，后续 4 个提交未上线
+- 没有日志访问权限，无法直接查看报错
+
+### 根因
+- 上一轮移除 34 个未用依赖时，`vite.config.ts` 的 `vendor-radix` 分包配置仍引用 4 个已删除的包：
+  - `@radix-ui/react-dropdown-menu`
+  - `@radix-ui/react-popover`
+  - `@radix-ui/react-tooltip`
+  - `@radix-ui/react-accordion`
+- 本地构建因 node_modules 残留通过，GitHub Actions 干净环境找不到这些模块导致失败
+
+### 修复
+- 文件：`vite.config.ts`
+- 将 `vendor-radix` 从引用 6 个包改为实际安装的 5 个包：
+  - `@radix-ui/react-dialog`、`react-select`、`react-tabs`、`react-progress`、`react-slot`
+
+### 当前状态
+- ✅ 本地构建成功（25 个文件，16.64s）
+- ✅ 推送 `11bfe99`
+- ⏳ 等待 GitHub Actions Deploy 结果
+
+### 提交记录
+- `11bfe99` fix: 修复部署失败 - vendor-radix分包配置引用已删除的包
+
+### 遗留事项
+- 等待部署完成后验证线上版本更新到 `11bfe99`
+- 部署成功后验证所有功能：首页加载、筛选、搜索、详情页、管理员登录
+
 ## 2026-05-03 高优先级优化（4项）
 
 ### 本次目标

@@ -27,8 +27,6 @@ env:
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
   SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
   SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-  KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
-  DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
 
 jobs:
   ai-search:
@@ -48,8 +46,6 @@ jobs:
           echo "Checking environment variables..."
           echo "SUPABASE_URL set: ${{ env.SUPABASE_URL != '' }}"
           echo "SUPABASE_SERVICE_ROLE_KEY set: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' }}"
-          echo "KIMI_API_KEY set: ${{ env.KIMI_API_KEY != '' }}"
-          echo "DASHSCOPE_API_KEY set: ${{ env.DASHSCOPE_API_KEY != '' }}"
 
       - name: Setup Python
         uses: actions/setup-python@v5
