@@ -86,7 +86,7 @@ function getSearchSystemPrompt(): string {
 
 【分类规则】
 - 会见 / 会谈 / 接见 -> 重要会议
-- 致电 / 贺电 / 贺信 / 回信 / 复信 -> 致电
+- 致电 / 贺电 / 贺信 / 回信 / 复信 -> 致电回信
 - 求是相关文章 -> 发表文章
 - 考察 / 调研 / 视察 -> 考察调研
 
@@ -765,7 +765,7 @@ async function crawlOfficialListPages(apiKey: string): Promise<SearchedArticle[]
  * 根据标题检测文章分类
  */
 function detectCategory(title: string): string {
-  if (title.includes('致电')) return 'call';
+  if (title.includes('致电') || title.includes('回信') || title.includes('复信')) return 'call';
   if (title.includes('会见') || title.includes('会谈') || title.includes('接见')) return 'meeting';
   if (title.includes('考察') || title.includes('调研') || title.includes('视察')) return 'inspection';
   if (title.includes('文章') || title.includes('发表') || title.includes('求是')) return 'article';
@@ -777,7 +777,7 @@ function detectCategory(title: string): string {
  * 根据标题检测分类名称
  */
 function detectCategoryName(title: string): string {
-  if (title.includes('致电')) return '致电';
+  if (title.includes('致电')) return '致电回信';
   if (title.includes('会见') || title.includes('会谈') || title.includes('接见')) return '重要会议';
   if (title.includes('考察') || title.includes('调研') || title.includes('视察')) return '考察调研';
   if (title.includes('文章') || title.includes('发表') || title.includes('求是')) return '发表文章';
