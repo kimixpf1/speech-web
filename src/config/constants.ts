@@ -1,7 +1,7 @@
 import {
   Mic, FileText, Users, MapPin as MapPinIcon,
   Building2, Building, Home,
-  TrendingUp, Landmark, BookOpen, Leaf, Flag, Shield, Globe, LayoutGrid,
+  TrendingUp, Landmark, BookOpen, Leaf, Flag, Shield, Globe, LayoutGrid, Phone,
 } from 'lucide-react';
 
 export const categoryConfig = {
@@ -9,7 +9,7 @@ export const categoryConfig = {
   article: { icon: FileText, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-100', label: '发表文章' },
   meeting: { icon: Users, color: 'text-purple-600', bgColor: 'bg-purple-50', borderColor: 'border-purple-100', label: '重要会议' },
   inspection: { icon: MapPinIcon, color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-100', label: '考察调研' },
-  call: { icon: Globe, color: 'text-cyan-600', bgColor: 'bg-cyan-50', borderColor: 'border-cyan-100', label: '致电回信' },
+  call: { icon: Phone, color: 'text-cyan-600', bgColor: 'bg-cyan-50', borderColor: 'border-cyan-100', label: '致电回信' },
 } as const;
 
 export const domainConfig = {
@@ -57,6 +57,7 @@ export const categoryIconMap: Record<string, React.ElementType> = {
   Users,
   MapPin: MapPinIcon,
   Globe,
+  Phone,
 };
 
 export const domainIconMap: Record<string, React.ElementType> = {

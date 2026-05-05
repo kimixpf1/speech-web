@@ -107,7 +107,7 @@ function getSearchSystemPrompt(): string {
   "title": "完整新闻标题",
   "date": "YYYY-MM-DD",
   "category": "speech/article/meeting/inspection/call",
-  "categoryName": "重要讲话/发表文章/重要会议/考察调研/致电",
+  "categoryName": "重要讲话/发表文章/重要会议/考察调研/致电回信",
   "source": "人民网/新华网/央视等",
   "url": "搜索结果中的真实URL",
   "summary": "一句话摘要"

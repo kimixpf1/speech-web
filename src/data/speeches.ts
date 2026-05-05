@@ -1021,7 +1021,7 @@ export const categoryOptions = [
   { value: 'article', label: '发表文章', icon: 'FileText' },
   { value: 'meeting', label: '重要会议', icon: 'Users' },
   { value: 'inspection', label: '考察调研', icon: 'MapPin' },
-  { value: 'call', label: '致电回信', icon: 'Globe' }
+  { value: 'call', label: '致电回信', icon: 'Phone' }
 ];
 
 // 领域分类配置

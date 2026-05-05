@@ -56,7 +56,7 @@ CATEGORY_KEYWORDS = {
     'speech': ['讲话', '指示', '批示', '贺电', '贺信', '致辞', '发言', '回信', '复信', '命令', '主旨演讲'],
 }
 
-CATEGORY_NAMES = {'speech': '重要讲话', 'article': '发表文章', 'meeting': '重要会议', 'inspection': '考察调研', 'call': '致电'}
+CATEGORY_NAMES = {'speech': '重要讲话', 'article': '发表文章', 'meeting': '重要会议', 'inspection': '考察调研', 'call': '致电回信'}
 DOMAIN_NAMES = {'economy': '经济', 'politics': '政治', 'culture': '文化', 'society': '社会',
                 'ecology': '生态', 'party': '党建', 'defense': '国防', 'diplomacy': '外交'}
 
@@ -299,7 +299,7 @@ def detect_category(article: Dict) -> str:
     url = (article.get('url', '') or '').lower()
     is_qstheory = 'qstheory.cn' in url or '求是' in source
 
-    if '致电' in title:
+    if any(kw in title for kw in ['致电', '回信', '复信']):
         return 'call'
 
     if '会见' in title:
