@@ -361,22 +361,21 @@ def validate_article(article: Dict) -> Dict:
 
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
-        resp = requests.head(url, timeout=10, allow_redirects=True, headers=headers)
+        resp = requests.head(url, timeout=5, allow_redirects=True, headers=headers)
         if resp.status_code < 400:
             return result
     except Exception:
         pass
 
     try:
-        resp = requests.get(url, timeout=15, allow_redirects=True, headers=headers, stream=True)
+        resp = requests.get(url, timeout=8, allow_redirects=True, headers=headers, stream=True)
         if resp.status_code >= 400:
             result['valid'] = False
             result['reasons'].append(f'URL返回错误: {resp.status_code}')
             return result
         return result
     except Exception as e:
-        result['valid'] = False
-        result['reasons'].append(f'URL无法访问: {str(e)[:50]}')
+        print(f'[Validate] URL check failed (treating as valid): {url} - {str(e)[:50]}')
         return result
 
 
@@ -1234,11 +1233,27 @@ def main():
 
     main_query, queries, search_date, target_date = get_search_query()
 
-    xinhua_articles = search_xinhua_mrdx()
-    rmrb_articles = search_rmrb()
-    people_articles = search_people_jhsjk()
-    qstheory_articles = search_qstheory()
-    baidu_articles = search_with_baidu(queries)
+    all_search_results = {}
+    search_sources = [
+        ('xinhua', search_xinhua_mrdx),
+        ('rmrb', search_rmrb),
+        ('people', search_people_jhsjk),
+        ('qstheory', search_qstheory),
+        ('baidu', lambda: search_with_baidu(queries)),
+    ]
+    for name, func in search_sources:
+        try:
+            all_search_results[name] = func()
+            print(f'[Search] {name}: {len(all_search_results[name])} articles')
+        except Exception as e:
+            print(f'[Search] {name} FAILED: {e}')
+            all_search_results[name] = []
+
+    xinhua_articles = all_search_results.get('xinhua', [])
+    rmrb_articles = all_search_results.get('rmrb', [])
+    people_articles = all_search_results.get('people', [])
+    qstheory_articles = all_search_results.get('qstheory', [])
+    baidu_articles = all_search_results.get('baidu', [])
 
     merged, merge_info = merge_and_dedupe(baidu_articles, people_articles, qstheory_articles, xinhua_articles, rmrb_articles)
     print(f'[Merge] After dedup: {len(merged)} articles')
