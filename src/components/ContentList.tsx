@@ -14,19 +14,8 @@ export function ContentList({ speeches }: ContentListProps) {
   const [visibleCount, setVisibleCount] = useState(INITIAL_GROUPS);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  if (speeches.length === 0) {
-    return (
-      <div className="text-center py-16">
-        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <FileText className="w-10 h-10 text-gray-400" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">暂无相关内容</h3>
-        <p className="text-gray-500 text-sm">请尝试调整筛选条件或搜索关键词</p>
-      </div>
-    );
-  }
-
   const { grouped, sortedKeys } = useMemo(() => {
+    if (speeches.length === 0) return { grouped: {}, sortedKeys: [] as string[] };
     const grouped = speeches.reduce((acc, speech) => {
       const key = `${speech.year}年${String(speech.month).padStart(2, '0')}月`;
       if (!acc[key]) acc[key] = [];
@@ -63,6 +52,18 @@ export function ContentList({ speeches }: ContentListProps) {
   const handleSaveScroll = useCallback(() => {
     sessionStorage.setItem('lastScrollY', window.scrollY.toString());
   }, []);
+
+  if (speeches.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <FileText className="w-10 h-10 text-gray-400" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-1">暂无相关内容</h3>
+        <p className="text-gray-500 text-sm">请尝试调整筛选条件或搜索关键词</p>
+      </div>
+    );
+  }
 
   const visibleKeys = sortedKeys.slice(0, visibleCount);
   const hasMore = visibleCount < sortedKeys.length;
