@@ -101,7 +101,8 @@ FILTER_RULES = {
         '习近平会见', '习近平同', '习近平出席', '习近平主持', '习近平在',
         '总书记会见', '总书记主持', '总书记在', '习近平致电', '习近平回信',
         '习近平致贺电', '习近平致贺信', '习近平发表', '习近平考察', '习近平调研',
-        '习近平向', '习近平致', '习近平复信'
+        '习近平向', '习近平致', '习近平复信', '习近平对', '作出重要指示',
+        '作出重要批示', '作出批示', '习近平就'
     ],
 }
 
@@ -109,7 +110,7 @@ DIPLOMACY_TRIGGER_KEYWORDS = ['致电', '贺电', '贺信', '回信', '复信', 
 QSTHEORY_DUPLICATE_PREFIXES = [
     '《求是》杂志发表习近平总书记重要文章',
     '《求是》杂志发表习近平总书记重要文章：',
-    '《求是》杂志发表习近平总书记重要文章“',
+    '《求是》杂志发表习近平总书记重要文章"',
     '《求是》杂志发表习近平总书记重要文章《',
 ]
 
@@ -169,7 +170,7 @@ def normalize_article_title(title: str) -> str:
 
     for prefix in QSTHEORY_TITLE_PREFIXES:
         if title.startswith(prefix):
-            title = title[len(prefix):].strip(' ：:《》“”"')
+            title = title[len(prefix):].strip(' ：:《》""')
 
     title = re.sub(r'^习近平：', '', title).strip()
     title = re.sub(r'^习近平\s+', '', title).strip()
@@ -181,7 +182,7 @@ def normalize_article_title(title: str) -> str:
 
 def simplify_title(t):
     normalized = normalize_article_title(t)
-    return re.sub(r'[《》“”"「」『』【】\s：:·\-—（）()、，,\.．]', '', normalized)
+    return re.sub(r'[《》""「」『』【】\s：:·\-—（）()、，,\.．]', '', normalized)
 
 
 def get_beijing_now() -> datetime:
@@ -203,12 +204,10 @@ def fix_source_from_url(url, fallback='官方媒体'):
     url_lower = url.lower()
     if 'qstheory.cn' in url_lower:
         return '求是网'
-    # paper.people.com.cn 必须在 people.com.cn 之前判断，否则人民日报电子版会被误判为人民网
     if 'paper.people.com.cn' in url_lower:
         return '人民日报'
     if 'people.com.cn' in url_lower or 'jhsjk.people.cn' in url_lower:
         return '人民网'
-    # mrdx.cn 是新华每日电讯，属于新华社旗下报纸，归为"新华社"
     if 'xinhuanet.com' in url_lower or 'news.cn' in url_lower or 'mrdx.cn' in url_lower:
         return '新华社'
     if 'gov.cn' in url_lower:
@@ -227,7 +226,6 @@ def normalize_url_for_dedup(url):
         return url
     u = url.strip().lower()
     u = u.replace('https://', 'http://')
-    # 去掉查询参数和锚点
     u = u.split('?')[0]
     u = u.split('#')[0]
     if u.endswith('/'):
@@ -235,7 +233,6 @@ def normalize_url_for_dedup(url):
     u = u.replace('www.', '')
     u = u.replace('//mrdx.cn/', '//www.mrdx.cn/')
     u = u.replace('//news.cn/', '//www.news.cn/')
-    # 补充更多域名 www 映射
     u = u.replace('//people.com.cn/', '//www.people.com.cn/')
     u = u.replace('//xinhuanet.com/', '//www.xinhuanet.com/')
     u = u.replace('//cctv.com/', '//www.cctv.com/')
@@ -416,7 +413,6 @@ def search_with_baidu(queries: List[str]) -> List[Dict]:
     seen_baidu_titles = set()
     blocked = False
     
-    # 只用第一个 query + 3个核心站点，减少被封概率
     fallback_sites = ['xinhuanet.com', 'news.cn', 'people.com.cn', 'qstheory.cn']
     fallback_query = queries[0] if queries else ''
     
@@ -431,7 +427,6 @@ def search_with_baidu(queries: List[str]) -> List[Dict]:
             if resp.status_code != 200:
                 continue
             
-            # 反爬虫检测：百度安全验证页
             if '百度安全验证' in resp.text or '安全验证' in resp.text[:500]:
                 print(f'[Baidu] Anti-bot detected for {site}, stopping all Baidu searches')
                 blocked = True
@@ -455,7 +450,7 @@ def search_with_baidu(queries: List[str]) -> List[Dict]:
                 articles.append({
                     'title': title,
                     'url': title_elem.get('href', ''),
-                    'source': '',  # 留空，由后续 fix_source_from_url 统一修正
+                    'source': '',
                     'date': (datetime.utcnow() + timedelta(hours=8)).date().isoformat(),
                     'summary': title,
                 })
@@ -483,7 +478,6 @@ def search_people_jhsjk() -> List[Dict]:
         return []
     
     try:
-        # 抓取人民网讲话数据库首页
         resp = requests.get('http://jhsjk.people.cn/article', headers=headers, timeout=30)
         if resp.status_code != 200:
             print(f'[People JHSJK] HTTP error: {resp.status_code}')
@@ -492,11 +486,9 @@ def search_people_jhsjk() -> List[Dict]:
         resp.encoding = 'utf-8'
         soup = BeautifulSoup(resp.text, 'html.parser')
         
-        # 查找所有文章链接 - 国内和国际部分
         valid_dates = get_recent_valid_dates(2)
         fallback_article_date = valid_dates[0]
         
-        # 查找所有 li 元素中的链接
         for li in soup.select('li'):
             link = li.find('a')
             if not link:
@@ -505,11 +497,9 @@ def search_people_jhsjk() -> List[Dict]:
             title = link.get_text(strip=True)
             href = link.get('href', '')
             
-            # 跳过非文章链接
             if not title or not href or 'article' not in href:
                 continue
             
-            # 跳过非习近平相关
             if '习近平' not in title and '总书记' not in title:
                 if '习近平主席' not in title and '国家主席' not in title:
                     continue
@@ -517,15 +507,12 @@ def search_people_jhsjk() -> List[Dict]:
             date_match = re.search(r'\[(\d{4}-\d{2}-\d{2})', li.get_text())
             if date_match:
                 article_date = date_match.group(1)
-                # 只要最近2天的
                 if article_date not in valid_dates:
                     print(f'[People JHSJK] 跳过旧文章: {title[:30]}... ({article_date})')
                     continue
             else:
-                # 没有日期时，使用北京时间当天作为兜底
                 article_date = fallback_article_date
             
-            # 构建完整URL
             if href.startswith('/'):
                 full_url = f'http://jhsjk.people.cn{href}'
             elif href.startswith('http'):
@@ -814,7 +801,7 @@ def search_xinhua_mrdx() -> List[Dict]:
 
             for a_tag in soup.find_all('a', href=True):
                 title = a_tag.get_text(' ', strip=True)
-                href = a_tag.get('href', '').strip()
+                href = a_tag.get('href').strip()
                 context_text = ' '.join(filter(None, [
                     title,
                     a_tag.parent.get_text(' ', strip=True) if a_tag.parent else '',
@@ -862,7 +849,7 @@ def search_rmrb() -> List[Dict]:
 
                 for a_tag in soup.find_all('a', href=True):
                     title = a_tag.get_text(' ', strip=True)
-                    href = a_tag.get('href', '').strip()
+                    href = a_tag.get('href').strip()
                     if not title or len(title) < 8:
                         continue
                     if '习近平' not in title and '总书记' not in title:
