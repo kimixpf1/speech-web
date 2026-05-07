@@ -4,8 +4,8 @@ on:
   schedule:
     - cron: '0 0 * * *'
     - cron: '30 0 * * *'
-    - cron: '0 13 * * *'
-    - cron: '30 13 * * *'
+    - cron: '0 12 * * *'
+    - cron: '30 12 * * *'
   workflow_dispatch:
     inputs:
       triggered_from:
