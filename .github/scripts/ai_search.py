@@ -81,6 +81,7 @@ FILTER_RULES = {
         '韩正会见', '韩正在', '韩正出席', '韩正分别',
         '王毅会见', '王毅在', '王毅出席', '王毅同', '王毅与',
         '读者会在', '发布会在',
+        '高度赞赏', '高度评价', '赞赏习近平', '评价习近平',
     ],
     'non_direct_xi_patterns': [
         r'^领会总书记',
@@ -349,7 +350,7 @@ def validate_article(article: Dict) -> Dict:
             art_date = datetime.strptime(article_date, '%Y-%m-%d')
             today = datetime.utcnow() + timedelta(hours=8)
             days_diff = (today - art_date).days
-            if days_diff > 1 or days_diff < -2:
+            if days_diff > 1 or days_diff < -1:
                 result['valid'] = False
                 result['reasons'].append(f'日期过旧: {article_date}（距今{days_diff}天）')
                 return result
@@ -487,7 +488,6 @@ def search_people_jhsjk() -> List[Dict]:
         soup = BeautifulSoup(resp.text, 'html.parser')
         
         valid_dates = get_recent_valid_dates(2)
-        fallback_article_date = valid_dates[0]
         
         for li in soup.select('li'):
             link = li.find('a')
@@ -511,7 +511,7 @@ def search_people_jhsjk() -> List[Dict]:
                     print(f'[People JHSJK] 跳过旧文章: {title[:30]}... ({article_date})')
                     continue
             else:
-                article_date = fallback_article_date
+                continue
             
             if href.startswith('/'):
                 full_url = f'http://jhsjk.people.cn{href}'
@@ -1076,8 +1076,8 @@ def save_articles(articles: List[Dict]) -> int:
                      'Content-Type': 'application/json', 'Prefer': 'return=minimal,resolution=merge-duplicates'},
             json=articles, timeout=30
         )
-        if resp.status_code in (200, 201):
-            print(f'[Save] Successfully saved {len(articles)} articles')
+        if resp.status_code in (200, 201, 204):
+            print(f'[Save] Successfully saved {len(articles)} articles (HTTP {resp.status_code})')
             return len(articles)
         else:
             print(f'[Save] FAILED: HTTP {resp.status_code} - {resp.text[:500]}')
