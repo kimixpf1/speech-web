@@ -2,6 +2,8 @@ import { supabase } from '@/lib/supabase';
 
 const AUTH_KEY = 'admin_authenticated';
 const AUTH_TIMESTAMP_KEY = 'admin_auth_ts';
+const REMEMBER_KEY = 'admin_remember';
+const CRED_KEY = 'admin_cred';
 const SESSION_MAX_AGE = 24 * 60 * 60 * 1000;
 
 const ADMIN_USER_IDS = [
@@ -27,11 +29,62 @@ function clearAuthState(): void {
   localStorage.removeItem(AUTH_TIMESTAMP_KEY);
 }
 
+// 凭据以 Base64 编码存储于 localStorage。
+// 安全边界：这不是加密，仅防随手翻看。XSS 或物理访问可解码。
+// 本方案用于纯前端 Jamstack 站点（无服务端 session），Supabase Auth 自身已做 session 持久化。
+
+function encodeCred(username: string, password: string): string {
+  return btoa(`${username}:${password}`);
+}
+
+function decodeCred(encoded: string): { username: string; password: string } | null {
+  try {
+    const decoded = atob(encoded);
+    const colonIdx = decoded.indexOf(':');
+    if (colonIdx <= 0) return null;
+    return {
+      username: decoded.substring(0, colonIdx),
+      password: decoded.substring(colonIdx + 1),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveCredentials(username: string, password: string): void {
+  localStorage.setItem(REMEMBER_KEY, 'true');
+  localStorage.setItem(CRED_KEY, encodeCred(username, password));
+}
+
+function getSavedCredentials(): { username: string; password: string } | null {
+  if (localStorage.getItem(REMEMBER_KEY) !== 'true') return null;
+  const encoded = localStorage.getItem(CRED_KEY);
+  if (!encoded) return null;
+  return decodeCred(encoded);
+}
+
+function clearSavedCredentials(): void {
+  localStorage.removeItem(REMEMBER_KEY);
+  localStorage.removeItem(CRED_KEY);
+}
+
+export function isRemembered(): boolean {
+  return localStorage.getItem(REMEMBER_KEY) === 'true';
+}
+
 /**
  * 管理员登录 - 使用 Supabase Auth
  */
-export async function loginAdmin(username: string, password: string): Promise<{ success: boolean; error?: string }> {
+export async function loginAdmin(
+  username: string,
+  password: string,
+  rememberMe = false,
+): Promise<{ success: boolean; error?: string; isNetworkError?: boolean }> {
   try {
+    if (!username?.trim() || !password?.trim()) {
+      return { success: false, error: '用户名和密码不能为空' };
+    }
+
     const email = `${username}@office.local`;
 
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -54,10 +107,34 @@ export async function loginAdmin(username: string, password: string): Promise<{ 
 
     localStorage.setItem(AUTH_KEY, 'true');
     localStorage.setItem(AUTH_TIMESTAMP_KEY, Date.now().toString());
+
+    if (rememberMe) {
+      saveCredentials(username, password);
+    }
+
     return { success: true };
-  } catch (error) {
-    return { success: false, error: '登录异常' };
+  } catch (err) {
+    console.error('[adminAuth] loginAdmin failed:', err);
+    return { success: false, error: '登录异常', isNetworkError: true };
   }
+}
+
+/**
+ * 尝试用记住的凭据自动登录
+ * 成功返回 true，失败清除凭据返回 false
+ */
+export async function tryAutoLogin(): Promise<boolean> {
+  const cred = getSavedCredentials();
+  if (!cred) return false;
+
+  const result = await loginAdmin(cred.username, cred.password, true);
+  if (!result.success) {
+    if (!result.isNetworkError) {
+      clearSavedCredentials();
+    }
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -81,7 +158,8 @@ export async function isAdminLoggedIn(): Promise<boolean> {
     }
 
     return true;
-  } catch {
+  } catch (err) {
+    console.error('[adminAuth] isAdminLoggedIn failed:', err);
     return false;
   }
 }
@@ -99,10 +177,14 @@ export function isAdminLoggedInSync(): boolean {
 
 /**
  * 管理员登出
+ * @param forgetMe 是否同时清除记住的凭据
  */
-export async function logoutAdmin(): Promise<void> {
+export async function logoutAdmin(forgetMe = false): Promise<void> {
   await supabase.auth.signOut();
   clearAuthState();
+  if (forgetMe) {
+    clearSavedCredentials();
+  }
 }
 
 /**
@@ -122,7 +204,8 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
       username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || '',
       isAuthenticated: true,
     };
-  } catch {
+  } catch (err) {
+    console.error('[adminAuth] getCurrentAdmin failed:', err);
     return null;
   }
 }

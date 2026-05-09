@@ -4,7 +4,7 @@
  */
 
 const GITHUB_REPO = 'kimixpf1/speech-web';
-const WORKFLOW_FILE = 'fetch-articles.yml';
+const WORKFLOW_FILE = 'ai-auto-search.yml';
 
 export interface TriggerResult {
   success: boolean;

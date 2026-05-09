@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { loginAdmin } from '@/services/adminAuth';
+import { loginAdmin, tryAutoLogin, isRemembered } from '@/services/adminAuth';
 
 interface AdminLoginProps {
   onLoginSuccess: () => void;
@@ -16,23 +16,37 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isAutoLogging, setIsAutoLogging] = useState(isRemembered());
+
+  useEffect(() => {
+    if (!isRemembered()) {
+      setIsAutoLogging(false);
+      return;
+    }
+    tryAutoLogin().then((ok) => {
+      if (ok) {
+        onLoginSuccess();
+      } else {
+        setIsAutoLogging(false);
+      }
+    });
+  }, [onLoginSuccess]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    // 简单验证
     if (!username.trim() || !password.trim()) {
       setError('请输入用户名和密码');
       setIsLoading(false);
       return;
     }
 
-    // 使用 Supabase Auth 登录
-    loginAdmin(username, password).then((result) => {
+    loginAdmin(username, password, rememberMe).then((result) => {
       if (result.success) {
         onLoginSuccess();
       } else {
@@ -42,10 +56,20 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
     });
   };
 
+  if (isAutoLogging) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="w-10 h-10 border-3 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-gray-500">自动登录中...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* 返回按钮 */}
         <Button
           variant="ghost"
           onClick={() => navigate('/')}
@@ -107,6 +131,19 @@ export function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500 cursor-pointer"
+                />
+                <label htmlFor="rememberMe" className="ml-2 text-sm text-gray-600 cursor-pointer select-none">
+                  记住密码，下次自动登录
+                </label>
               </div>
 
               <Button
