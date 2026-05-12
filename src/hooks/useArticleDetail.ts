@@ -40,7 +40,7 @@ export function useArticleDetail(id: string | undefined): UseArticleDetailReturn
     if (id) {
       const loadDetailAndSet = async (baseSpeech: Speech) => {
         try {
-          const cloudDetail = await getArticleDetail(id, true);
+          const cloudDetail = await getArticleDetail(id, false);
           if (cloudDetail && (cloudDetail.abstract || cloudDetail.analysis || cloudDetail.fullText)) {
             setSpeech({
               ...baseSpeech,
