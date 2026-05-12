@@ -10,7 +10,7 @@ import {
 import { normalizeArticleUrl, normalizeSummaryText } from '@/lib/utils';
 
 const ARTICLES_TABLE = 'articles';
-const ARTICLE_FIELDS = 'id,title,date,year,month,day,category,categoryname,domain,domain_name,is_zhengjiguan,zhengjiguan_level,source,location,summary,url';
+const ARTICLE_FIELDS = 'id,title,date,year,month,day,category,categoryname,domain,domain_name,is_zhengjiguan,zhengjiguan_level,source,location,summary,url,updated_at';
 
 const SUPABASE_PROJECT_REF = 'ejeiuqcmkznfbglvbkbe';
 const DEFAULT_SUPABASE_URL = `https://${SUPABASE_PROJECT_REF}.supabase.co`;
@@ -298,35 +298,80 @@ async function syncStaticDataToCloud(): Promise<void> {
   }
 }
 
-// 获取所有文章（排除政绩观专题文章）
-export async function getArticles(): Promise<Speech[]> {
+// 轻量检查云端是否有更新（仅拉1条 updated_at，~100字节）
+async function checkCloudHasNewer(): Promise<boolean> {
+  const lastSync = localStorage.getItem('last_cloud_sync_time') || '';
+  if (!lastSync) return true; // 从未同步过
+
   try {
-    if (navigator.onLine) {
-      const cloudArticles = await fetchFromCloud();
-      
-      // 只有云端完全无数据时才同步静态数据（初始化场景）
-      // 注意：不再根据数量比较来触发同步，避免覆盖用户修改
-      if (cloudArticles.length === 0) {
-        console.log('云端无数据，正在初始化同步...');
-        await syncStaticDataToCloud();
-        const syncedArticles = await fetchFromCloud();
-        if (syncedArticles.length > 0) {
-          saveLocalCache(syncedArticles);
-          return syncedArticles.filter(a => !a.isZhengjiguan);
+    const { data, error } = await supabase
+      .from(ARTICLES_TABLE)
+      .select('updated_at')
+      .order('updated_at', { ascending: false })
+      .limit(1);
+
+    if (error || !data || data.length === 0) return false;
+
+    const cloudLatest = data[0] as { updated_at?: string };
+    if (cloudLatest.updated_at && cloudLatest.updated_at > lastSync) return true;
+
+    return false;
+  } catch (e) {
+    console.warn('检查云端更新失败，下次重试:', e);
+    return false;
+  }
+}
+
+// 获取所有文章（缓存优先 + 增量同步，大幅降低带宽）
+export async function getArticles(): Promise<Speech[]> {
+  const cache = getLocalCache();
+
+  if (navigator.onLine) {
+    try {
+      // 空缓存：首次访问，做一次全量拉取建立本地缓存
+      if (cache.length === 0) {
+        const cloudArticles = await fetchFromCloud();
+        if (cloudArticles.length === 0) {
+          // 云端也空，初始化同步静态数据
+          console.log('云端无数据，正在初始化同步...');
+          await syncStaticDataToCloud();
+          const syncedArticles = await fetchFromCloud();
+          if (syncedArticles.length > 0) {
+            saveLocalCache(syncedArticles);
+            localStorage.setItem('last_cloud_sync_time', new Date().toISOString());
+            return syncedArticles.filter(a => !a.isZhengjiguan);
+          }
+        } else {
+          saveLocalCache(cloudArticles);
+          localStorage.setItem('last_cloud_sync_time', new Date().toISOString());
+          return cloudArticles.filter(a => !a.isZhengjiguan);
+        }
+        // 回退到静态数据
+        return [...speechesData].map(ensureDomainField).filter(a => !a.isZhengjiguan);
+      }
+
+      // 有缓存：轻量检查（~100字节），仅在云端有更新时才全量同步
+      const hasUpdates = await checkCloudHasNewer();
+      if (hasUpdates) {
+        console.log('检测到云端更新，同步中...');
+        const cloudArticles = await fetchFromCloud();
+        if (cloudArticles.length > 0) {
+          saveLocalCache(cloudArticles);
+          localStorage.setItem('last_cloud_sync_time', new Date().toISOString());
+          return cloudArticles.filter(a => !a.isZhengjiguan);
         }
       }
-      
-      if (cloudArticles.length > 0) {
-        saveLocalCache(cloudArticles);
-        // 排除政绩观专题文章
-        return cloudArticles.filter(a => !a.isZhengjiguan);
-      }
+    } catch (e) {
+      console.error('Get articles error:', e);
     }
-  } catch (e) {
-    console.error('Get articles error:', e);
+
+    // 在线但无更新，直接返回缓存
+    if (cache.length > 0) {
+      return cache.filter(a => !a.isZhengjiguan);
+    }
   }
 
-  // 使用本地缓存或静态数据
+  // 离线或缓存为空：使用本地缓存或静态数据兜底
   const cached = getLocalCache();
   if (cached.length > 0) {
     return cached.filter(a => !a.isZhengjiguan);
