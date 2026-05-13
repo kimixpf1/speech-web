@@ -56,6 +56,20 @@ jobs:
         env:
           FORCE_RUN: ${{ github.event.inputs.force_run || 'false' }}
 
+      - name: Commit batch files (应急本地存储，2026-05-20后移除)
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/scripts/batches/ --all
+          if git diff --cached --quiet; then
+            echo "No batch file changes to commit"
+          else
+            git pull --rebase origin main
+            git commit -m "chore: auto-commit AI search batch files [skip ci]"
+            git push origin main
+          fi
+
       - name: Report status
         if: always()
         run: echo "AI Search completed at $(TZ='Asia/Shanghai' date)"
