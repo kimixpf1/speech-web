@@ -122,6 +122,16 @@ export async function loginAdmin(
     });
 
     if (error) {
+      // 临时本地验证（Supabase Auth 不可用时的应急方案，2026-05-20后恢复）
+      console.warn('[adminAuth] Supabase Auth 错误，尝试本地验证:', error.message);
+      const ok = await verifyLocalCredential(username, password);
+      if (ok) {
+        setLocalAuthState();
+        if (rememberMe) {
+          saveCredentials(username, password);
+        }
+        return { success: true };
+      }
       return { success: false, error: error.message };
     }
 
