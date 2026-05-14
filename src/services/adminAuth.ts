@@ -198,7 +198,8 @@ export async function isAdminLoggedIn(): Promise<boolean> {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
-      return false;
+      // Supabase 不可用时 session 为 null（不抛异常），回退本地验证
+      return isAdminLoggedInSync();
     }
 
     if (!ADMIN_USER_IDS.includes(session.user.id)) {
@@ -249,6 +250,15 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session || !ADMIN_USER_IDS.includes(session.user.id)) {
+      // Supabase 不可用时回退本地
+      if (isAdminLoggedInSync()) {
+        return {
+          id: 'local-bypass',
+          email: 'admin@office.local',
+          username: 'admin',
+          isAuthenticated: true,
+        };
+      }
       return null;
     }
 
