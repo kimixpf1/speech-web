@@ -148,5 +148,20 @@
     "status": "pending",
     "discovered_by": "ai_auto_xinhua",
     "fetched_at": "2026-05-15T02:12:56.840315"
+  },
+  {
+    "id": "52ff0536-2c50-40ce-84c1-6b8bcde1d36f",
+    "title": "习近平：做强做优做大实体经济",
+    "url": "https://www.qstheory.cn/20260515/b875d723c32f4df8876d45f7b178aa33/c.html",
+    "date": "2026-05-15",
+    "source": "求是网",
+    "summary": "习近平：做强做优做大实体经济",
+    "category": "article",
+    "categoryname": "发表文章",
+    "domain": "economy",
+    "domain_name": "经济",
+    "status": "pending",
+    "discovered_by": "ai_auto_qstheory",
+    "fetched_at": "2026-05-15T09:14:48.607980"
   }
 ]
