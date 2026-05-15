@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bell, Check, Clock, Copy, ExternalLink, Loader2, RefreshCw, Settings, Sparkles, TrendingUp, X, ArrowRight } from 'lucide-react';
 import type { PendingArticle, SearchLog } from '@/services/pendingArticleService';
+import { isBatchArticle } from '@/services/pendingArticleService';
 import type { Speech } from '@/services/articleServiceEnhanced';
 
 interface TodayStats {
@@ -547,9 +548,18 @@ export function AdminPendingTab({
         </Card>
       ) : (
         <div className="space-y-3">
-          <p className="text-sm text-gray-500">共 {pendingArticles.length} 篇待处理</p>
-          {pendingArticles.map((article) => (
-            <Card key={article.id} className="border-l-4 border-l-purple-400 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500">共 {pendingArticles.length} 篇待处理</p>
+            {pendingArticles.some(a => isBatchArticle(a)) && (
+              <Badge className="bg-amber-100 text-amber-700 border-amber-300 text-xs">
+                Supabase 暂停中 · 文章暂存于 GitHub · 恢复后可管理
+              </Badge>
+            )}
+          </div>
+          {pendingArticles.map((article) => {
+            const isBatch = isBatchArticle(article);
+            return (
+            <Card key={article.id} className={`border-l-4 hover:shadow-md transition-shadow ${isBatch ? 'border-l-amber-400 bg-amber-50/30' : 'border-l-purple-400'}`}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -593,17 +603,20 @@ export function AdminPendingTab({
                     )}
                     <Button
                       size="sm"
-                      className="bg-purple-600 hover:bg-purple-700 text-white text-xs"
-                      onClick={() => onApprovePending(article)}
+                      className={`text-xs ${isBatch ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700 text-white'}`}
+                      onClick={() => !isBatch && onApprovePending(article)}
+                      disabled={isBatch}
+                      title={isBatch ? 'Supabase 恢复后可操作' : '新增到系统'}
                     >
                       <ArrowRight className="w-3 h-3 mr-1" />
-                      新增到系统
+                      {isBatch ? '待恢复' : '新增到系统'}
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
                       className="text-xs text-gray-400 hover:text-red-600"
-                      onClick={() => onRejectPending(article.id)}
+                      onClick={() => !isBatch && onRejectPending(article.id)}
+                      disabled={isBatch}
                     >
                       <X className="w-3 h-3 mr-1" />
                       忽略
@@ -612,7 +625,8 @@ export function AdminPendingTab({
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
