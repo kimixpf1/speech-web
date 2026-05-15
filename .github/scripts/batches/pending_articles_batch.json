@@ -103,5 +103,50 @@
     "status": "pending",
     "discovered_by": "ai_auto_qstheory",
     "fetched_at": "2026-05-14T07:33:37.316272"
+  },
+  {
+    "id": "a456d853-9753-4d80-9ed6-3440d768f799",
+    "title": "习近平同美国总统特朗普会谈",
+    "url": "http://mrdx.cn/content/20260515/Articel01001NR.htm",
+    "date": "2026-05-15",
+    "source": "新华社",
+    "summary": "习近平同美国总统特朗普会谈",
+    "category": "speech",
+    "categoryname": "重要讲话",
+    "domain": "diplomacy",
+    "domain_name": "外交",
+    "status": "pending",
+    "discovered_by": "ai_auto_xinhua",
+    "fetched_at": "2026-05-15T02:12:55.763293"
+  },
+  {
+    "id": "ef08d506-3822-43ce-82b1-9fcaebc3ac5d",
+    "title": "习近平同美国总统特朗普参观天坛",
+    "url": "http://mrdx.cn/content/20260515/Articel01002NR.htm",
+    "date": "2026-05-15",
+    "source": "新华社",
+    "summary": "习近平同美国总统特朗普参观天坛",
+    "category": "speech",
+    "categoryname": "重要讲话",
+    "domain": "diplomacy",
+    "domain_name": "外交",
+    "status": "pending",
+    "discovered_by": "ai_auto_xinhua",
+    "fetched_at": "2026-05-15T02:12:56.405282"
+  },
+  {
+    "id": "c89b1058-e7d9-46b9-8a84-5128b7f0e696",
+    "title": "习近平为美国总统特朗普举行欢迎宴会",
+    "url": "http://mrdx.cn/content/20260515/Articel01003NR.htm",
+    "date": "2026-05-15",
+    "source": "新华社",
+    "summary": "习近平为美国总统特朗普举行欢迎宴会",
+    "category": "speech",
+    "categoryname": "重要讲话",
+    "domain": "diplomacy",
+    "domain_name": "外交",
+    "status": "pending",
+    "discovered_by": "ai_auto_xinhua",
+    "fetched_at": "2026-05-15T02:12:56.840315"
   }
 ]
