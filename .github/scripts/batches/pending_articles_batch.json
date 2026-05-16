@@ -163,5 +163,35 @@
     "status": "pending",
     "discovered_by": "ai_auto_qstheory",
     "fetched_at": "2026-05-15T09:14:48.607980"
+  },
+  {
+    "id": "3d9c9c37-416d-4a0d-8a2e-84887f203bd8",
+    "title": "习近平同特朗普在中南海小范围会晤",
+    "url": "http://mrdx.cn/content/20260516/Articel01001NR.htm",
+    "date": "2026-05-16",
+    "source": "新华社",
+    "summary": "习近平同特朗普在中南海小范围会晤",
+    "category": "speech",
+    "categoryname": "重要讲话",
+    "domain": "politics",
+    "domain_name": "政治",
+    "status": "pending",
+    "discovered_by": "ai_auto_xinhua",
+    "fetched_at": "2026-05-16T02:04:42.362223"
+  },
+  {
+    "id": "4c13d749-7c2d-4cf0-aadc-63f5f3af51a5",
+    "title": "深学笃行习近平总书记关于树立和践行正确政绩观的重要论述",
+    "url": "https://paper.people.com.cn/rmrb/pc/content/202605/16/content_30157131.html",
+    "date": "2026-05-16",
+    "source": "人民日报",
+    "summary": "深学笃行习近平总书记关于树立和践行正确政绩观的重要论述",
+    "category": "article",
+    "categoryname": "发表文章",
+    "domain": "politics",
+    "domain_name": "政治",
+    "status": "pending",
+    "discovered_by": "ai_auto_rmrb",
+    "fetched_at": "2026-05-16T02:04:46.894323"
   }
 ]
