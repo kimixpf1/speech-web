@@ -193,5 +193,50 @@
     "status": "pending",
     "discovered_by": "ai_auto_rmrb",
     "fetched_at": "2026-05-16T02:04:46.894323"
+  },
+  {
+    "id": "7df01a9c-2a0d-46bc-9b28-c53773d940ea",
+    "title": "总书记对残疾人群体格外关心关注",
+    "url": "http://mrdx.cn/content/20260518/Articel01002NR.htm",
+    "date": "2026-05-18",
+    "source": "新华社",
+    "summary": "总书记对残疾人群体格外关心关注",
+    "category": "speech",
+    "categoryname": "重要讲话",
+    "domain": "society",
+    "domain_name": "社会",
+    "status": "pending",
+    "discovered_by": "ai_auto_xinhua",
+    "fetched_at": "2026-05-18T00:53:48.058653"
+  },
+  {
+    "id": "80831bc2-6e23-4602-b9c1-170cf2bc2b78",
+    "title": "习近平同俄罗斯总统普京分别向第十届中俄博览会致贺信",
+    "url": "http://mrdx.cn/content/20260518/Articel01004NR.htm",
+    "date": "2026-05-18",
+    "source": "新华社",
+    "summary": "习近平同俄罗斯总统普京分别向第十届中俄博览会致贺信",
+    "category": "speech",
+    "categoryname": "重要讲话",
+    "domain": "diplomacy",
+    "domain_name": "外交",
+    "status": "pending",
+    "discovered_by": "ai_auto_xinhua",
+    "fetched_at": "2026-05-18T00:53:49.241187"
+  },
+  {
+    "id": "369dc3e0-d0b0-4b45-98f0-04e556609422",
+    "title": "社科界学习贯彻习近平文化思想座谈会在京举行",
+    "url": "https://paper.people.com.cn/rmrb/pc/content/202605/18/content_30157373.html",
+    "date": "2026-05-18",
+    "source": "人民日报",
+    "summary": "社科界学习贯彻习近平文化思想座谈会在京举行",
+    "category": "meeting",
+    "categoryname": "重要会议",
+    "domain": "party",
+    "domain_name": "党建",
+    "status": "pending",
+    "discovered_by": "ai_auto_rmrb",
+    "fetched_at": "2026-05-18T00:53:49.724022"
   }
 ]
