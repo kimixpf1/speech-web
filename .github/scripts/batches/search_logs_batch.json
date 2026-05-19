@@ -2190,5 +2190,120 @@
       }
     },
     "duration_seconds": 0
+  },
+  {
+    "executed_at": "2026-05-19T14:39:26+00:00",
+    "crawl_count": 7,
+    "search_count": 7,
+    "new_count": 0,
+    "status": "success",
+    "details": {
+      "source_breakdown": {
+        "xinhua": 3,
+        "qstheory": 1,
+        "rmrb": 2,
+        "baidu": 0,
+        "people": 1
+      },
+      "merge_summary": {
+        "input_total": 7,
+        "kept_count": 5,
+        "duplicate_seen_title_count": 2,
+        "duplicate_seen_url_count": 0,
+        "validation_rejected_count": 0,
+        "non_direct_rejected_count": 0,
+        "normalized_rejected_count": 0,
+        "duplicate_existing_title_count": 0
+      },
+      "merge_details": {
+        "kept_articles": [
+          {
+            "title": "总书记提出推动哲学社会科学高质量发展新要求",
+            "url": "http://mrdx.cn/content/20260519/Articel01005NR.htm",
+            "source": "xinhua"
+          },
+          {
+            "title": "总书记对残疾人群体格外关心关注",
+            "url": "http://mrdx.cn/content/20260518/Articel01002NR.htm",
+            "source": "xinhua"
+          },
+          {
+            "title": "习近平同俄罗斯总统普京分别向第十届中俄博览会致贺信",
+            "url": "http://mrdx.cn/content/20260518/Articel01004NR.htm",
+            "source": "xinhua"
+          },
+          {
+            "title": "习近平：做强做优做大实体经济",
+            "url": "https://www.qstheory.cn/20260515/b875d723c32f4df8876d45f7b178aa33/c.html",
+            "source": "qstheory"
+          },
+          {
+            "title": "社科界学习贯彻习近平文化思想座谈会在京举行",
+            "url": "https://paper.people.com.cn/rmrb/pc/content/202605/18/content_30157373.html",
+            "source": "rmrb"
+          }
+        ],
+        "duplicate_seen_title": [
+          {
+            "title": "习近平同俄罗斯总统普京分别向第十届中俄博览会致贺信",
+            "url": "https://paper.people.com.cn/rmrb/pc/content/202605/18/content_30157354.html",
+            "source": "rmrb"
+          },
+          {
+            "title": "习近平同俄罗斯总统普京分别向第十届中俄博览会致贺信",
+            "url": "http://jhsjk.people.cn/article/40721534?isindex=1",
+            "source": "people"
+          }
+        ],
+        "duplicate_seen_url": [],
+        "validation_rejected": [],
+        "non_direct_rejected": [],
+        "normalized_rejected": [],
+        "duplicate_existing_title": []
+      },
+      "search_date": "today",
+      "target_date": "2026年05月19日",
+      "existing_url_filtered": [
+        {
+          "title": "总书记提出推动哲学社会科学高质量发展新要求",
+          "url": "http://mrdx.cn/content/20260519/Articel01005NR.htm"
+        },
+        {
+          "title": "总书记对残疾人群体格外关心关注",
+          "url": "http://mrdx.cn/content/20260518/Articel01002NR.htm"
+        },
+        {
+          "title": "习近平同俄罗斯总统普京分别向第十届中俄博览会致贺信",
+          "url": "http://mrdx.cn/content/20260518/Articel01004NR.htm"
+        },
+        {
+          "title": "习近平：做强做优做大实体经济",
+          "url": "https://www.qstheory.cn/20260515/b875d723c32f4df8876d45f7b178aa33/c.html"
+        },
+        {
+          "title": "社科界学习贯彻习近平文化思想座谈会在京举行",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202605/18/content_30157373.html"
+        }
+      ],
+      "existing_url_filtered_count": 5,
+      "final_new_articles": [],
+      "save_result": {
+        "attempted_count": 0,
+        "saved_count": 0
+      },
+      "search_type": "auto",
+      "api_used": "自动定时搜索（晚间搜今日）",
+      "pipeline": {
+        "step1": "直抓新华社（新华每日电讯）",
+        "step2": "直抓人民日报电子版(头版/要闻)",
+        "step3": "直抓求是网(qstheory.cn)",
+        "step4": "百度搜索兜底(含求是网)",
+        "step5": "人民网讲话数据库兜底",
+        "step6": "统一去重(标题+URL)",
+        "step7": "与已有文章库比对",
+        "step8": "最终新增入待审核"
+      }
+    },
+    "duration_seconds": 0
   }
 ]
