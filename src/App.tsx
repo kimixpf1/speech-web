@@ -296,7 +296,7 @@ function HomePage() {
 
   // 初始化访问统计并设置实时订阅
   useEffect(() => {
-    // initAnalytics() 已暂停，减少 Supabase 带宽消耗 (2026-05-12)
+    initAnalytics();
     // initAutoSearchScheduler() 已废弃，改用 GitHub Actions 定时搜索
 
     // 设置实时订阅，通过 SWR 的 mutate 方法更新本地缓存

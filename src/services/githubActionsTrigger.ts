@@ -10,40 +10,6 @@ const WORKFLOW_FILE = 'ai-auto-search.yml';
 
 const GITHUB_TOKEN_KEY = 'github_workflow_token';
 
-const BATCH_FILE_PATH = '.github/scripts/batches/pending_articles_batch.json';
-
-function decodeBase64Utf8(base64: string): string {
-  const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-  return new TextDecoder().decode(bytes);
-}
-
-/** 通过 GitHub API 读取 batch 文件中的文章数量（Supabase 暂停期间的临时 fallback，2026-05-20 后移除） */
-async function getBatchArticleCount(): Promise<number> {
-  const token = getGitHubToken();
-  if (!token) return -1;
-  try {
-    const response = await fetchWithTimeout(
-      `https://api.github.com/repos/${GITHUB_REPO}/contents/${BATCH_FILE_PATH}?ref=main`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/vnd.github.v3+json',
-        },
-      },
-      15000
-    );
-    if (response.status === 404) return 0;
-    if (!response.ok) return -1;
-    const data = await response.json();
-    const content = decodeBase64Utf8(data.content.replace(/\n/g, ''));
-    const articles = JSON.parse(content);
-    return Array.isArray(articles) ? articles.length : 0;
-  } catch (err) {
-    console.warn('getBatchArticleCount: 解码或解析失败', err);
-    return -1;
-  }
-}
-
 function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -369,9 +335,6 @@ export async function waitForWorkflowCompletion(
     .from('pending_articles')
     .select('id', { count: 'exact', head: true });
 
-  // 临时 fallback：记录触发前 batch 文件文章数量（2026-05-20 Supabase 恢复后移除）
-  const beforeBatchCount = await getBatchArticleCount();
-
   // 初始等待 15 秒，让 GitHub API 有时间创建新的 run 记录
   onProgress?.('已触发工作流，等待 GitHub API 创建运行记录...');
   await new Promise(resolve => setTimeout(resolve, 15000));
@@ -406,18 +369,6 @@ export async function waitForWorkflowCompletion(
         // Supabase 有新增则直接返回
         if (supabaseNew > 0) {
           return { success: true, newCount: supabaseNew };
-        }
-        // Supabase 无新增，fallback 到 batch 文件（临时，2026-05-20 后移除）
-        const afterBatchCount = await getBatchArticleCount();
-        const batchNew = afterBatchCount >= 0 && beforeBatchCount >= 0
-          ? Math.max(0, afterBatchCount - beforeBatchCount)
-          : 0;
-        if (batchNew > 0) {
-          return {
-            success: true,
-            newCount: batchNew,
-            message: `后台搜索完成！新增 ${batchNew} 篇文章（暂存于 GitHub batch 文件，Supabase 恢复后可管理）`,
-          };
         }
         return { success: true, newCount: 0 };
       }
@@ -482,20 +433,6 @@ export async function waitForWorkflowCompletion(
       newCount: actualNewCount,
       timedOut: true,
       message: `轮询超时但检测到 ${actualNewCount} 篇新增文章，工作流可能已成功完成`,
-    };
-  }
-
-  // Supabase 无新增，fallback 到 batch 文件（临时，2026-05-20 后移除）
-  const afterBatchCountTimeout = await getBatchArticleCount();
-  const batchNewTimeout = afterBatchCountTimeout >= 0 && beforeBatchCount >= 0
-    ? Math.max(0, afterBatchCountTimeout - beforeBatchCount)
-    : 0;
-  if (batchNewTimeout > 0) {
-    return {
-      success: true,
-      newCount: batchNewTimeout,
-      timedOut: true,
-      message: `轮询超时但 batch 文件新增 ${batchNewTimeout} 篇文章（Supabase 恢复后可管理）`,
     };
   }
 

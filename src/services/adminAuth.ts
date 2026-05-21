@@ -18,30 +18,6 @@ export interface AdminUser {
   isAuthenticated: boolean;
 }
 
-// === 临时本地验证（Supabase Auth 不可用时的应急方案，2026-05-20 后恢复） ===
-async function sha256(message: string): Promise<string> {
-  const msgBuffer = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-// 已知管理员密码的 SHA-256 哈希（防明文存储）
-const LOCAL_AUTH_HASHES: Record<string, string> = {
-  admin: '818d5814c42c89e0e7c330f72935464ee0e5621cad01768cc7e617683c9482d6',
-};
-
-async function verifyLocalCredential(username: string, password: string): Promise<boolean> {
-  const expectedHash = LOCAL_AUTH_HASHES[username];
-  if (!expectedHash) return false;
-  try {
-    const inputHash = await sha256(password);
-    return inputHash === expectedHash;
-  } catch {
-    return false;
-  }
-}
-
 function isSessionExpired(): boolean {
   const ts = localStorage.getItem(AUTH_TIMESTAMP_KEY);
   if (!ts) return true;
@@ -101,9 +77,6 @@ export function isRemembered(): boolean {
   return localStorage.getItem(REMEMBER_KEY) === 'true';
 }
 
-/**
- * 管理员登录 - 使用 Supabase Auth；不可用时回退本地验证（应急方案，2026-05-20后恢复）
- */
 export async function loginAdmin(
   username: string,
   password: string,
@@ -122,16 +95,6 @@ export async function loginAdmin(
     });
 
     if (error) {
-      // 临时本地验证（Supabase Auth 不可用时的应急方案，2026-05-20后恢复）
-      console.warn('[adminAuth] Supabase Auth 错误，尝试本地验证:', error.message);
-      const ok = await verifyLocalCredential(username, password);
-      if (ok) {
-        setLocalAuthState();
-        if (rememberMe) {
-          saveCredentials(username, password);
-        }
-        return { success: true };
-      }
       return { success: false, error: error.message };
     }
 
@@ -153,23 +116,10 @@ export async function loginAdmin(
     return { success: true };
   } catch (err) {
     console.error('[adminAuth] loginAdmin failed:', err);
-    // 临时本地验证（Supabase 不可用时的应急方案，2026-05-20后恢复）
-    const ok = await verifyLocalCredential(username, password);
-    if (ok) {
-      setLocalAuthState();
-      if (rememberMe) {
-        saveCredentials(username, password);
-      }
-      return { success: true };
-    }
-    return { success: false, error: '服务不可用，且凭据验证失败', isNetworkError: true };
+    return { success: false, error: '服务不可用', isNetworkError: true };
   }
 }
 
-/**
- * 尝试用记住的凭据自动登录
- * 成功返回 true，失败清除凭据返回 false
- */
 export async function tryAutoLogin(): Promise<boolean> {
   const cred = getSavedCredentials();
   if (!cred) return false;
@@ -184,10 +134,6 @@ export async function tryAutoLogin(): Promise<boolean> {
   return true;
 }
 
-/**
- * 检查是否已登录
- * Supabase 不可用时回退到本地 localStorage 检查（应急方案，2026-05-20后恢复）
- */
 export async function isAdminLoggedIn(): Promise<boolean> {
   try {
     if (isSessionExpired()) {
@@ -198,8 +144,7 @@ export async function isAdminLoggedIn(): Promise<boolean> {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
-      // Supabase 不可用时 session 为 null（不抛异常），回退本地验证
-      return isAdminLoggedInSync();
+      return false;
     }
 
     if (!ADMIN_USER_IDS.includes(session.user.id)) {
@@ -208,15 +153,11 @@ export async function isAdminLoggedIn(): Promise<boolean> {
 
     return true;
   } catch (err) {
-    console.error('[adminAuth] isAdminLoggedIn failed, 回退本地验证:', err);
-    // Supabase 不可用时回退本地 localStorage 检查
-    return isAdminLoggedInSync();
+    console.error('[adminAuth] isAdminLoggedIn failed:', err);
+    return false;
   }
 }
 
-/**
- * 同步检查登录状态（用于组件渲染）
- */
 export function isAdminLoggedInSync(): boolean {
   if (isSessionExpired()) {
     clearAuthState();
@@ -225,15 +166,11 @@ export function isAdminLoggedInSync(): boolean {
   return localStorage.getItem(AUTH_KEY) === 'true';
 }
 
-/**
- * 管理员登出
- * @param forgetMe 是否同时清除记住的凭据
- */
 export async function logoutAdmin(forgetMe = false): Promise<void> {
   try {
     await supabase.auth.signOut();
   } catch {
-    // Supabase 不可用时忽略
+    // ignore
   }
   clearAuthState();
   if (forgetMe) {
@@ -241,24 +178,11 @@ export async function logoutAdmin(forgetMe = false): Promise<void> {
   }
 }
 
-/**
- * 获取当前管理员信息
- * Supabase 不可用时从 localStorage 构造（应急方案，2026-05-20后恢复）
- */
 export async function getCurrentAdmin(): Promise<AdminUser | null> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session || !ADMIN_USER_IDS.includes(session.user.id)) {
-      // Supabase 不可用时回退本地
-      if (isAdminLoggedInSync()) {
-        return {
-          id: 'local-bypass',
-          email: 'admin@office.local',
-          username: 'admin',
-          isAuthenticated: true,
-        };
-      }
       return null;
     }
 
@@ -269,16 +193,7 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
       isAuthenticated: true,
     };
   } catch (err) {
-    console.error('[adminAuth] getCurrentAdmin failed, 回退本地:', err);
-    // Supabase 不可用时从 localStorage 构造
-    if (isAdminLoggedInSync()) {
-      return {
-        id: 'local-bypass',
-        email: 'admin@office.local',
-        username: 'admin',
-        isAuthenticated: true,
-      };
-    }
+    console.error('[adminAuth] getCurrentAdmin failed:', err);
     return null;
   }
 }

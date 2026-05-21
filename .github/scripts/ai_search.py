@@ -25,32 +25,6 @@ print(f'[Config] SUPABASE_KEY: {"已配置" if SUPABASE_KEY else "未配置"} (s
 TABLE = 'pending_articles'
 LOG_TABLE = 'search_logs'
 
-# === 临时本地存储（Supabase 带宽耗尽应急方案，2026-05-20 后恢复） ===
-BATCH_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'batches')
-PENDING_BATCH_FILE = os.path.join(BATCH_DIR, 'pending_articles_batch.json')
-LOG_BATCH_FILE = os.path.join(BATCH_DIR, 'search_logs_batch.json')
-
-def check_supabase_available():
-    """检测 Supabase 是否可用。带宽超限时返回 False。"""
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        return False
-    try:
-        headers = {'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'}
-        resp = requests.get(
-            f'{SUPABASE_URL}/rest/v1/{TABLE}?select=id&limit=1',
-            headers=headers, timeout=5
-        )
-        if resp.status_code in (402, 429):
-            print(f'[Supabase] 配额超限或限流 (HTTP {resp.status_code})，切换本地存储模式')
-            return False
-        return True
-    except Exception as e:
-        print(f'[Supabase] 不可达: {e}，切换本地存储模式')
-        return False
-
-SUPABASE_AVAILABLE = check_supabase_available()
-print(f'[Supabase] 可用状态: {SUPABASE_AVAILABLE}')
-
 # 官方来源域名白名单
 OFFICIAL_DOMAINS = [
     'people.com.cn', 'www.people.com.cn', 'jhsjk.people.cn',  # 人民网
@@ -1046,33 +1020,21 @@ def get_existing_articles() -> Dict[str, Dict]:
     existing_urls = set()
     existing_titles = {}
 
-    # 从 Supabase 加载（如果可用）
-    if SUPABASE_AVAILABLE:
-        headers = {'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'}
-        targets = ['pending_articles', 'articles']
-        for table_name in targets:
-            try:
-                resp = requests.get(
-                    f'{SUPABASE_URL}/rest/v1/{table_name}?select=url,title&limit=5000',
-                    headers=headers,
-                    timeout=10
-                )
-                if resp.status_code != 200:
-                    print(f'[Existing] Failed to fetch {table_name}: HTTP {resp.status_code}')
-                    continue
-                _load_articles_to_sets(resp.json(), existing_urls, existing_titles)
-            except Exception as e:
-                print(f'[Existing] Error fetching {table_name}: {e}')
-
-    # 始终从本地批处理文件加载（用于去重 + Supabase 不可用时的兜底）
-    if os.path.exists(PENDING_BATCH_FILE):
+    headers = {'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'}
+    targets = ['pending_articles', 'articles']
+    for table_name in targets:
         try:
-            with open(PENDING_BATCH_FILE, 'r', encoding='utf-8') as f:
-                batch_articles = json.load(f)
-            _load_articles_to_sets(batch_articles, existing_urls, existing_titles)
-            print(f'[Existing] 本地批处理文件: {len(batch_articles)} 篇文章已纳入去重')
+            resp = requests.get(
+                f'{SUPABASE_URL}/rest/v1/{table_name}?select=url,title&limit=5000',
+                headers=headers,
+                timeout=10
+            )
+            if resp.status_code != 200:
+                print(f'[Existing] Failed to fetch {table_name}: HTTP {resp.status_code}')
+                continue
+            _load_articles_to_sets(resp.json(), existing_urls, existing_titles)
         except Exception as e:
-            print(f'[Existing] 加载批处理文件失败: {e}')
+            print(f'[Existing] Error fetching {table_name}: {e}')
 
     print(f'[Existing] Loaded {len(existing_urls)} urls, {len(existing_titles)} simplified titles')
     return {'urls': existing_urls, 'titles': existing_titles}
@@ -1106,64 +1068,26 @@ def save_articles(articles: List[Dict]) -> int:
         print(f'[Save] 没有文章需要保存')
         return 0
 
-    saved = 0
+    print(f'[Save] 正在保存 {len(articles)} 篇文章到 Supabase {TABLE}...')
+    for a in articles:
+        print(f'  - {a.get("title", "?")[:60]} | {a.get("url", "?")}')
 
-    # 尝试写入 Supabase
-    if SUPABASE_AVAILABLE:
-        try:
-            print(f'[Save] 正在保存 {len(articles)} 篇文章到 Supabase {TABLE}...')
-            for a in articles:
-                print(f'  - {a.get("title", "?")[:60]} | {a.get("url", "?")}')
-            resp = requests.post(
-                f'{SUPABASE_URL}/rest/v1/{TABLE}',
-                headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}',
-                         'Content-Type': 'application/json', 'Prefer': 'return=minimal,resolution=merge-duplicates'},
-                json=articles, timeout=30
-            )
-            if resp.status_code in (200, 201, 204):
-                print(f'[Save] 成功保存 {len(articles)} 篇到 Supabase (HTTP {resp.status_code})')
-                saved = len(articles)
-            else:
-                print(f'[Save] Supabase 写入失败: HTTP {resp.status_code} - {resp.text[:500]}')
-                print(f'[Save] 回退到本地批处理文件...')
-        except Exception as e:
-            print(f'[Save] Supabase 异常: {type(e).__name__}: {e}')
-            print(f'[Save] 回退到本地批处理文件...')
-
-    # 写入本地批处理文件（Supabase 不可用时的应急方案，2026-05-20 后恢复）
-    if not SUPABASE_AVAILABLE or saved == 0:
-        os.makedirs(BATCH_DIR, exist_ok=True)
-        existing_batch = []
-        if os.path.exists(PENDING_BATCH_FILE):
-            try:
-                with open(PENDING_BATCH_FILE, 'r', encoding='utf-8') as f:
-                    existing_batch = json.load(f)
-            except Exception:
-                existing_batch = []
-
-        # 与批处理文件中已有文章去重
-        batch_urls = set()
-        for a in existing_batch:
-            url = a.get('url', '')
-            if url:
-                batch_urls.add(url)
-                batch_urls.add(normalize_url_for_dedup(url))
-
-        new_to_batch = []
-        for a in articles:
-            url = a.get('url', '')
-            if url not in batch_urls and normalize_url_for_dedup(url) not in batch_urls:
-                new_to_batch.append(a)
-                batch_urls.add(url)
-                batch_urls.add(normalize_url_for_dedup(url))
-
-        existing_batch.extend(new_to_batch)
-        with open(PENDING_BATCH_FILE, 'w', encoding='utf-8') as f:
-            json.dump(existing_batch, f, ensure_ascii=False, indent=2)
-        print(f'[Save] 本地批处理: 新增 {len(new_to_batch)} 篇, 累积 {len(existing_batch)} 篇 → {PENDING_BATCH_FILE}')
-        saved = len(new_to_batch)
-
-    return saved
+    try:
+        resp = requests.post(
+            f'{SUPABASE_URL}/rest/v1/{TABLE}',
+            headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}',
+                     'Content-Type': 'application/json', 'Prefer': 'return=minimal,resolution=merge-duplicates'},
+            json=articles, timeout=30
+        )
+        if resp.status_code in (200, 201, 204):
+            print(f'[Save] 成功保存 {len(articles)} 篇到 Supabase (HTTP {resp.status_code})')
+            return len(articles)
+        else:
+            print(f'[Save] Supabase 写入失败: HTTP {resp.status_code} - {resp.text[:500]}')
+            return 0
+    except Exception as e:
+        print(f'[Save] Supabase 异常: {type(e).__name__}: {e}')
+        return 0
 
 
 def get_search_type():
@@ -1212,47 +1136,24 @@ def save_log(baidu_count, people_count, qstheory_count, xinhua_count, rmrb_count
         'duration_seconds': 0,
     }
 
-    # 写入 Supabase（如果可用）
-    supabase_ok = False
-    if SUPABASE_AVAILABLE:
-        try:
-            print(f'[Log] 保存到 {LOG_TABLE}: {json.dumps(log_data, ensure_ascii=False)}')
-            resp = requests.post(
-                f'{SUPABASE_URL}/rest/v1/{LOG_TABLE}',
-                headers={
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': f'Bearer {SUPABASE_KEY}',
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=representation'
-                },
-                json=log_data,
-                timeout=10
-            )
-            print(f'[Log] Response: {resp.status_code} - {resp.text[:200] if resp.text else "empty"}')
-            if resp.status_code in (200, 201):
-                supabase_ok = True
-            else:
-                print(f'[Log] ERROR: 保存日志失败 (HTTP {resp.status_code})')
-        except Exception as e:
-            print(f'[Log] Supabase 异常: {e}')
-
-    # Supabase 写入失败或不可用时回退到本地批处理文件（应急方案，2026-05-20 后恢复）
-    if not supabase_ok:
-        try:
-            os.makedirs(BATCH_DIR, exist_ok=True)
-            existing_logs = []
-            if os.path.exists(LOG_BATCH_FILE):
-                try:
-                    with open(LOG_BATCH_FILE, 'r', encoding='utf-8') as f:
-                        existing_logs = json.load(f)
-                except Exception:
-                    existing_logs = []
-            existing_logs.append(log_data)
-            with open(LOG_BATCH_FILE, 'w', encoding='utf-8') as f:
-                json.dump(existing_logs, f, ensure_ascii=False, indent=2)
-            print(f'[Log] 本地批处理: 已保存到 {LOG_BATCH_FILE} (共 {len(existing_logs)} 条)')
-        except Exception as e:
-            print(f'[Log] 本地批处理异常: {e}')
+    try:
+        print(f'[Log] 保存到 {LOG_TABLE}: {json.dumps(log_data, ensure_ascii=False)}')
+        resp = requests.post(
+            f'{SUPABASE_URL}/rest/v1/{LOG_TABLE}',
+            headers={
+                'apikey': SUPABASE_KEY,
+                'Authorization': f'Bearer {SUPABASE_KEY}',
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            },
+            json=log_data,
+            timeout=10
+        )
+        print(f'[Log] Response: {resp.status_code} - {resp.text[:200] if resp.text else "empty"}')
+        if resp.status_code not in (200, 201):
+            print(f'[Log] ERROR: 保存日志失败 (HTTP {resp.status_code})')
+    except Exception as e:
+        print(f'[Log] Supabase 异常: {e}')
 
 
 def _check_logs_for_window(logs, today_str, is_morning_window):
@@ -1292,31 +1193,19 @@ def check_window_already_ran() -> bool:
     is_morning_window = beijing_hour < 13
     window_name = '早间' if is_morning_window else '晚间'
 
-    # 检查 Supabase 日志
-    if SUPABASE_AVAILABLE:
-        try:
-            headers = {'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'}
-            resp = requests.get(
-                f'{SUPABASE_URL}/rest/v1/{LOG_TABLE}?select=id,executed_at,status,details&order=executed_at.desc&limit=20',
-                headers=headers, timeout=10
-            )
-            if resp.status_code == 200:
-                if _check_logs_for_window(resp.json(), today_str, is_morning_window):
-                    return True
-            else:
-                print(f'[CheckWindow] 获取 Supabase 日志失败: HTTP {resp.status_code}')
-        except Exception as e:
-            print(f'[CheckWindow] Supabase 查询异常: {e}')
-
-    # 检查本地批处理日志（Supabase 不可用时的应急方案，2026-05-20 后恢复）
-    if os.path.exists(LOG_BATCH_FILE):
-        try:
-            with open(LOG_BATCH_FILE, 'r', encoding='utf-8') as f:
-                local_logs = json.load(f)
-            if _check_logs_for_window(local_logs, today_str, is_morning_window):
+    try:
+        headers = {'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'}
+        resp = requests.get(
+            f'{SUPABASE_URL}/rest/v1/{LOG_TABLE}?select=id,executed_at,status,details&order=executed_at.desc&limit=20',
+            headers=headers, timeout=10
+        )
+        if resp.status_code == 200:
+            if _check_logs_for_window(resp.json(), today_str, is_morning_window):
                 return True
-        except Exception as e:
-            print(f'[CheckWindow] 本地日志检查异常: {e}')
+        else:
+            print(f'[CheckWindow] 获取 Supabase 日志失败: HTTP {resp.status_code}')
+    except Exception as e:
+        print(f'[CheckWindow] Supabase 查询异常: {e}')
 
     print(f'[CheckWindow] 今日 {today_str} {window_name}窗口 无成功记录')
     return False
