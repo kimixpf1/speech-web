@@ -32,3 +32,12 @@ __pycache__/
 # Temp files
 *.tmp
 *.temp
+
+# Sensitive credentials
+scripts/_local_service_role.txt
+*_service_role*
+*_secret*
+*_private_key*
+
+# Outage batch files (no longer used)
+.github/scripts/batches/
