@@ -18,13 +18,18 @@
 - 每轮结束前执行真人模拟测试与推送部署
 
 ## 当前待办
-- **[高优先]** 手动触发搜索验证：评论文章不再入库 + 已有文章正确去重 + 待审核列表显示新文章
-- **[高优先]** 继续观察 ECC 新增全局规则在后续任务中的实际执行效果，重点关注研究优先、质量门禁、会话交接、检查点机制是否真正被使用
+- **[高优先]** 在 Supabase SQL Editor 执行 migration 009 (article_details RLS)
+- **[高优先]** 在 Supabase Dashboard 轮换 service_role key（已在 git 历史中泄露）
+- **[高优先]** 修复 `scripts/audit_articles.py` 硬编码密钥为环境变量
 - **[中优先]** Supabase SQL执行（pending_articles SELECT策略改为 USING(true)）
 - **[中优先]** 把发布后线上巡检、PWA 缓存核验、Supabase 权限核验整理成稳定验收模板
 - **[低优先]** 改进 jhsjk.people.cn 动态渲染抓取
 
 ## 最近已完成
+- [x] 2026-05-21：Supabase恢复 — 移除所有应急fallback代码 + 安全修复 + 导入23篇outage文章（`dc22d36` + `de8da63`）
+- [x] 2026-05-15：Supabase暂停期间搜索结果 fallback 到 GitHub batch 文件判断（`07035ad`）
+- [x] 2026-05-13 v2026.5.21：Supabase封禁 — 管理员后台本地 SHA-256 验证绕过（`2fa53f4`）
+- [x] 2026-05-13 v2026.5.20：Supabase带宽耗尽应急 — AI搜索改为本地JSON存储（`6c45af1`）
 - [x] 2026-05-10 v2026.5.16：规则从 .trae/rules 迁移到 .claude/rules + 会话结束强制收尾规则 + 记住密码自动登录 + 修复手动搜索触发指向 + 项目规则精简去重（`635b32d`）
 - [x] 2026-05-06 v2026.5.15：全面巡检+安全扫描+ContentList Hooks违规修复（`17fa5ca`）
 - [x] 2026-05-05：再次全面审读 ECC，并将研究优先、显式质量门禁、最小修复、会话交接、检查点、并行调度、权限边界、日志脱敏等高价值能力固化进全局规则与项目规则

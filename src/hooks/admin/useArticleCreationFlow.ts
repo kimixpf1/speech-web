@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getDeepSeekApiKey, getPreferredExtractionApi } from '@/services/aiSearchService';
+import { getDeepSeekApiKey, getPreferredExtractionApi, detectDomain, DOMAIN_NAMES } from '@/services/aiSearchService';
 import {
   extractArticleFromText,
   extractArticleWithKimi,
@@ -15,8 +15,8 @@ function createDefaultNewArticle(): Partial<Speech> {
   return {
     category: 'speech',
     categoryName: '重要讲话',
-    domain: 'economy',
-    domainName: '经济',
+    domain: 'politics',
+    domainName: '政治',
     isZhengjiguan: false,
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1,
@@ -254,8 +254,10 @@ export function useArticleCreationFlow(options: {
           day: newArticle.day || day,
           category: (newArticle.category as Speech['category']) || 'speech',
           categoryName: newArticle.categoryName || '重要讲话',
-          domain: newArticle.domain || 'economy',
-          domainName: newArticle.domainName || '经济',
+          ...(() => {
+            const d = newArticle.domain || detectDomain(newArticle.title || '', newArticle.category) || 'politics';
+            return { domain: d, domainName: newArticle.domainName || DOMAIN_NAMES[d] || '政治' };
+          })(),
           isZhengjiguan: newArticle.isZhengjiguan || false,
           zhengjiguanLevel: newArticle.zhengjiguanLevel,
           source: newArticle.source,
@@ -355,6 +357,7 @@ export function useArticleCreationFlow(options: {
     setAddDialogOpen(true);
     setActiveTab('articles');
 
+    const detectedDomain = (pending.domain as Speech['domain']) || detectDomain(pending.title, pending.category) || 'politics';
     setNewArticle({
       title: pending.title,
       date: pending.date,
@@ -363,8 +366,8 @@ export function useArticleCreationFlow(options: {
       day: pending.day || new Date().getDate(),
       category: (pending.category as Speech['category']) || 'speech',
       categoryName: pending.categoryName || (pending.category === 'call' ? '致电回信' : '重要讲话'),
-      domain: (pending.domain as Speech['domain']) || 'politics',
-      domainName: pending.domainName || '政治',
+      domain: detectedDomain,
+      domainName: pending.domainName || DOMAIN_NAMES[detectedDomain] || '政治',
       source: pending.source || '',
       summary: pending.summary || '',
       url: pending.url || '',
