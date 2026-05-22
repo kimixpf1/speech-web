@@ -21,11 +21,14 @@
 - **[高优先]** 在 Supabase SQL Editor 执行 migration 009 (article_details RLS)
 - **[高优先]** 在 Supabase Dashboard 轮换 service_role key（已在 git 历史中泄露）
 - **[高优先]** 修复 `scripts/audit_articles.py` 硬编码密钥为环境变量
+- **[高优先]** 修复 mrdx.cn 链接无法 AI 识别提取内容的问题
+- **[中优先]** 数据库已有误分类文章手动修正（领域分类修复只影响新文章）
 - **[中优先]** Supabase SQL执行（pending_articles SELECT策略改为 USING(true)）
 - **[中优先]** 把发布后线上巡检、PWA 缓存核验、Supabase 权限核验整理成稳定验收模板
 - **[低优先]** 改进 jhsjk.people.cn 动态渲染抓取
 
 ## 最近已完成
+- [x] 2026-05-22：修复文章领域分类误判 - 外交/经济文章被错误归到政治（`538b70a`）
 - [x] 2026-05-21：Supabase恢复 — 移除所有应急fallback代码 + 安全修复 + 导入23篇outage文章（`dc22d36` + `de8da63`）
 - [x] 2026-05-15：Supabase暂停期间搜索结果 fallback 到 GitHub batch 文件判断（`07035ad`）
 - [x] 2026-05-13 v2026.5.21：Supabase封禁 — 管理员后台本地 SHA-256 验证绕过（`2fa53f4`）

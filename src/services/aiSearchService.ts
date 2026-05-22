@@ -58,6 +58,7 @@ const BAIDU_SEARCH_QUERY = '习近平 最新 site:people.com.cn OR site:xinhuane
 const OFFICIAL_DOMAINS = [
   'people.com.cn', 'www.people.com.cn', 'jhsjk.people.cn',
   'xinhuanet.com', 'www.xinhuanet.com', 'news.cn', 'www.news.cn',
+  'mrdx.cn', 'www.mrdx.cn',
   'qstheory.cn', 'www.qstheory.cn',
   'cctv.com', 'www.cctv.com', 'cntv.cn',
   'gov.cn', 'www.gov.cn',

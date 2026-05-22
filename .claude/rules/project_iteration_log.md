@@ -1,5 +1,47 @@
 # 项目迭代记录
 
+## 2026-05-22 修复文章领域分类误判
+
+### 本次目标
+- 修复外交类文章（会见普京、同外国领导人会谈等）被错误分类到"政治"而非"外交"
+- 修复经济类文章（做优做大实体经济等）被错误分类到"政治"而非"经济"
+- 根因：外交关键词不全（缺少会谈/通话等动词+无外国领导人/国家名匹配），前端管理后台默认 domain 硬编码 politics
+
+### 实际改动
+
+#### 1. Python `ai_search.py` detect_domain() 增强
+- 外交关键词：17→29个，新增`会谈`/`通话`/`通电话`/`晤`/`元首`/`首相`/`国王`/`女王`/`天皇`/`教皇`/`特使`/`使节`
+- 去掉过于宽泛的`合作`和`出席`（避免经济/国内会议误判为外交）
+- 新增22个外国领导人名字匹配（普京/拜登/特朗普/马克龙/朔尔茨/岸田/尹锡悦/金正恩/阮富仲/苏林/莫迪/苏纳克/斯塔默/米歇尔/冯德莱恩/古特雷斯/泽连斯基/内塔尼亚胡/埃尔多安/卢拉/拉马福萨）
+- 新增40+外国国家/组织名匹配（俄罗斯/美国/日本/韩国... + 东盟/欧盟/金砖/上合/G20/G7）
+- 经济关键词：新增`实体经济`/`新质生产力`/`数字化`/`民营经济`/`营商环境`
+- 消除双份diplomacy_keywords，统一引用DOMAIN_KEYWORDS['diplomacy']
+- `蒙古`→`蒙古国`，`亚太`→`亚太经合组织`，避免内蒙古/亚太经济等误判
+
+#### 2. 前端 `aiSearchService.ts` 新增 detectDomain()
+- TS端对齐Python的detect_domain逻辑（关键词表/领导人名/国家名/匹配顺序一致）
+- normalizeTitleForDomain() 对齐 Python 的 normalize_article_title()
+- 导出 detectDomain() 和 DOMAIN_NAMES 供管理后台使用
+
+#### 3. 前端 `useArticleCreationFlow.ts` 智能默认domain
+- handleApprovePending: 默认domain从硬编码`'politics'`改为`detectDomain(title, category)`
+- 发布文章: 默认domain从硬编码`'economy'`改为`detectDomain(title, category)`
+- createDefaultNewArticle: 空模板默认改为`'politics'`（无标题时更合理的fallback）
+
+### 当前状态
+- ✅ Python 语法检查通过
+- ✅ TypeScript 类型检查通过
+- ✅ 生产构建成功（22.51s）
+- ✅ Code-reviewer 审查通过（所有CRITICAL/HIGH已修复）
+- ✅ 推送成功（`538b70a`）
+
+### 提交记录
+- `538b70a` fix: 修复文章领域分类误判 - 外交/经济文章被错误归到政治
+
+### 遗留事项
+- 数据库中已有误分类文章需手动修正（Python端只影响新文章，已有数据不回溯）
+- 待处理用户反馈：mrdx.cn链接无法AI提取内容（另一个issue）
+
 ## 2026-05-21 Supabase恢复 — 移除所有应急fallback代码 + 安全修复
 
 ### 本次目标
