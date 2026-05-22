@@ -1,5 +1,34 @@
 # 项目迭代记录
 
+## 2026-05-22 修复文章领域分类误判 + mrdx.cn白名单
+
+### 本次目标
+1. 修复外交类文章被错误分类到"政治"而非"外交"
+2. 修复经济类文章被错误分类到"政治"而非"经济"
+3. 修复 mrdx.cn（新华每日电讯）链接无法被AI搜索识别
+
+### 提交记录
+- `538b70a` fix: 修复文章领域分类误判 - 外交/经济文章被错误归到政治
+- `d43c7cc` fix: 添加mrdx.cn到前端官方域名白名单
+
+### 改动1: 领域分类增强（538b70a）
+- ai_search.py: 外交关键词17→29个 + 22个外国领导人名 + 40+国家/组织名
+- aiSearchService.ts: 新增detectDomain()，TS端对齐Python逻辑
+- useArticleCreationFlow.ts: 默认domain改为智能检测
+
+### 改动2: mrdx.cn白名单（d43c7cc）
+- aiSearchService.ts: OFFICIAL_DOMAINS新增mrdx.cn/www.mrdx.cn
+
+### 当前状态
+- ✅ TypeScript 类型检查通过
+- ✅ 生产构建成功
+- ✅ Python 语法检查通过
+- ✅ 推送成功
+
+### 遗留事项
+- 数据库已有误分类文章需手动修正
+- mrdx.cn手动URL提取可能仍受CORS代理限制（需要测试）
+
 ## 2026-05-22 修复文章领域分类误判
 
 ### 本次目标

@@ -21,7 +21,7 @@
 - **[高优先]** 在 Supabase SQL Editor 执行 migration 009 (article_details RLS)
 - **[高优先]** 在 Supabase Dashboard 轮换 service_role key（已在 git 历史中泄露）
 - **[高优先]** 修复 `scripts/audit_articles.py` 硬编码密钥为环境变量
-- **[高优先]** 修复 mrdx.cn 链接无法 AI 识别提取内容的问题
+- **[高优先]** 修复 mrdx.cn 手动URL提取的CORS代理问题（白名单已修复，提取可能仍失败）
 - **[中优先]** 数据库已有误分类文章手动修正（领域分类修复只影响新文章）
 - **[中优先]** Supabase SQL执行（pending_articles SELECT策略改为 USING(true)）
 - **[中优先]** 把发布后线上巡检、PWA 缓存核验、Supabase 权限核验整理成稳定验收模板
