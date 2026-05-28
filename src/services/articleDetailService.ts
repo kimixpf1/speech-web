@@ -7,6 +7,45 @@ const ARTICLE_DETAILS_TABLE = 'article_details';
 // 本地存储键
 const DETAILS_CACHE_KEY = 'site_article_details_cache';
 
+// 静态详情缓存（按年份懒加载）
+const staticDetailsCache = new Map<number, Record<string, ArticleDetailContent>>();
+
+async function loadStaticDetailsForYear(year: number): Promise<Record<string, ArticleDetailContent> | null> {
+  if (staticDetailsCache.has(year)) return staticDetailsCache.get(year)!;
+
+  try {
+    let data: Record<string, { id: string; abstract: string; fullText: string; analysis: string }>;
+    switch (year) {
+      case 2024: data = (await import('@/data/details-2024.json')).default; break;
+      case 2025: data = (await import('@/data/details-2025.json')).default; break;
+      case 2026: data = (await import('@/data/details-2026.json')).default; break;
+      default: return null;
+    }
+    const normalized: Record<string, ArticleDetailContent> = {};
+    for (const [id, d] of Object.entries(data)) {
+      normalized[id] = {
+        id: d.id,
+        abstract: normalizeSummaryText(d.abstract || ''),
+        fullText: d.fullText || '',
+        analysis: normalizeAnalysisText(d.analysis || ''),
+      };
+    }
+    staticDetailsCache.set(year, normalized);
+    return normalized;
+  } catch {
+    return null;
+  }
+}
+
+async function getStaticDetail(id: string): Promise<ArticleDetailContent | null> {
+  // 从 id 推断年份（格式如 "P2024-0264" 或 "2024-01"）
+  const yearMatch = id.match(/\b(20\d{2})\b/);
+  if (!yearMatch) return null;
+  const year = parseInt(yearMatch[1]);
+  const details = await loadStaticDetailsForYear(year);
+  return details?.[id] ?? null;
+}
+
 export interface ArticleDetailContent {
   id: string;
   abstract: string;
@@ -38,11 +77,15 @@ function saveLocalDetails(details: Record<string, ArticleDetailContent>): void {
   }
 }
 
-// 获取文章详情
+// 获取文章详情（静态数据优先，不查 Supabase 节省带宽）
 export async function getArticleDetail(id: string, forceRefresh: boolean = false): Promise<ArticleDetailContent | null> {
-  // 如果强制刷新，跳过本地缓存
+  // 强制刷新时跳过静态数据（管理员场景）
   if (!forceRefresh) {
-    // 先检查本地缓存
+    // 优先查静态数据
+    const staticDetail = await getStaticDetail(id);
+    if (staticDetail) return staticDetail;
+
+    // 再查本地缓存
     const localDetails = getLocalDetails();
     if (localDetails[id]) {
       return {
@@ -53,7 +96,7 @@ export async function getArticleDetail(id: string, forceRefresh: boolean = false
     }
   }
 
-  // 从云端获取
+  // 最后查 Supabase（管理员操作或新文章）
   try {
     if (navigator.onLine) {
       const { data, error } = await supabase
@@ -69,12 +112,11 @@ export async function getArticleDetail(id: string, forceRefresh: boolean = false
           fullText: data.full_text || '',
           analysis: normalizeAnalysisText(data.analysis || ''),
         };
-        
-        // 更新本地缓存
+
         const localDetails = getLocalDetails();
         localDetails[id] = detail;
         saveLocalDetails(localDetails);
-        
+
         return detail;
       }
     }

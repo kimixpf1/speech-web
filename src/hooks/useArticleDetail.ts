@@ -1,8 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { speechesData } from '@/data/speeches';
-import { zhengjiguanArticles } from '@/data/zhengjiguanArticles';
 import { getLocalArticlesSync, type Speech } from '@/services/articleServiceEnhanced';
-import { supabase } from '@/lib/supabase';
 import { getArticleDetail, saveArticleDetail } from '@/services/articleDetailService';
 import { generateSummaryAndAnalysis, isApiKeyConfigured } from '@/services/aiSummaryService';
 import { normalizeArticleUrl, normalizeSummaryText, updatePageMeta, resetPageMeta, injectArticleJsonLd, removeJsonLd } from '@/lib/utils';
@@ -64,57 +61,14 @@ export function useArticleDetail(id: string | undefined): UseArticleDetailReturn
         setIsLoading(false);
       };
 
-      let baseSpeech = speechesData.find(s => s.id === id)
-        || zhengjiguanArticles.find(s => s.id === id);
-
-      if (!baseSpeech) {
-        const localArticles = getLocalArticlesSync();
-        baseSpeech = localArticles.find(s => s.id === id);
-      }
+      // 从静态数据查找文章基础信息（getLocalArticlesSync 已返回全部 1173 篇）
+      let baseSpeech = getLocalArticlesSync().find(s => s.id === id);
 
       if (baseSpeech) {
         loadDetailAndSet(baseSpeech);
       } else {
-        const loadSingleFromCloud = async () => {
-          try {
-            const { data, error } = await supabase
-              .from('articles')
-              .select('*')
-              .eq('id', id)
-              .limit(1);
-
-            if (!error && data && data.length > 0) {
-              const dbArticle = data[0] as Record<string, unknown>;
-              const cloudSpeech: Speech = {
-                id: dbArticle.id as string,
-                title: (dbArticle.title || '') as string,
-                date: (dbArticle.date || '') as string,
-                year: dbArticle.year as number,
-                month: dbArticle.month as number,
-                day: dbArticle.day as number,
-                category: (dbArticle.category || 'speech') as 'speech' | 'article' | 'meeting' | 'inspection' | 'call',
-                categoryName: (dbArticle.categoryname || dbArticle.categoryName || '重要讲话') as string,
-                domain: (dbArticle.domain || 'economy') as 'economy' | 'politics' | 'culture' | 'society' | 'ecology' | 'party' | 'defense' | 'diplomacy',
-                domainName: (dbArticle.domain_name || dbArticle.domainName || '经济') as string,
-                isZhengjiguan: (dbArticle.is_zhengjiguan || false) as boolean,
-                zhengjiguanLevel: dbArticle.zhengjiguan_level as 'central' | 'jiangsu' | 'suzhou' | undefined,
-                source: (dbArticle.source || '') as string,
-                location: (dbArticle.location || '') as string,
-                summary: normalizeSummaryText((dbArticle.summary || '') as string),
-                url: normalizeArticleUrl((dbArticle.url || '') as string),
-              };
-              await loadDetailAndSet(cloudSpeech);
-            } else {
-              setSpeech(null);
-              setIsLoading(false);
-            }
-          } catch (err) {
-            console.error('从云端加载文章失败:', err);
-            setSpeech(null);
-            setIsLoading(false);
-          }
-        };
-        loadSingleFromCloud();
+        setSpeech(null);
+        setIsLoading(false);
       }
     } else {
       setIsLoading(false);

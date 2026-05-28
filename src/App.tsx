@@ -294,12 +294,15 @@ function HomePage() {
     return () => window.clearTimeout(timeoutId);
   }, []);
 
-  // 初始化访问统计并设置实时订阅
+  // 初始化访问统计
   useEffect(() => {
     initAnalytics();
-    // initAutoSearchScheduler() 已废弃，改用 GitHub Actions 定时搜索
+  }, []);
 
-    // 设置实时订阅，通过 SWR 的 mutate 方法更新本地缓存
+  // 实时订阅仅在管理员登录时启用（节省 Supabase 带宽）
+  useEffect(() => {
+    if (!isAdminLoggedInSync()) return;
+
     const unsubscribe = setupRealtimeSubscription(
       (updatedArticle) => {
         mutate((prevArticles = []) => {
@@ -310,7 +313,7 @@ function HomePage() {
             return updated;
           }
           return [updatedArticle, ...prevArticles];
-        }, false); // 设置为 false 避免不必要的重新验证请求
+        }, false);
         if (updatedArticle.isZhengjiguan) {
           void mutateZhengjiguan();
         }
